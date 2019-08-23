@@ -1,0 +1,10 @@
+target_default: everything
+
+include:
+  - 1_geo_boundary.yml
+
+targets:
+  everything:
+    depends:
+      - 1_geo_boundary
+

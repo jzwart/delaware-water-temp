@@ -1,0 +1,19 @@
+target_default: 1_geo_boundary
+
+packages:
+  - sf
+  - yaml
+
+targets:
+  1_geo_boundary:
+    depends:
+      - 1_geo_boundary/out/geo_boundary.rds.ind
+
+  model_config:
+    command: read_yaml('lib/cfg/model_settings.yml')
+
+  region:
+    command: model_config[I('region')]
+
+  1_geo_boundary/out/geo_boundary.rds.ind:
+    command: get_geo_boundary()

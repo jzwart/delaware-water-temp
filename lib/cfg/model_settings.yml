@@ -1,0 +1,15 @@
+
+### geographic location ###
+region: 'delaware_river_basin'
+
+
+### data assimilation settings ###
+n_en: 100 # number of ensembles for data assimilation
+n_params_est: 10 # number of parameters we're calibrating
+n_params_obs: 0 # number of parameters for which we have observations
+n_states: 10 # number of states we're updating; will be dependent on obs
+start: '2010-01-01'
+stop: '2015-01-01'
+
+
+
