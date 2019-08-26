@@ -1,0 +1,18 @@
+target_default: 2_1_model_fabric
+
+packages:
+  - sf
+  - yaml
+
+sources:
+  -
+
+targets:
+  2_1_model_fabric:
+    depends:
+      - 2_1_model_fabric/out/nhd_cutout.shp.ind
+
+  2_1_model_fabric/out/nhd_cutout.shp.ind:
+    command: get_geo_boundary(
+      ind_file = target_name,
+      region = region)
