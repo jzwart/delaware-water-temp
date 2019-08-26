@@ -1,0 +1,12 @@
+version: 0.3.0
+name: 1_geo_boundary/out/geo_boundary.rds.ind
+type: file
+hash: 9bda10365e6d4ed9da41f987f509d104
+time: 2019-08-26 22:52:32 UTC
+depends:
+  region: 4e9617eab590f437839afe17de7ebb2f
+fixed: 0b4ff8aab0321c067676acd98f939219
+code:
+  functions:
+    get_geo_boundary: ebae4f5ad443277a59e57c37978c8a0a
+

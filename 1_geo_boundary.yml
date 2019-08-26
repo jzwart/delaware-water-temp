@@ -4,6 +4,9 @@ packages:
   - sf
   - yaml
 
+sources:
+  - 1_geo_boundary/src/get_geo_boundary.R
+
 targets:
   1_geo_boundary:
     depends:
@@ -16,4 +19,6 @@ targets:
     command: model_config[I('region')]
 
   1_geo_boundary/out/geo_boundary.rds.ind:
-    command: get_geo_boundary()
+    command: get_geo_boundary(
+      ind_file = target_name,
+      region = region)
