@@ -3,6 +3,7 @@ target_default: 2_1_model_fabric
 packages:
   - sf
   - yaml
+  - nhdplusTools
 
 sources:
   -
@@ -13,6 +14,7 @@ targets:
       - 2_1_model_fabric/out/nhd_cutout.shp.ind
 
   2_1_model_fabric/out/nhd_cutout.shp.ind:
-    command: get_geo_boundary(
+    command: get_nhd(
       ind_file = target_name,
-      region = region)
+      geo_boundary = '1_geo_boundary/out/geo_boundary.rds',
+      huc = huc)

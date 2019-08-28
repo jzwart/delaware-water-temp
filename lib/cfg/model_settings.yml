@@ -1,7 +1,7 @@
 
 ### geographic location ###
 region: 'drbbnd'
-
+huc: '0204' # HUC4 for DRB (this HUC extends a little bit beyond the DRB boundary extent created by DRBC GIS team)
 
 ### data assimilation settings ###
 n_en: 100 # number of ensembles for data assimilation
