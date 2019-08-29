@@ -1,0 +1,21 @@
+target_default: 3_observations
+
+packages:
+  - sf
+  - yaml
+  - nhdplusTools
+
+sources:
+  -
+
+targets:
+  3_observations:
+    depends:
+      - 3_observations/out/obs_subset.rds.ind
+
+
+  3_observations/out/obs_subset.rds.ind:
+    command: subset_obs(
+      ind_file = target_name,
+      site_ids = '2_1_model_fabric/out/site_ids.rds',
+      obs = '3_observations/in/nwis_dv_data.rds')

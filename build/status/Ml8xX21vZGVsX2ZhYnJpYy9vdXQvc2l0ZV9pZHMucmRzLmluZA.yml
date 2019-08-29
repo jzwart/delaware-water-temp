@@ -1,0 +1,12 @@
+version: 0.3.0
+name: 2_1_model_fabric/out/site_ids.rds.ind
+type: file
+hash: d338206390e4100494b944ffff13da5e
+time: 2019-08-28 20:44:05 UTC
+depends:
+  2_1_model_fabric/tmp/02/nhdplus_0204.gpkg: bca4b7a24cdab5abfdf022e1243825bb
+fixed: 454255d1c6626ea585a1011937d82229
+code:
+  functions:
+    get_site_ids: 0b25e1e7eacdd69796e614c4f9cbbb3c
+

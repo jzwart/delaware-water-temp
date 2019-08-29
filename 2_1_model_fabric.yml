@@ -4,17 +4,25 @@ packages:
   - sf
   - yaml
   - nhdplusTools
+  - dplyr
 
 sources:
-  -
+  - 2_1_model_fabric/src/get_nhd.R
+  - 2_1_model_fabric/src/get_site_ids.R
 
 targets:
   2_1_model_fabric:
     depends:
       - 2_1_model_fabric/out/nhd_cutout.shp.ind
+      - 2_1_model_fabric/out/site_ids.rds.ind
 
   2_1_model_fabric/out/nhd_cutout.shp.ind:
     command: get_nhd(
       ind_file = target_name,
       geo_boundary = '1_geo_boundary/out/geo_boundary.rds',
       huc = huc)
+
+  2_1_model_fabric/out/site_ids.rds.ind:
+    command: get_site_ids(
+      ind_file = target_name,
+      nhd_gpkg = '2_1_model_fabric/tmp/02/nhdplus_0204.gpkg')

@@ -2,9 +2,11 @@ target_default: everything
 
 include:
   - 1_geo_boundary.yml
+  - 2_1_model_fabric.yml
 
 targets:
   everything:
     depends:
       - 1_geo_boundary
+      - 2_1_model_fabric
 
