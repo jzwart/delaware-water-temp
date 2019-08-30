@@ -13,14 +13,21 @@ sources:
 targets:
   2_1_model_fabric:
     depends:
-      - 2_1_model_fabric/out/nhd_cutout.shp.ind
+      - 2_1_model_fabric/out/nhd_flowline_subset.rds.ind
+      - 2_1_model_fabric/out/nhd_waterbody_subset.rds.ind
       - 2_1_model_fabric/out/site_ids.rds.ind
 
-  2_1_model_fabric/out/nhd_cutout.shp.ind:
-    command: get_nhd(
+  2_1_model_fabric/out/nhd_flowline_subset.rds.ind:
+    command: get_nhd_flowline(
       ind_file = target_name,
-      geo_boundary = '1_geo_boundary/out/geo_boundary.rds',
-      huc = huc)
+      geo_boundary_file = '1_geo_boundary/out/geo_boundary.rds',
+      hu_list = huc)
+
+  2_1_model_fabric/out/nhd_waterbody_subset.rds.ind:
+    command: get_nhd_waterbody(
+      ind_file = target_name,
+      geo_boundary_file = '1_geo_boundary/out/geo_boundary.rds',
+      hu_list = huc)
 
   2_1_model_fabric/out/site_ids.rds.ind:
     command: get_site_ids(

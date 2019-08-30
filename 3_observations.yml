@@ -13,7 +13,6 @@ targets:
     depends:
       - 3_observations/out/obs_subset.rds.ind
 
-
   3_observations/out/obs_subset.rds.ind:
     command: subset_obs(
       ind_file = target_name,
