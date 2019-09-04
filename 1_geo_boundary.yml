@@ -25,6 +25,5 @@ targets:
     command: get_geo_boundary(
       ind_file = target_name,
       region = region)
-
   1_geo_boundary/out/geo_boundary.rds:
     command: gd_get('1_geo_boundary/out/geo_boundary.rds.ind', 'lib/cfg/gd_config.yml')

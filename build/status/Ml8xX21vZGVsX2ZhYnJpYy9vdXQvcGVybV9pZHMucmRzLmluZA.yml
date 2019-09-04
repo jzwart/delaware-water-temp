@@ -1,0 +1,12 @@
+version: 0.3.0
+name: 2_1_model_fabric/out/perm_ids.rds.ind
+type: file
+hash: 72e487bfe41512695813e71e8f2ec407
+time: 2019-09-04 19:52:58 UTC
+depends:
+  huc: 28a0cac600c7c7cb3e3fd5c75ed48ac4
+fixed: 2c767bf3ec04c5f684f426e771762ea8
+code:
+  functions:
+    get_perm_ids: 5f6f9369e80aac0b7a4b3f4116fd431a
+

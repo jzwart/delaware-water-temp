@@ -1,6 +1,6 @@
 
 ### geographic location ###
-region: 'drbbnd'
+region: 'drbbnd' # using DRB Boundary from https://www.state.nj.us/drbc/basin/map/GIS.html Downloaded the file 'drbbnd.zip'
 huc: '0204' # HUC4 for DRB (this HUC extends a little bit beyond the DRB boundary extent created by DRBC GIS team)
 
 ### data assimilation settings ###

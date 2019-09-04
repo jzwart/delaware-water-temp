@@ -12,36 +12,86 @@ start = as.Date('2010-01-01')
 
 stop = as.Date('2015-01-01')
 
-time_step = 'days'
+#' retreive the model time steps based on start and stop dates and time step
+#'
+#' @param model_start model start date in date class
+#' @param model_stop model stop date in date class
+#' @param time_step model time step, defaults to daily timestep
+get_model_dates = function(model_start, model_stop, time_step = 'days'){
 
-model_dates = seq.Date(from = start, to = stop, by = time_step)
+  model_dates = seq.Date(from = as.Date(model_start), to = as.Date(model_stop), by = time_step)
 
-n_step = length(model_dates)
-
-Y = array(dim = c(n_states + n_params_est, n_step, n_en)) # vector for holding states and parameters for updating
-
-R = array(0, dim = c(n_states + n_params_obs, n_states + n_params_obs, n_step)) # observation error matrix, should be a square matrix where col & row = the number of states and params for which you have observations
-
-temp_sd = .53 # estimating temperature observation accruacy based on https://www.onsetcomp.com/products/data-loggers/ua-002-64
-temp_var = temp_sd^2 #variance of temperature observations
-
-param_sd = 0
-param_var = param_sd^2
-
-for(i in 1:n_states){
-  R[i, i, ] = temp_var # variance is the same for each depth and time step; could make dynamic or varying by time step if we have good reason to do so
+  return(model_dates)
 }
 
-# measurement operator matrix saying 1 if there is observation data available, 0 otherwise
-H = array(0, dim=c(n_states + n_params_obs, n_states + n_params_est, n_step)) # dimensions will be n_depths x Y vector length (or n_depths + n_params)
+#' vector for holding states and parameters for updating
+#'
+#' @param n_states number of states we're updating in data assimilation routine; this will be dependent on observations
+#' @param n_params_est number of parameters we're calibrating
+#' @param n_step number of model timesteps
+#' @param n_en number of ensembles
+get_Y_vector = function(n_states, n_params_est, n_step, n_en){
 
-obs = data.frame() # create a dataframe that contains observations of temperature for each model timestep and each depth you're estimating (dimensions should be n_depth rows by nStep columns)
+  Y = array(dim = c(n_states + n_params_est, n_step, n_en))
 
-for(t in 1:n_step){
-  H[1, 1, t] = ifelse(!is.na(obs[1, t]), 1, 0) # checks if there is an observation at given depth and timestep and puts in 1 if there is obs, 0 otherwise
-  H[2, 2, t] = ifelse(!is.na(obs[2, t]), 1, 0)
-  H[3, 3, t] = ifelse()....# fill in rest for all depths
-  .....
+  return(Y)
+}
+
+#' observation error matrix, should be a square matrix where
+#'   col & row = the number of states and params for which you have observations
+#'
+#' @param n_states number of states we're updating in data assimilation routine; this will be dependent on observations
+#' @param n_param_obs number of parameters for which we have observations
+#' @param n_step number of model timesteps
+#' @param state_sd vector of state observation standard deviation
+#' @param param_sd vector of parmaeter observation standard deviation
+get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_sd ){
+
+  R = array(0, dim = c(n_states + n_params_obs, n_states + n_params_obs, n_step))
+
+  state_sd = state_sd # estimating temperature observation accruacy based on https://www.onsetcomp.com/products/data-loggers/ua-002-64
+  state_var = state_sd^2 #variance of temperature observations
+
+  param_sd = param_sd
+  param_var = param_sd^2
+
+  all_var = c(state_var, param_var)
+
+  for(i in 1:n_step){
+    # variance is the same for each depth and time step; could make dynamic or varying by time step if we have good reason to do so
+    R[,,i] = diag(all_var, n_states + n_params_obs, n_states + n_params_obs)
+  }
+
+  return(R)
+}
+
+#' Measurement operator matrix saying 1 if there is observation data available, 0 otherwise
+#'
+#' @param n_states number of states we're updating in data assimilation routine; this will be dependent on observations
+#' @param n_param_obs number of parameters for which we have observations
+#' @param n_params_est number of parameters we're calibrating
+#' @param n_step number of model timesteps
+get_obs_id_matrix = function(n_states, n_params_obs, n_params_est, n_step, obs){
+
+  # dimensions will be n_depths by Y vector length (or n_depths + n_params)
+  H = array(0, dim=c(n_states + n_params_obs, n_states + n_params_est, n_step))
+
+  # order goes 1) states, 2)params for which we have obs, 3) params for which we're estimating but don't have obs
+
+  for(t in 1:n_step){
+    H[1:(n_states + n_params_obs), 1:(n_states + n_params_obs), t] = diag(ifelse(is.na(obs[,,t]),0, 1), n_states + n_params_obs, n_states + n_params_obs)
+  }
+
+  return(H)
+}
+
+#' turn dataframe into matrix
+#'
+get_obs_matrix = function(obs_df){
+
+
+
+  return(obs_matrix)
 }
 
 ##' @param Y vector for holding states and parameters you're estimating

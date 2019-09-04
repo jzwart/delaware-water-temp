@@ -8,28 +8,40 @@ packages:
 
 sources:
   - 2_1_model_fabric/src/get_nhd.R
-  - 2_1_model_fabric/src/get_site_ids.R
+  - 2_1_model_fabric/src/get_perm_ids.R
 
 targets:
   2_1_model_fabric:
     depends:
       - 2_1_model_fabric/out/nhd_flowline_subset.rds.ind
       - 2_1_model_fabric/out/nhd_waterbody_subset.rds.ind
-      - 2_1_model_fabric/out/site_ids.rds.ind
+      - 2_1_model_fabric/out/perm_ids.rds.ind
 
+##### subset hydrologic fabric to the region you're modeling. Using NHD as model fabric ####
   2_1_model_fabric/out/nhd_flowline_subset.rds.ind:
     command: get_nhd_flowline(
       ind_file = target_name,
       geo_boundary_file = '1_geo_boundary/out/geo_boundary.rds',
-      hu_list = huc)
+      huc = huc)
+  2_1_model_fabric/out/nhd_flowline_subset.rds:
+    command: gd_get('2_1_model_fabric/out/nhd_flowline_subset.rds.ind')
 
   2_1_model_fabric/out/nhd_waterbody_subset.rds.ind:
     command: get_nhd_waterbody(
       ind_file = target_name,
       geo_boundary_file = '1_geo_boundary/out/geo_boundary.rds',
-      hu_list = huc)
+      huc = huc)
+  2_1_model_fabric/out/nhd_waterbody_subset.rds:
+    command: gd_get('2_1_model_fabric/out/nhd_waterbody_subset.rds.ind')
 
-  2_1_model_fabric/out/site_ids.rds.ind:
-    command: get_site_ids(
+##### get list of permanent ids for subsetting observations linked to the NHD network #######
+  2_1_model_fabric/out/perm_ids.rds.ind:
+    command: get_perm_ids(
       ind_file = target_name,
-      nhd_gpkg = '2_1_model_fabric/tmp/02/nhdplus_0204.gpkg')
+      huc = huc,
+      layer = I(c('NHDFlowline', 'NHDWaterbody')))
+  2_1_model_fabric/out/perm_ids.rds:
+    command: gd_get('2_1_model_fabric/out/perm_ids.rds.ind')
+
+
+
