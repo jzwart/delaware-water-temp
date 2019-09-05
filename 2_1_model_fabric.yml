@@ -30,7 +30,8 @@ targets:
     command: get_nhd_waterbody(
       ind_file = target_name,
       geo_boundary_file = '1_geo_boundary/out/geo_boundary.rds',
-      huc = huc)
+      huc = huc,
+       tmp_dir = I('2_1_model_fabric/tmp/'))
   2_1_model_fabric/out/nhd_waterbody_subset.rds:
     command: gd_get('2_1_model_fabric/out/nhd_waterbody_subset.rds.ind')
 
@@ -42,6 +43,4 @@ targets:
       layer = I(c('NHDFlowline', 'NHDWaterbody')))
   2_1_model_fabric/out/perm_ids.rds:
     command: gd_get('2_1_model_fabric/out/perm_ids.rds.ind')
-
-
 
