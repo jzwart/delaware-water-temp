@@ -1,0 +1,13 @@
+version: 0.3.0
+name: 3_observations/out/nwis_nhdhr_flowline_crosswalk.rds.ind
+type: file
+hash: 5b29e87a8e3c86725bfa753facb8873c
+time: 2019-09-06 20:30:22 UTC
+depends:
+  3_observations/in/nwis_uv_inventory.feather: 89ea8ac87bec8d03263230c97f36089d
+  3_observations/in/nwis_dv_inventory.feather: 2e356372122d3d8857169e45b04f3d41
+fixed: 5b78256aa9ec257f7aabfc35c89ee27f
+code:
+  functions:
+    nwis_to_nhdhr_flowline: ddfd57230b6ec64057cedd90852625c7
+

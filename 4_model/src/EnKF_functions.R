@@ -1,5 +1,4 @@
 
-
 n_en = 100 # number of ensembles
 
 n_params_est = 10 # number of parameters we're calibrating
@@ -11,6 +10,10 @@ n_states = 10 # number of states we're updating; will be dependent on obs
 start = as.Date('2010-01-01')
 
 stop = as.Date('2015-01-01')
+
+dates = get_model_dates(model_start = start, model_stop = stop)
+
+n_step = length(dates)
 
 #' retreive the model time steps based on start and stop dates and time step
 #'
@@ -26,7 +29,7 @@ get_model_dates = function(model_start, model_stop, time_step = 'days'){
 
 #' vector for holding states and parameters for updating
 #'
-#' @param n_states number of states we're updating in data assimilation routine; this will be dependent on observations
+#' @param n_states number of states we're updating in data assimilation routine
 #' @param n_params_est number of parameters we're calibrating
 #' @param n_step number of model timesteps
 #' @param n_en number of ensembles
@@ -40,12 +43,12 @@ get_Y_vector = function(n_states, n_params_est, n_step, n_en){
 #' observation error matrix, should be a square matrix where
 #'   col & row = the number of states and params for which you have observations
 #'
-#' @param n_states number of states we're updating in data assimilation routine; this will be dependent on observations
+#' @param n_states number of states we're updating in data assimilation routine
 #' @param n_param_obs number of parameters for which we have observations
 #' @param n_step number of model timesteps
-#' @param state_sd vector of state observation standard deviation
-#' @param param_sd vector of parmaeter observation standard deviation
-get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_sd ){
+#' @param state_sd vector of state observation standard deviation; assuming sd is constant through time
+#' @param param_sd vector of parmaeter observation standard deviation; assuming sd is constant through time
+get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_sd){
 
   R = array(0, dim = c(n_states + n_params_obs, n_states + n_params_obs, n_step))
 
@@ -55,7 +58,11 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
   param_sd = param_sd
   param_var = param_sd^2
 
-  all_var = c(state_var, param_var)
+  if(n_params_obs > 0){
+    all_var = c(state_var, param_var)
+  }else{
+    all_var = state_var
+  }
 
   for(i in 1:n_step){
     # variance is the same for each depth and time step; could make dynamic or varying by time step if we have good reason to do so
@@ -67,7 +74,7 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
 
 #' Measurement operator matrix saying 1 if there is observation data available, 0 otherwise
 #'
-#' @param n_states number of states we're updating in data assimilation routine; this will be dependent on observations
+#' @param n_states number of states we're updating in data assimilation routine
 #' @param n_param_obs number of parameters for which we have observations
 #' @param n_params_est number of parameters we're calibrating
 #' @param n_step number of model timesteps
@@ -85,11 +92,48 @@ get_obs_id_matrix = function(n_states, n_params_obs, n_params_est, n_step, obs){
   return(H)
 }
 
+obs_df1 = readRDS('3_observations/in/nwis_dv_data.rds')
+obs_df = obs_df1 %>%
+  dplyr::slice(1:5000)
+
+unique(obs_df$site_no)
+range(obs_df$dateTime)
+
+model_locations = c('01115190','01011001', '30810310', '13081031','19393100',
+                    '1308130831','310831','03183018','13083108','784200482')
+
+
+
+
 #' turn dataframe into matrix
 #'
-get_obs_matrix = function(obs_df){
+#' @param obs_df observation data frame
+#' @param model_dates dates over which you're modeling
+#' @param model_locations locations where you're estimating temperature
+get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states){
 
+  # need to know location and time of observation
 
+  obs_df_filtered = obs_df %>%
+    dplyr::filter(site_no %in% model_locations,
+                  as.Date(dateTime) %in% model_dates) %>%
+    mutate(date = as.Date(dateTime)) %>%
+    select(site_no, date, temp_value) %>%
+    mutate(site_row = which(model_locations %in% site_no),  # getting which row in Y vector corresponds to site location
+           date_step = which(model_dates %in% date))
+
+  obs_matrix = array(NA, dim = c(n_states, 1, n_step))
+
+  for(i in 1:length(model_locations)){
+    for(j in 1:length(model_dates)){
+      if(i %in% obs_df_filtered$site_row & j %in% obs_df_filtered$date_step){
+        obs_matrix[i, 1, j] = dplyr::filter(obs_df_filtered,
+                                            site_row == i,
+                                            date_step == j) %>%
+          pull(temp_value)
+      }
+    }
+  }
 
   return(obs_matrix)
 }
@@ -133,8 +177,4 @@ for(t in 1:n_step){
   }
   # update states / params for model config
 }
-
-
-
-
 
