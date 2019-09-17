@@ -4,6 +4,7 @@ include:
   - 1_geo_boundary.yml
   - 2_1_model_fabric.yml
   - 3_observations.yml
+  - 4_model.yml
 
 targets:
   everything:
@@ -11,4 +12,5 @@ targets:
       - 1_geo_boundary
       - 2_1_model_fabric
       - 3_observations
+      - 4_model
 

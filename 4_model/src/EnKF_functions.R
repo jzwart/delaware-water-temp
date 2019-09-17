@@ -1,20 +1,4 @@
 
-n_en = 100 # number of ensembles
-
-n_params_est = 10 # number of parameters we're calibrating
-
-n_params_obs = 0 # number of parameters for which we have observations
-
-n_states = 10 # number of states we're updating; will be dependent on obs
-
-start = as.Date('2010-01-01')
-
-stop = as.Date('2015-01-01')
-
-dates = get_model_dates(model_start = start, model_stop = stop)
-
-n_step = length(dates)
-
 #' retreive the model time steps based on start and stop dates and time step
 #'
 #' @param model_start model start date in date class
@@ -78,6 +62,7 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
 #' @param n_param_obs number of parameters for which we have observations
 #' @param n_params_est number of parameters we're calibrating
 #' @param n_step number of model timesteps
+#' @param obs observation matrix created with get_obs_matrix function
 get_obs_id_matrix = function(n_states, n_params_obs, n_params_est, n_step, obs){
 
   # dimensions will be n_depths by Y vector length (or n_depths + n_params)
@@ -92,24 +77,14 @@ get_obs_id_matrix = function(n_states, n_params_obs, n_params_est, n_step, obs){
   return(H)
 }
 
-obs_df1 = readRDS('3_observations/in/nwis_dv_data.rds')
-obs_df = obs_df1 %>%
-  dplyr::slice(1:5000)
 
-unique(obs_df$site_no)
-range(obs_df$dateTime)
-
-model_locations = c('01115190','01011001', '30810310', '13081031','19393100',
-                    '1308130831','310831','03183018','13083108','784200482')
-
-
-
-
-#' turn dataframe into matrix
+#' turn observation dataframe into matrix
 #'
 #' @param obs_df observation data frame
 #' @param model_dates dates over which you're modeling
 #' @param model_locations locations where you're estimating temperature
+#' @param n_step number of model time steps
+#' @param n_states number of states we're updating in data assimilation routine
 get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states){
 
   # need to know location and time of observation
@@ -119,24 +94,31 @@ get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states
                   as.Date(dateTime) %in% model_dates) %>%
     mutate(date = as.Date(dateTime)) %>%
     select(site_no, date, temp_value) %>%
+    group_by(site_no) %>%
     mutate(site_row = which(model_locations %in% site_no),  # getting which row in Y vector corresponds to site location
-           date_step = which(model_dates %in% date))
+           date_step = which(model_dates %in% date)) %>%
+    ungroup()
 
   obs_matrix = array(NA, dim = c(n_states, 1, n_step))
 
   for(i in 1:length(model_locations)){
-    for(j in 1:length(model_dates)){
-      if(i %in% obs_df_filtered$site_row & j %in% obs_df_filtered$date_step){
+    cur_site = dplyr::filter(obs_df_filtered, site_row == i)
+    if(nrow(cur_site) > 0){
+      for(j in cur_site$date_step){
         obs_matrix[i, 1, j] = dplyr::filter(obs_df_filtered,
                                             site_row == i,
                                             date_step == j) %>%
           pull(temp_value)
       }
+    }else{
+      next
     }
   }
 
   return(obs_matrix)
 }
+
+
 
 ##' @param Y vector for holding states and parameters you're estimating
 ##' @param R observation error matrix
@@ -146,35 +128,153 @@ get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states
 ##' @param cur_step current model timestep
 kalman_filter = function(Y, R, obs, H, n_en, cur_step){
 
+  cur_obs = obs[ , , cur_step]
+
+  cur_obs = ifelse(is.na(cur_obs), 0, cur_obs) # setting NA's to zero so there is no 'error' when compared to estimated states
+
   ###### estimate the spread of your ensembles #####
-  Y_mean = matrix(apply(Y[,cur_step,], MARGIN = 1, FUN = mean), nrow = length(Y[,1,1])) # calculating the mean of each temp and parameter estimate
-  delta_Y = Y[,cur_step,] - matrix(rep(Y_mean, n_en), nrow = length(Y[,1,1])) # difference in ensemble state/parameter and mean of all ensemble states/parameters
+  Y_mean = matrix(apply(Y[ , cur_step, ], MARGIN = 1, FUN = mean), nrow = length(Y[ , 1, 1])) # calculating the mean of each temp and parameter estimate
+  delta_Y = Y[ , cur_step, ] - matrix(rep(Y_mean, n_en), nrow = length(Y[ , 1, 1])) # difference in ensemble state/parameter and mean of all ensemble states/parameters
 
   ###### estimate Kalman gain #########
-  K = ((1 / (nEn - 1)) * delta_Y %*% t(delta_Y) %*% t(H[, , cur_step])) %*%
-    qr.solve(((1 / (nEn - 1)) * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
+  K = ((1 / (n_en - 1)) * delta_Y %*% t(delta_Y) %*% t(H[, , cur_step])) %*%
+    qr.solve(((1 / (n_en - 1)) * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
 
   ###### update Y vector ######
   for(q in 1:n_en){
-    Y[, cur_step, q] = Y[, cur_step, q] + K %*% (obs - H[, , cur_step] %*% Y[, cur_step, q]) # adjusting each ensemble using kalman gain and observations
+    Y[, cur_step, q] = Y[, cur_step, q] + K %*% (cur_obs - H[, , cur_step] %*% Y[, cur_step, q]) # adjusting each ensemble using kalman gain and observations
   }
   return(Y)
 }
 
-for(t in 1:n_step){
-  for(n in 1:n_en){
-    # set parameters / states for model config
-    # run model
-    Y = model_output # store in Y vector
+
+
+#' initialize Y vector with draws from distribution of obs
+#'
+#' @param Y Y vector
+#' @param obs observation matrix
+initialize_Y = function(Y, obs, n_states_est, n_params_est, n_params_obs, n_step, n_en, state_sd, param_sd){
+
+  # initializing states with earliest observations and parameters
+  first_obs = coalesce(!!!lapply(seq_len(dim(obs)[3]), function(i){obs[,,i]})) %>% # turning array into list, then using coalesce to find first obs in each position.
+    ifelse(is.na(.), mean(., na.rm = T), .) # setting initial temp state to mean of earliest temp obs from other sites if no obs
+
+  if(n_params_est > 0){
+    ## update this later ***********************
+    first_params = rep(.5, n_params_est)
+  }else{
+    first_params = NULL
   }
-  if(any(obs)){
-    Y = kalman_filter(Y = Y,
-                      R = R,
-                      cur_obs = obs[t, ],
-                      H = H,
-                      n_en = n_en,
-                      cur_step = t) # updating params / states if obs available
+
+  Y[ , 1, ] = array(rnorm(n = n_en * (n_states_est + n_params_est),
+                          mean = c(first_obs, first_params),
+                          sd = c(state_sd, param_sd)),
+                    dim = c(c(n_states_est + n_params_est), n_en))
+
+  return(Y)
+}
+
+
+#' wrapper function for running EnKF for given model
+#'
+#' @param ind_file indicator file for scipiper target
+#' @param n_en number of ensemble members, defaults to 100
+#' @param start start of modeling
+EnKF = function(ind_file,
+                n_en = 100,
+                start,
+                stop,
+                time_step = 'days',
+                process_model = 'random_walk',
+                #model_locations,
+                obs_file,
+                gd_config = 'lib/cfg/gd_config.yml'){
+
+  # get model start, stop, full dates, and n_steps
+  n_en = as.numeric(n_en)
+  start = as.Date(as.character(start))
+  stop = as.Date(as.character(stop))
+  dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
+  n_step = length(dates)
+
+  # get observation matrix
+  obs_df = readRDS(obs_file)
+
+  # temp for now, add as input later ********************************
+  model_locations = c('01115190','01011001', '30810310', '01482800','19393100',
+                     '1308130831','310831','01015010','13083108','784200482')
+
+  n_states_est = length(model_locations)
+
+  # temp for now, add as input later ******************************
+  n_params_est = 0 # number of parameters we're calibrating
+
+  n_params_obs = 0 # number of parameters for which we have observations
+
+  # temp for now, add as input later *****************************
+  state_sd = rep(.5, n_states_est)
+
+  param_sd = rep(.2, n_params_obs)
+
+  # setting up matrices
+  # observations as matrix
+  obs = get_obs_matrix(obs_df = obs_df,
+                       model_dates = dates,
+                       model_locations = model_locations,
+                       n_step = n_step,
+                       n_states = n_states_est)
+
+  # Y vector for storing state / param estimates and updates
+  Y = get_Y_vector(n_states = n_states_est,
+                   n_params_est = n_params_est,
+                   n_step = n_step,
+                   n_en = n_en)
+
+  # observation error matrix
+  R = get_obs_error_matrix(n_states = n_states_est,
+                           n_params_obs = n_params_obs,
+                           n_step = n_step,
+                           state_sd = state_sd,
+                           param_sd = param_sd)
+
+  # observation identity matrix
+  H = get_obs_id_matrix(n_states = n_states_est,
+                        n_params_obs = n_params_obs,
+                        n_params_est = n_params_est,
+                        n_step = n_step,
+                        obs = obs)
+
+  # use this later for organizing obs error matrix *******************************
+  n_states_obs = 10 # number of states we're updating; will be dependent on obs
+
+  # initialize Y vector
+  Y = initialize_Y(Y = Y, obs = obs, n_states_est = n_states_est,
+                   n_params_est = n_params_est, n_params_obs = n_params_obs,
+                   n_step = n_step, n_en = n_en, state_sd = state_sd, param_sd = param_sd)
+
+  # start modeling
+  for(t in 2:n_step){
+    for(n in 1:n_en){
+      # set parameters / states for model config
+      # model_config = Y[, t-1, n]
+
+      # run model; using simple random walk for testing purposes
+      model_output = random_walk(states = Y[, t-1, n], sd = .3)
+
+      Y[ , t, n] = model_output # store in Y vector
+    }
+    if(any(!is.na(obs[ , , t]))){
+      Y = kalman_filter(Y = Y,
+                        R = R,
+                        obs = obs,
+                        H = H,
+                        n_en = n_en,
+                        cur_step = t) # updating params / states if obs available
+    }
+    # update states / params for model config
   }
-  # update states / params for model config
+
+  saveRDS(object = Y, file = as_data_file(ind_file))
+  gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
 

@@ -60,6 +60,12 @@ ggplot() +
   geom_sf(data = dplyr::select(dd, geometry) , col ='red', alpha = 0) +
   theme_bw()
 
+nhdplusV2_flowlines = nhdplusTools:::get_nhdplus_byid(comids = crosswalk$nhd_comid_from_nwis_point[1:100], layer = 'nhdflowline_network')
+
+ggplot() +
+  geom_sf(data = nhdplusV2_flowlines, col ='blue') +
+  geom_sf(data = dplyr::select(dd, geometry) , col ='red', alpha = 0) +
+  theme_bw()
 
 
 

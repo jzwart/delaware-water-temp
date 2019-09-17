@@ -1,0 +1,42 @@
+target_default: 4_model
+
+packages:
+  - yaml
+  - dplyr
+
+sources:
+  - 4_model/src/EnKF_functions.R
+  - 4_model/src/process_models/random_walk.R
+
+targets:
+  4_model:
+    depends:
+      - 4_model/tmp/model_out.rds.ind
+
+##########################################
+# example of EnKF model for given location
+##########################################
+  da_settings:
+    command: read_yaml('4_model/cfg/da_settings.yml')
+
+  n_en:
+    command: da_settings[I('n_en')]
+
+  start:
+    command: da_settings[I('start')]
+
+  stop:
+    command: da_settings[I('stop')]
+
+#  model_locations:
+#    command:
+
+  4_model/tmp/model_out.rds.ind:
+    command: EnKF(
+      ind_file = target_name,
+      n_en = n_en,
+      start = start,
+      stop = stop,
+      obs_file = '3_observations/in/nwis_dv_data.rds')
+
+
