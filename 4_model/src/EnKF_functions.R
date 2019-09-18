@@ -224,6 +224,9 @@ EnKF = function(ind_file,
                        n_step = n_step,
                        n_states = n_states_est)
 
+  # testing DA model error propogation
+  # obs[4, 1, c(30:40, 100:112, 200:400)] = NA
+
   # Y vector for storing state / param estimates and updates
   Y = get_Y_vector(n_states = n_states_est,
                    n_params_est = n_params_est,
@@ -274,7 +277,9 @@ EnKF = function(ind_file,
     # update states / params for model config
   }
 
-  saveRDS(object = Y, file = as_data_file(ind_file))
+  out = list(Y = Y, dates = dates, obs = obs, R = R, model_locations = model_locations)
+
+  saveRDS(object = out, file = as_data_file(ind_file))
   gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
 

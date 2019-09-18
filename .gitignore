@@ -4,7 +4,8 @@
 .Ruserdata
 .httr-oauth
 
-.zip
+*.zip
 */tmp/*
 
 *.rds
+20190913_Delaware_streamtemp/*

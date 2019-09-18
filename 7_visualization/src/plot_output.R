@@ -2,6 +2,50 @@
 
 
 
+
+output = readRDS('4_model/tmp/model_out.rds')
+
+site_index = 4
+
+site = output$model_locations[site_index]
+site_est_mean = apply(output$Y[site_index, , ], MARGIN = 1, FUN = mean)
+site_est_sd = apply(output$Y[site_index, , ], MARGIN = 1, FUN = sd)
+site_obs = output$obs[site_index, , ]
+site_obs_var = output$R[site_index, site_index, ] # site observation variance
+
+site_data = tibble(site_id = rep(site, length(output$dates)),
+                   date = output$dates,
+                   temp_est = site_est_mean,
+                   temp_est_sd = site_est_sd,
+                   temp_obs = site_obs,
+                   temp_obs_var = site_obs_var)
+
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+axes_text_size = 18
+
+ggplot(data = site_data) +
+  geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd, ymax = temp_est + temp_est_sd),
+              fill = 'lightblue', col = 'lightblue') +
+  geom_line(aes(x = date, y = temp_est), col = 'blue') +
+  geom_point(aes(x = date, y = temp_obs), col = 'grey30', alpha = .3, size = 2) +
+  theme_classic() +
+  theme(axis.title = element_text(size = axes_text_size),
+        axis.text = element_text(size = axes_text_size)) +
+  ylab('Temperature (C)') +
+  xlab('')
+
+ggplot(data = site_data) +
+  geom_point(aes(x = temp_obs, y = temp_est), col = 'black', alpha = .3, size = 2) +
+  theme_classic() +
+  theme(axis.title = element_text(size = axes_text_size),
+        axis.text = element_text(size = axes_text_size)) +
+  geom_abline(slope = 1, intercept = 0) +
+  ylab('Temperature (C)') +
+  xlab('')
+
 #
 # windows()
 # plot(Y[1, ,1] ~ dates, type = 'l', col = 'grey', ylab= 'Temp (C)')
