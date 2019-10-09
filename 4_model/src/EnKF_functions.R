@@ -225,7 +225,7 @@ EnKF = function(ind_file,
                        n_states = n_states_est)
 
   # testing DA model error propogation
-  # obs[4, 1, c(30:40, 100:112, 200:400)] = NA
+  obs[4, 1, c(30:40, 100:112, 200:400)] = NA
 
   # Y vector for storing state / param estimates and updates
   Y = get_Y_vector(n_states = n_states_est,

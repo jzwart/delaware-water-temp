@@ -8,7 +8,10 @@ d = readRDS('2_1_model_fabric/out/nhd_waterbody_subset.rds')
 dd = sf::read_sf('1_geo_boundary/in/DRB_Extent/DRB_Extent.shp')
 flowlines = readRDS('2_1_model_fabric/out/nhd_flowline_subset.rds')
 
-m = sf::st_as_sf(maps::map(database = 'state', region = c('new york', 'new jersey', 'penn', 'delaware'), fill = T, plot = F))
+m = sf::st_as_sf(maps::map(database = 'state',
+                           region = c('new york', 'new jersey', 'penn', 'delaware', 'maryland'),
+                           fill = T, plot = F))
+
 
 # ggplot() +
 #   geom_sf(data = m) +
@@ -68,6 +71,58 @@ ggplot() +
   theme_bw()
 
 
+###########
+# SNTemp files
+
+hru = sf::read_sf('20190913_Delaware_streamtemp/GIS/HRU_subset.shp')# %>%
+  # dplyr::slice(seq(nrow(.) -10, nrow(.)))
+seg = sf::read_sf('20190913_Delaware_streamtemp/GIS/Segments_subset.shp') #%>%
+  # dplyr::slice(seq(1,20))
+
+main_states = sf::st_as_sf(maps::map(database = 'state',
+                           region = c('new york', 'new jersey', 'penn', 'delaware'),
+                           fill = T, plot = F))
+other_states = sf::st_as_sf(maps::map(database = 'state',
+                                      region = c('maryland', 'west virginia','maine','virginia',
+                                                 'ohio', 'vermont','new hampshire', 'massachusettes'),
+                                      fill = T, plot = F))
+
+windows()
+base = ggplot() +
+  # geom_sf(data = dd) +
+  geom_sf(data = main_states) +
+  geom_sf(data = other_states, fill ='white') +
+  geom_sf(data = dplyr::select(dd, geometry) , col ='red', alpha = 0) +
+  theme_minimal()
+
+base
+
+fabric = ggplot() +
+  geom_sf(data = hru, col = 'grey80', fill = 'tan') +
+  geom_sf(data = seg, col = 'blue') +
+  theme_minimal()
+
+fabric
+
+
+output = read.csv('20190913_Delaware_streamtemp/output/seg_tave_water.csv', header = T)
+
+colnames(output)
+
+output = output[,-1]
+
+range(output)
+output_long = tidyr::gather(output)
+
+hist(output_long[,2], xlim=c(-5,60))
+
+ggplot(output_long) +
+  geom_histogram(aes(x = value)) +
+  xlim(c(-5,60))+
+  theme_classic() +
+  xlab('SNTemp Est. (C)')
+
+density()
 
 
 

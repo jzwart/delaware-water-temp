@@ -1,7 +1,9 @@
 
 
 
-
+library(ggplot2)
+library(tidyr)
+library(dplyr)
 
 output = readRDS('4_model/tmp/model_out.rds')
 
@@ -20,11 +22,64 @@ site_data = tibble(site_id = rep(site, length(output$dates)),
                    temp_obs = site_obs,
                    temp_obs_var = site_obs_var)
 
-library(ggplot2)
-library(tidyr)
-library(dplyr)
-
 axes_text_size = 18
+
+
+t_col <- function(color, percent = 50, name = NULL) {
+  #	  color = color name
+  #	percent = % transparency
+  #	   name = an optional name for the color
+  ## Get RGB values for named color
+  rgb.val <- col2rgb(color)
+  ## Make new color using input color as base and alpha set by transparency
+  t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+               max = 255,
+               alpha = (100-percent)*255/100,
+               names = name)
+  ## Save the color
+  invisible(t.col)
+
+}
+
+add_uncertainty_ribbons = function(data){
+  uncert = ggplot(data = data) +
+    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*2, ymax = temp_est + temp_est_sd*2),
+                fill = t_col('lightblue',percent = 90), col = t_col('lightblue',percent = 90)) +
+    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*1.5, ymax = temp_est + temp_est_sd*1.5),
+                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
+    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*1.25, ymax = temp_est + temp_est_sd*1.25),
+                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
+    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd, ymax = temp_est + temp_est_sd),
+                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
+    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*.75, ymax = temp_est + temp_est_sd*.75),
+                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
+    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*.5, ymax = temp_est + temp_est_sd*.5),
+                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80))  +
+    geom_line(aes(x = date, y = temp_est), col = t_col('blue',percent = 50)) +
+    geom_point(aes(x = date, y = temp_obs), col = 'grey30', alpha = .3, size = 2) +
+    theme_classic() +
+    theme(axis.title = element_text(size = axes_text_size),
+          axis.text = element_text(size = axes_text_size)) +
+    ylab('Temperature (C)') +
+    xlab('')
+
+  return(uncert)
+}
+
+uncert = add_uncertainty_ribbons(data = dplyr::filter(site_data, date < as.Date('2011-01-01')))
+
+uncert
+
+ggplot(data = site_data) +
+  geom_line(aes(x = date, y = temp_est), col = 'blue') +
+  geom_point(aes(x = date, y = temp_obs), col = 'grey30', alpha = .3, size = 2) +
+  theme_classic() +
+  theme(axis.title = element_text(size = axes_text_size),
+        axis.text = element_text(size = axes_text_size)) +
+  ylab('Temperature (C)') +
+  xlab('')
+
+
 
 ggplot(data = site_data) +
   geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd, ymax = temp_est + temp_est_sd),
