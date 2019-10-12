@@ -131,7 +131,7 @@ set_start_stop = function(start, stop, control_file = 'delaware.control'){
 
 
 
-starts = seq.Date(from = as.Date('2000-06-01'), to = as.Date('2000-08-10'), by = 'days')
+starts = seq.Date(from = as.Date('2000-06-01'), to = as.Date('2000-06-20'), by = 'days')
 stops = starts
 
 model_output_file = '20190913_Delaware_streamtemp/output/seg_tave_water.csv'
