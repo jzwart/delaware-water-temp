@@ -36,10 +36,8 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
 
   R = array(0, dim = c(n_states + n_params_obs, n_states + n_params_obs, n_step))
 
-  state_sd = state_sd # estimating temperature observation accruacy based on https://www.onsetcomp.com/products/data-loggers/ua-002-64
   state_var = state_sd^2 #variance of temperature observations
 
-  param_sd = param_sd
   param_var = param_sd^2
 
   if(n_params_obs > 0){
@@ -90,12 +88,11 @@ get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states
   # need to know location and time of observation
 
   obs_df_filtered = obs_df %>%
-    dplyr::filter(site_no %in% model_locations,
-                  as.Date(dateTime) %in% model_dates) %>%
-    mutate(date = as.Date(dateTime)) %>%
-    select(site_no, date, temp_value) %>%
-    group_by(site_no) %>%
-    mutate(site_row = which(model_locations %in% site_no),  # getting which row in Y vector corresponds to site location
+    dplyr::filter(seg_id_nat %in% model_locations,
+                  date %in% model_dates) %>%
+    select(seg_id_nat, date, temp_C) %>%
+    group_by(seg_id_nat) %>%
+    mutate(site_row = which(model_locations %in% seg_id_nat),  # getting which row in Y vector corresponds to site location
            date_step = which(model_dates %in% date)) %>%
     ungroup()
 
@@ -108,7 +105,7 @@ get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states
         obs_matrix[i, 1, j] = dplyr::filter(obs_df_filtered,
                                             site_row == i,
                                             date_step == j) %>%
-          pull(temp_value)
+          pull(temp_C)
       }
     }else{
       next
@@ -153,41 +150,74 @@ kalman_filter = function(Y, R, obs, H, n_en, cur_step){
 #'
 #' @param Y Y vector
 #' @param obs observation matrix
-initialize_Y = function(Y, obs, n_states_est, n_params_est, n_params_obs, n_step, n_en, state_sd, param_sd){
+initialize_Y = function(Y, first_est, n_states_est, n_params_est, n_params_obs, n_step, n_en, state_sd, param_sd){
 
   # initializing states with earliest observations and parameters
-  first_obs = coalesce(!!!lapply(seq_len(dim(obs)[3]), function(i){obs[,,i]})) %>% # turning array into list, then using coalesce to find first obs in each position.
-    ifelse(is.na(.), mean(., na.rm = T), .) # setting initial temp state to mean of earliest temp obs from other sites if no obs
+  # first_obs = coalesce(!!!lapply(seq_len(dim(obs)[3]), function(i){obs[,,i]})) %>% # turning array into list, then using coalesce to find first obs in each position.
+  #   ifelse(is.na(.), mean(., na.rm = T), .) # setting initial temp state to mean of earliest temp obs from other sites if no obs
+
+  # initializing states with end of spinup from SNTemp
+  first_states = first_est %>%
+    arrange(seg_id_nat) %>% pull(water_temp) # always arrange by seg_id_nat
 
   if(n_params_est > 0){
     ## update this later ***********************
-    first_params = rep(.5, n_params_est)
+    first_params = c(40, 10) # for gw_tau and ss_tau
   }else{
     first_params = NULL
   }
 
   Y[ , 1, ] = array(rnorm(n = n_en * (n_states_est + n_params_est),
-                          mean = c(first_obs, first_params),
+                          mean = c(first_states, first_params),
                           sd = c(state_sd, param_sd)),
                     dim = c(c(n_states_est + n_params_est), n_en))
 
   return(Y)
 }
 
+get_updated_params = function(Y, param_names, n_states_est, n_params_est, cur_step, en){
+
+  for(i in 1:length(n_params_est)){
+    Y[n_states_est + i, cur_step, en]
+
+  }
+
+
+}
 
 #' wrapper function for running EnKF for given model
 #'
-#' @param ind_file indicator file for scipiper target
-#' @param n_en number of ensemble members, defaults to 100
-#' @param start start of modeling
+#' @param n_en number of model ensembles
+#' @param start start date of model run
+#' @param stop date of model run
+#' @param time_step model time step, defaults to days
+#' @param obs_file observation file
+#' @param driver_file driver data file
+#' @param n_states_est number of states we're estimating
+#' @param n_params_est number of parameters we're estimating
+#' @param n_params_obs number of parameters for which we have observations
+#' @param obs_cv coefficient of variation of observations
+#' @param param_cv coefficient of variation of parameters
+#' @param driver_cv coefficient of variation of driver data
+#' @param init_cond_cv initial condition CV (what we're )
+#' @param gd_config google drive configuration
 EnKF = function(ind_file,
                 n_en = 100,
                 start,
                 stop,
                 time_step = 'days',
-                process_model = 'random_walk',
-                #model_locations,
-                obs_file,
+                #process_model = 'random_walk',
+                model_locations,
+                obs_file = '3_observations/in/obs_temp_full.rds',
+                driver_file = NULL,
+                n_states_est = 456,
+                n_states_obs = 303,
+                n_params_est = 2,
+                n_params_obs = 0,
+                obs_cv = 0.1,
+                param_cv = 0.2,
+                driver_cv = 0.1,
+                init_cond_cv = 0.1,
                 gd_config = 'lib/cfg/gd_config.yml'){
 
   # get model start, stop, full dates, and n_steps
@@ -197,24 +227,18 @@ EnKF = function(ind_file,
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
   n_step = length(dates)
 
+  state_sd = rep(0.5, n_states_est)
+
+  param_sd = rep(1, 2)
+
   # get observation matrix
   obs_df = readRDS(obs_file)
 
-  # temp for now, add as input later ********************************
-  model_locations = c('01115190','01011001', '30810310', '01482800','19393100',
-                     '1308130831','310831','01015010','13083108','784200482')
+  # use this to organize the matrices
+  model_locations = readRDS('data_for_Xiaowei/network_full.rds')$edges %>%
+    pull(seg_id_nat)
 
-  n_states_est = length(model_locations)
-
-  # temp for now, add as input later ******************************
-  n_params_est = 0 # number of parameters we're calibrating
-
-  n_params_obs = 0 # number of parameters for which we have observations
-
-  # temp for now, add as input later *****************************
-  state_sd = rep(.5, n_states_est)
-
-  param_sd = rep(.2, n_params_obs)
+  model_locations = as.character(model_locations[!is.na(model_locations)])
 
   # setting up matrices
   # observations as matrix
@@ -223,9 +247,6 @@ EnKF = function(ind_file,
                        model_locations = model_locations,
                        n_step = n_step,
                        n_states = n_states_est)
-
-  # testing DA model error propogation
-  obs[4, 1, c(30:40, 100:112, 200:400)] = NA
 
   # Y vector for storing state / param estimates and updates
   Y = get_Y_vector(n_states = n_states_est,
@@ -247,22 +268,36 @@ EnKF = function(ind_file,
                         n_step = n_step,
                         obs = obs)
 
-  # use this later for organizing obs error matrix *******************************
-  n_states_obs = 10 # number of states we're updating; will be dependent on obs
+  # do spinup period here and then initialize Y vector
+  run_sntemp(start = dates[1], stop = dates[1], spinup = T, spinup_days = 730, restart = T)
+  stream_temp_init = get_sntemp_temperature(model_output_file = '20190913_Delaware_streamtemp/output/seg_tave_water.csv',
+                                           model_fabric_file = '20190913_Delaware_streamtemp/GIS/Segments_subset.shp')
 
   # initialize Y vector
-  Y = initialize_Y(Y = Y, obs = obs, n_states_est = n_states_est,
+  Y = initialize_Y(Y = Y, first_est = stream_temp_init, n_states_est = n_states_est,
                    n_params_est = n_params_est, n_params_obs = n_params_obs,
                    n_step = n_step, n_en = n_en, state_sd = state_sd, param_sd = param_sd)
+
+  param_names = c('gw_tau', 'ss_tau')
 
   # start modeling
   for(t in 2:n_step){
     for(n in 1:n_en){
       # set parameters / states for model config
+      updated_params = get_updated_params(Y = Y,
+                                          param_names = param_names,
+                                          n_states_est = n_states_est,
+                                          n_params_est = n_params_est,
+                                          cur_step = t-1,
+                                          en = n)
+
+      update_sntemp_params(param_names = param_names,
+                           updated_params = )
+
       # model_config = Y[, t-1, n]
 
       # run model; using simple random walk for testing purposes
-      model_output = random_walk(states = Y[, t-1, n], sd = .3)
+      run_sntemp(start = dates[t], stop = dates[t], spinup = F, restart = T)
 
       Y[ , t, n] = model_output # store in Y vector
     }
@@ -282,4 +317,3 @@ EnKF = function(ind_file,
   saveRDS(object = out, file = as_data_file(ind_file))
   gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
-

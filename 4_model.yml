@@ -64,6 +64,7 @@ targets:
 
   data_for_Xiaowei/sntemp_input_output.feather:
     command: data_for_pgdl(out_file = target_name)
+    depends: uncal_sntemp_run
 
   data_for_Xiaowei/sntemp_input_output_subset.feather:
     command: data_subset_for_pgdl(
