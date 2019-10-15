@@ -4,8 +4,11 @@ n_en: 100 # number of ensembles for data assimilation
 n_params_est: 10 # number of parameters we're calibrating
 n_params_obs: 0 # number of parameters for which we have observations
 n_states_obs: 10 # number of states we're updating; will be dependent on obs
-start: '2010-01-01'
-stop: '2012-01-01'
+start: '1980-10-01'
+stop: '2016-09-30'
 
+sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw', 'seg_tave_sroff', 'seg_tave_ss',
+'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow', 'seginc_potet', 'seginc_sroff', 'seginc_ssflow',
+'seginc_swrad', 'seg_humid', 'seg_shade', 'seg_ccov', 'seg_width', 'albedo']
 
 

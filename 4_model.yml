@@ -3,10 +3,15 @@ target_default: 4_model
 packages:
   - yaml
   - dplyr
+  - tidyr
 
 sources:
   - 4_model/src/EnKF_functions.R
   - 4_model/src/process_models/random_walk.R
+  - 4_model/src/get_sntemp_values.R
+  - 4_model/src/run_sntemp.R
+  - 4_model/src/update_sntemp.R
+  - 4_model/src/set_sntemp_output.R
 
 targets:
   4_model:
@@ -39,4 +44,22 @@ targets:
       stop = stop,
       obs_file = '3_observations/in/nwis_dv_data.rds')
 
+  # uncalibrated SNTemp run for input to PGDL
+  sntemp_output_vars:
+    command: da_settings[I('sntemp_output')]
+
+  set_sntemp_output_vars:
+    command: set_sntemp_output(output_names = sntemp_output_vars)
+
+  uncal_sntemp_run:
+    command: run_sntemp(
+      start = start,
+      stop = stop,
+      spinup = I('F'),
+      restart = I('F'))
+    depends: set_sntemp_output_vars
+
+  data_for_Xiaowei/sntemp_input_output.feather:
+    command: data_for_pgdl(
+      )
 
