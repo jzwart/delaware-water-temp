@@ -12,6 +12,7 @@ sources:
   - 4_model/src/run_sntemp.R
   - 4_model/src/update_sntemp.R
   - 4_model/src/set_sntemp_output.R
+  - data_for_Xiaowei/data_for_Xiaowei.R
 
 targets:
   4_model:
@@ -44,7 +45,9 @@ targets:
       stop = stop,
       obs_file = '3_observations/in/nwis_dv_data.rds')
 
-  # uncalibrated SNTemp run for input to PGDL
+##########################################
+# uncalibrated SNTemp run for input to PGDL
+##########################################
   sntemp_output_vars:
     command: da_settings[I('sntemp_output')]
 
@@ -60,6 +63,12 @@ targets:
     depends: set_sntemp_output_vars
 
   data_for_Xiaowei/sntemp_input_output.feather:
-    command: data_for_pgdl(
-      )
+    command: data_for_pgdl(out_file = target_name)
+
+  data_for_Xiaowei/sntemp_input_output_subset.feather:
+    command: data_subset_for_pgdl(
+      out_file = target_name,
+      full_data_file = 'data_for_Xiaowei/sntemp_input_output.feather')
+
+
 
