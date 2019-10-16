@@ -150,19 +150,30 @@ kalman_filter = function(Y, R, obs, H, n_en, cur_step){
 #'
 #' @param Y Y vector
 #' @param obs observation matrix
-initialize_Y = function(Y, first_est, n_states_est, n_params_est, n_params_obs, n_step, n_en, state_sd, param_sd){
+initialize_Y = function(Y, init_states, init_params,
+                        n_states_est, n_params_est,
+                        n_params_obs, n_step, n_en,
+                        state_sd, param_sd){
 
   # initializing states with earliest observations and parameters
   # first_obs = coalesce(!!!lapply(seq_len(dim(obs)[3]), function(i){obs[,,i]})) %>% # turning array into list, then using coalesce to find first obs in each position.
   #   ifelse(is.na(.), mean(., na.rm = T), .) # setting initial temp state to mean of earliest temp obs from other sites if no obs
 
   # initializing states with end of spinup from SNTemp
-  first_states = first_est %>%
+  first_states = init_states %>%
     arrange(seg_id_nat) %>% pull(water_temp) # always arrange by seg_id_nat
 
   if(n_params_est > 0){
     ## update this later ***********************
-    first_params = c(40, 10) # for gw_tau and ss_tau
+    #first_params = c(40, 10) # for gw_tau and ss_tau
+    param_names = colnames(init_params)[3:ncol(init_params)]
+    first_params = c()
+    for(i in 1:length(param_names)){
+      cur_param = init_params %>%
+        arrange(seg_id_nat) %>% pull(2+i)
+      first_params = c(first_params, cur_param)
+    }
+
   }else{
     first_params = NULL
   }
@@ -209,6 +220,7 @@ EnKF = function(ind_file,
                 #process_model = 'random_walk',
                 model_locations,
                 obs_file = '3_observations/in/obs_temp_full.rds',
+                init_param_file = '2_3_model_parameters/out/init_params.rds', # create initial parameter file
                 driver_file = NULL,
                 n_states_est = 456,
                 n_states_obs = 303,
@@ -233,6 +245,10 @@ EnKF = function(ind_file,
 
   # get observation matrix
   obs_df = readRDS(obs_file)
+
+  # get initial parameters
+  init_params_df = readRDS(init_param_file)
+  n_params_est = ncol(init_params_df) - 2 # columns 1 & 2 are model locations
 
   # use this to organize the matrices
   model_locations = readRDS('data_for_Xiaowei/network_full.rds')$edges %>%
@@ -274,8 +290,12 @@ EnKF = function(ind_file,
                                            model_fabric_file = '20190913_Delaware_streamtemp/GIS/Segments_subset.shp')
 
   # initialize Y vector
-  Y = initialize_Y(Y = Y, first_est = stream_temp_init, n_states_est = n_states_est,
-                   n_params_est = n_params_est, n_params_obs = n_params_obs,
+  Y = initialize_Y(Y = Y,
+                   init_states = stream_temp_init,
+                   init_params = init_params_df,
+                   n_states_est = n_states_est,
+                   n_params_est = n_params_est,
+                   n_params_obs = n_params_obs,
                    n_step = n_step, n_en = n_en, state_sd = state_sd, param_sd = param_sd)
 
   param_names = c('gw_tau', 'ss_tau')

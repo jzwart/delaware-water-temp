@@ -1,21 +1,28 @@
-target_default: 2_1_model_fabric
+target_default: 2_3_model_parameters
 
 packages:
-  - sf
-  - yaml
-  - nhdplusTools
   - dplyr
 
 sources:
-  - 2_1_model_fabric/src/get_nhd.R
-  - 2_1_model_fabric/src/get_perm_ids.R
+  - 2_3_model_parameters/src/get_init_sntemp_params.R
 
 targets:
-  2_1_model_fabric:
+  2_3_model_parameters:
     depends:
-      - 2_1_model_fabric/out/nhd_flowline_subset.rds.ind
-      - 2_1_model_fabric/out/nhd_waterbody_subset.rds.ind
-      - 2_1_model_fabric/out/perm_ids.rds.ind
+      - 2_3_model_parameters/out/init_params.rds
 
 # notes:
 # PRMS only uses one veg type cover per HRU
+
+  da_settings:
+    command: read_yaml('4_model/cfg/da_settings.yml')
+
+  param_names:
+    command: da_settings[I('params_to_cal')]
+
+  2_3_model_parameters/out/init_params.rds:
+    command: get_init_sntemp_params(
+      out_file = target_name,
+      param_names = param_names)
+
+

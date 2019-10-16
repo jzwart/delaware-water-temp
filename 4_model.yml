@@ -22,9 +22,6 @@ targets:
 ##########################################
 # example of EnKF model for given location
 ##########################################
-  da_settings:
-    command: read_yaml('4_model/cfg/da_settings.yml')
-
   n_en:
     command: da_settings[I('n_en')]
 
