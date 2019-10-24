@@ -74,10 +74,11 @@ ggplot() +
 ###########
 # SNTemp files
 
-hru = sf::read_sf('20190913_Delaware_streamtemp/GIS/HRU_subset.shp')# %>%
+hru = sf::read_sf('20191002_Delaware_streamtemp/GIS/HRU_subset.shp')# %>%
   # dplyr::slice(seq(nrow(.) -10, nrow(.)))
-seg = sf::read_sf('20190913_Delaware_streamtemp/GIS/Segments_subset.shp') #%>%
+seg = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp') #%>%
   # dplyr::slice(seq(1,20))
+seg_old = sf::read_sf('20190913_Delaware_streamtemp/GIS/Segments_subset.shp') #%>%
 
 main_states = sf::st_as_sf(maps::map(database = 'state',
                            region = c('new york', 'new jersey', 'penn', 'delaware'),
@@ -98,14 +99,15 @@ base = ggplot() +
 base
 
 fabric = ggplot() +
-  geom_sf(data = hru, col = 'grey80', fill = 'tan') +
+  # geom_sf(data = hru, col = 'grey80', fill = 'tan') +
   geom_sf(data = seg, col = 'blue') +
+  # geom_sf(data = seg_old, col = 'red') +
   theme_minimal()
 
 fabric
 
 
-output = read.csv('20190913_Delaware_streamtemp/output/seg_tave_water.csv', header = T)
+output = read.csv('20191002_Delaware_streamtemp/output/seg_tave_water.csv', header = T)
 
 colnames(output)
 

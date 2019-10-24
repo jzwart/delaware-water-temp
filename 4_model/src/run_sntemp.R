@@ -14,30 +14,30 @@ run_sntemp = function(start, stop, spinup = F, spinup_days = 730, restart = F, c
     run_sntemp_spinup(spinup_days = spinup_days, start = start, control_file = control_file)
   }
   if(restart){
-    ctrl = readLines(file.path('20190913_Delaware_streamtemp/control', control_file)) # read in control file
+    ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
 
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '1'
     ctrl[save_vars_loc] = '1'
 
-    writeLines(text = ctrl, con = file.path('20190913_Delaware_streamtemp/control', control_file))
+    writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
   }else{
-    ctrl = readLines(file.path('20190913_Delaware_streamtemp/control', control_file)) # read in control file
+    ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
 
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '0'
     ctrl[save_vars_loc] = '1'
 
-    writeLines(text = ctrl, con = file.path('20190913_Delaware_streamtemp/control', control_file))
+    writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
   }
 
   set_sntemp_start_stop(start = start , stop = stop, control_file = control_file)
 
   current.wd = getwd() # getting current project root wd to reset after running batch file
 
-  setwd(file.path(current.wd, '20190913_Delaware_streamtemp/')) # set wd to where batch file lives
+  setwd(file.path(current.wd, '20191002_Delaware_streamtemp/')) # set wd to where batch file lives
   shell('delaware.bat') # run batch file
 
   setwd(current.wd) # set wd back to root of project
@@ -49,7 +49,7 @@ run_sntemp_spinup = function(spinup_days = 730, start, control_file = 'delaware.
   spinup_start = as.Date(as.character(start)) - spinup_days - 1
   spinup_stop = as.Date(as.character(start)) - 1
 
-  ctrl = readLines(file.path('20190913_Delaware_streamtemp/control', control_file)) # read in control file
+  ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
 
   init_vars_loc = grep('init_vars_from_file', ctrl) + 3
   save_vars_loc = grep('save_vars_to_file', ctrl) + 3
@@ -75,11 +75,11 @@ run_sntemp_spinup = function(spinup_days = 730, start, control_file = 'delaware.
   ctrl[stop_month_loc] = as.character(lubridate::month(spinup_stop))
   ctrl[stop_day_loc] = as.character(lubridate::day(spinup_stop))
 
-  writeLines(text = ctrl, con = file.path('20190913_Delaware_streamtemp/control', control_file))
+  writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
 
   current.wd = getwd() # getting current project root wd to reset after running batch file
 
-  setwd(file.path(current.wd, '20190913_Delaware_streamtemp/')) # set wd to where batch file lives
+  setwd(file.path(current.wd, '20191002_Delaware_streamtemp/')) # set wd to where batch file lives
   shell('delaware.bat') # run batch file
 
   setwd(current.wd) # set wd back to root of project
@@ -97,7 +97,7 @@ set_sntemp_start_stop = function(start, stop, control_file = 'delaware.control')
   start = as.Date(as.character(start))
   stop = as.Date(as.character(stop))
 
-  ctrl = readLines(file.path('20190913_Delaware_streamtemp/control', control_file)) # read in control file
+  ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
 
   start_year_loc = grep('start_time', ctrl) + 3
   start_month_loc = grep('start_time', ctrl) + 4
@@ -116,7 +116,7 @@ set_sntemp_start_stop = function(start, stop, control_file = 'delaware.control')
   ctrl[stop_month_loc] = as.character(lubridate::month(stop))
   ctrl[stop_day_loc] = as.character(lubridate::day(stop))
 
-  writeLines(text = ctrl, con = file.path('20190913_Delaware_streamtemp/control', control_file))
+  writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
 }
 
 
@@ -134,8 +134,8 @@ set_sntemp_start_stop = function(start, stop, control_file = 'delaware.control')
 # starts = seq.Date(from = as.Date('2000-06-01'), to = as.Date('2000-06-20'), by = 'days')
 # stops = starts
 #
-# model_output_file = '20190913_Delaware_streamtemp/output/seg_tave_water.csv'
-# model_fabric_file = '20190913_Delaware_streamtemp/GIS/Segments_subset.shp'
+# model_output_file = '20191002_Delaware_streamtemp/output/seg_tave_water.csv'
+# model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
 #
 # out = data.frame()
 #
@@ -152,7 +152,7 @@ set_sntemp_start_stop = function(start, stop, control_file = 'delaware.control')
 #   stream_temp = get_sntemp_temperature(model_output_file = model_output_file,
 #                                         model_fabric_file = model_fabric_file)
 #
-#   stream_discharge = get_sntemp_discharge(model_output_file = '20190913_Delaware_streamtemp/output/seg_outflow.csv',
+#   stream_discharge = get_sntemp_discharge(model_output_file = '20191002_Delaware_streamtemp/output/seg_outflow.csv',
 #                                            model_fabric_file = model_fabric_file)
 #
 #   stream_temp = left_join(stream_temp, stream_discharge, by = c('seg_id_nat', 'model_idx', 'date'))
@@ -171,7 +171,7 @@ set_sntemp_start_stop = function(start, stop, control_file = 'delaware.control')
 #                                      model_fabric_file = model_fabric_file) %>%
 #   dplyr::filter(date %in% out$date)
 #
-# no_restart_discharge = get_sntemp_discharge(model_output_file = '20190913_Delaware_streamtemp/output/seg_outflow.csv',
+# no_restart_discharge = get_sntemp_discharge(model_output_file = '20191002_Delaware_streamtemp/output/seg_outflow.csv',
 #                                          model_fabric_file = model_fabric_file)
 #
 # no_restart = left_join(no_restart, no_restart_discharge, by = c('seg_id_nat', 'model_idx', 'date'))

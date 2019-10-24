@@ -4,7 +4,7 @@
 
 update_sntemp_params = function(param_names, updated_params, param_file = 'delaware.control.param', n_segments = 456){
 
-  params = readLines(file.path('20190913_Delaware_streamtemp/control', param_file))
+  params = readLines(file.path('20191002_Delaware_streamtemp/control', param_file))
 
   for(i in 1:length(param_names)){
     param_loc_start = grep(param_names[i], params) + 5
@@ -13,7 +13,7 @@ update_sntemp_params = function(param_names, updated_params, param_file = 'delaw
     params[param_loc_start:param_loc_end] = as.character(updated_params[[param_names[i]]])
   }
 
-  writeLines(params, file.path('20190913_Delaware_streamtemp/control', param_file))
+  writeLines(params, file.path('20191002_Delaware_streamtemp/control', param_file))
 }
 
 

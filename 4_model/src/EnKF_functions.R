@@ -286,8 +286,8 @@ EnKF = function(ind_file,
 
   # do spinup period here and then initialize Y vector
   run_sntemp(start = dates[1], stop = dates[1], spinup = T, spinup_days = 730, restart = T)
-  stream_temp_init = get_sntemp_temperature(model_output_file = '20190913_Delaware_streamtemp/output/seg_tave_water.csv',
-                                           model_fabric_file = '20190913_Delaware_streamtemp/GIS/Segments_subset.shp')
+  stream_temp_init = get_sntemp_temperature(model_output_file = '20191002_Delaware_streamtemp/output/seg_tave_water.csv',
+                                           model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
 
   # initialize Y vector
   Y = initialize_Y(Y = Y,

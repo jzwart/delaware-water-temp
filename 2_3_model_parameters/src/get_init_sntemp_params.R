@@ -2,11 +2,11 @@
 
 get_init_sntemp_params = function(out_file,
                                   param_names,
-                                  model_fabric_file = '20190913_Delaware_streamtemp/GIS/Segments_subset.shp',
+                                  model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
                                   param_file = 'delaware.control.param',
                                   n_segments = 456){
 
-  params = readLines(file.path('20190913_Delaware_streamtemp/control', param_file))
+  params = readLines(file.path('20191002_Delaware_streamtemp/control', param_file))
 
   model_fabric = sf::read_sf(model_fabric_file)
 
