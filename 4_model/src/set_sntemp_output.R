@@ -15,6 +15,8 @@ set_sntemp_output = function(output_names, control_file = 'delaware.control'){
 
     new_ctrl[grep('aniOutVar_names', new_ctrl) + 1] = as.character(length(output_names$sntemp_output))
 
+    new_ctrl[grep('naniOutVars', new_ctrl) + 3] = as.character(length(output_names$sntemp_output))
+
     new_ctrl = c(new_ctrl[1:(new_output_loc_start-1)], output_names$sntemp_output, new_ctrl[new_output_loc_start:length(new_ctrl)])
   }else{
     new_ctrl = ctrl[-c(output_loc_start:output_loc_end)] # get rid of old output variables
@@ -22,6 +24,8 @@ set_sntemp_output = function(output_names, control_file = 'delaware.control'){
     new_output_loc_start = grep('aniOutVar_names', new_ctrl) + 3
 
     new_ctrl[grep('aniOutVar_names', new_ctrl) + 1] = as.character(length(output_names$sntemp_output))
+
+    new_ctrl[grep('naniOutVars', new_ctrl) + 3] = as.character(length(output_names$sntemp_output))
 
     new_ctrl = c(new_ctrl[1:(new_output_loc_start-1)], output_names$sntemp_output, new_ctrl[new_output_loc_start:length(new_ctrl)])
   }
