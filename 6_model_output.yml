@@ -1,0 +1,26 @@
+target_default: 6_model_output
+
+packages:
+  - yaml
+  - dplyr
+  - tidyr
+  - sf
+
+sources:
+  - 6_model_output/src/get_segment_output.R
+
+targets:
+  6_model_output:
+    depends:
+      - 6_model_output/out/sw_rad_station_location.rds.ind
+
+  6_model_output/out/sw_rad_station_location.rds.ind:
+    command: get_segment_output(
+      ind_file = target_name,
+      lat = I(40.2),
+      long = I(75.2),
+      model_fabric_file = '2_1_model_fabric/in/network_full.rds',
+      model_output_file = 'data_for_Xiaowei/sntemp_input_output.feather')
+
+
+

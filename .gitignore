@@ -8,7 +8,9 @@
 */tmp/*
 
 *.rds
+*.feather
 20190913_Delaware_streamtemp/*
 20191002_Delaware_streamtemp/*
 
-data_for_Xiaowei/*
+!data_for_Xiaowei/network_full.rds
+!data_for_Xiaowei/network_subset.rds

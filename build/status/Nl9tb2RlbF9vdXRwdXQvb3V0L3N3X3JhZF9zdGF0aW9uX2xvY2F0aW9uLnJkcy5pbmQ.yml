@@ -1,0 +1,14 @@
+version: 0.3.0
+name: 6_model_output/out/sw_rad_station_location.rds.ind
+type: file
+hash: 570d3fe3fefb70652a0cc3db2f1d3830
+time: 2019-11-15 21:08:07 UTC
+depends:
+  2_1_model_fabric/in/network_full.rds: 759a085e879c086ab479aae1ee9fd2ff
+  data_for_Xiaowei/sntemp_input_output.feather: e8ff3ab9252c3d8926ad27c888b2f3f6
+fixed: 3a49f71b31f605cf1620083bce6b215d
+code:
+  functions:
+    get_segment_from_lat_long: 76664b819b4cf313dde84ee96e778d1c
+    get_segment_output: d7aca494d2ea2558395a4449a367ba9e
+

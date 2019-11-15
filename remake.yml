@@ -6,6 +6,7 @@ include:
   - 2_3_model_parameters.yml
   - 3_observations.yml
   - 4_model.yml
+  - 6_model_output.yml
 
 targets:
   everything:
@@ -15,4 +16,5 @@ targets:
       - 2_3_model_parameters.yml
       - 3_observations
       - 4_model
+      - 6_model_output
 

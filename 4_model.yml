@@ -59,14 +59,18 @@ targets:
       restart = I('F'))
     depends: set_sntemp_output_vars
 
-  data_for_Xiaowei/sntemp_input_output.feather:
-    command: data_for_pgdl(out_file = target_name)
+  data_for_Xiaowei/sntemp_input_output.feather.ind:
+    command: data_for_pgdl(ind_file = target_name)
     depends: uncal_sntemp_run
+  data_for_Xiaowei/sntemp_input_output.feather:
+    command: gd_get('data_for_Xiaowei/sntemp_input_output.feather.ind')
 
-  data_for_Xiaowei/sntemp_input_output_subset.feather:
+  data_for_Xiaowei/sntemp_input_output_subset.feather.ind:
     command: data_subset_for_pgdl(
-      out_file = target_name,
+      ind_file = target_name,
       full_data_file = 'data_for_Xiaowei/sntemp_input_output.feather')
+  data_for_Xiaowei/sntemp_input_output_subset.feather:
+    command: gd_get('data_for_Xiaowei/sntemp_input_output_subset.feather.ind')
 
 
 
