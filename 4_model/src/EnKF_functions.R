@@ -164,8 +164,6 @@ initialize_Y = function(Y, init_states, init_params,
     arrange(seg_id_nat) %>% pull(water_temp) # always arrange by seg_id_nat
 
   if(n_params_est > 0){
-    ## update this later ***********************
-    #first_params = c(40, 10) # for gw_tau and ss_tau
     param_names = colnames(init_params)[3:ncol(init_params)]
     first_params = c()
     for(i in 1:length(param_names)){
@@ -173,6 +171,7 @@ initialize_Y = function(Y, init_states, init_params,
         arrange(seg_id_nat) %>% pull(2+i)
       first_params = c(first_params, cur_param)
     }
+    first_params = as.numeric(first_params)
 
   }else{
     first_params = NULL
@@ -188,12 +187,9 @@ initialize_Y = function(Y, init_states, init_params,
 
 get_updated_params = function(Y, param_names, n_states_est, n_params_est, cur_step, en){
 
-  for(i in 1:length(n_params_est)){
-    Y[n_states_est + i, cur_step, en]
+  updated_params = Y[(n_states_est+1):(n_states_est+n_params_est), cur_step, en]
 
-  }
-
-
+  return(updated_params)
 }
 
 #' wrapper function for running EnKF for given model
@@ -221,16 +217,25 @@ EnKF = function(ind_file,
                 model_locations,
                 obs_file = '3_observations/in/obs_temp_full.rds',
                 init_param_file = '2_3_model_parameters/out/init_params.rds', # create initial parameter file
+                model_run_loc = '4_model/tmp',
+                orig_model_loc = '20191002_Delaware_streamtemp',
                 driver_file = NULL,
                 n_states_est = 456,
                 n_states_obs = 303,
                 n_params_est = 2,
+                n_param_loc = 456,
                 n_params_obs = 0,
                 obs_cv = 0.1,
                 param_cv = 0.2,
                 driver_cv = 0.1,
                 init_cond_cv = 0.1,
                 gd_config = 'lib/cfg/gd_config.yml'){
+
+  # copy over original run files to temporary file location
+  dir.create(model_run_loc, showWarnings = F)
+  print('Copying original model files to model working directory...')
+  files_to_transfer = list.files(orig_model_loc)
+  file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
 
   # get model start, stop, full dates, and n_steps
   n_en = as.numeric(n_en)
@@ -239,25 +244,29 @@ EnKF = function(ind_file,
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
   n_step = length(dates)
 
-  state_sd = rep(0.5, n_states_est)
-
-  param_sd = rep(1, 2)
+  state_sd = rep(obs_cv * 5, n_states_est)
 
   # get observation matrix
   obs_df = readRDS(obs_file)
 
   # get initial parameters
   init_params_df = readRDS(init_param_file)
-  n_params_est = ncol(init_params_df) - 2 # columns 1 & 2 are model locations
+  n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
+
+  param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
+    gather(key = 'param', value = 'param_sd', contains('tau')) %>%
+    mutate(param_sd = param_sd * param_cv) %>%
+    pull(param_sd)
 
   # use this to organize the matrices
-  model_locations = readRDS('data_for_Xiaowei/network_full.rds')$edges %>%
+  model_locations = readRDS('2_1_model_fabric/in/network_full.rds')$edges %>%
     pull(seg_id_nat)
 
   model_locations = as.character(model_locations[!is.na(model_locations)])
 
   # setting up matrices
   # observations as matrix
+  print('setting up EnKF matrices...')
   obs = get_obs_matrix(obs_df = obs_df,
                        model_dates = dates,
                        model_locations = model_locations,
@@ -285,11 +294,16 @@ EnKF = function(ind_file,
                         obs = obs)
 
   # do spinup period here and then initialize Y vector
-  run_sntemp(start = dates[1], stop = dates[1], spinup = T, spinup_days = 730, restart = T)
-  stream_temp_init = get_sntemp_temperature(model_output_file = '20191002_Delaware_streamtemp/output/seg_tave_water.csv',
-                                           model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+  run_sntemp(start = dates[1], stop = dates[1], spinup = T,
+             model_run_loc = model_run_loc,
+             spinup_days = 730,
+             restart = T)
+  stream_temp_init = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                                           model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
+    dplyr::filter(date == dates[1])
 
   # initialize Y vector
+  print('intializing Y vector...')
   Y = initialize_Y(Y = Y,
                    init_states = stream_temp_init,
                    init_params = init_params_df,
@@ -298,7 +312,7 @@ EnKF = function(ind_file,
                    n_params_obs = n_params_obs,
                    n_step = n_step, n_en = n_en, state_sd = state_sd, param_sd = param_sd)
 
-  param_names = c('gw_tau', 'ss_tau')
+  param_names = colnames(init_params_df)[3:ncol(init_params_df)]
 
   # start modeling
   for(t in 2:n_step){
@@ -309,19 +323,23 @@ EnKF = function(ind_file,
                                           n_states_est = n_states_est,
                                           n_params_est = n_params_est,
                                           cur_step = t-1,
-                                          en = n)
+                                          en = n) # I think I have to change initialization of Y vector
 
       update_sntemp_params(param_names = param_names,
-                           updated_params = )
-
+                           updated_params = updated_params)
       # model_config = Y[, t-1, n]
 
-      # run model; using simple random walk for testing purposes
+      # run model
       run_sntemp(start = dates[t], stop = dates[t], spinup = F, restart = T)
 
-      Y[ , t, n] = model_output # store in Y vector
+      model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                                                model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
+        dplyr::filter(date == dates[t])
+
+      Y[ , t, n] = c(model_output$water_temp, updated_params) # store in Y vector
     }
-    if(any(!is.na(obs[ , , t]))){
+    if(any(H[,,t]==1)){
+      print('updating with Kalman Filter...')
       Y = kalman_filter(Y = Y,
                         R = R,
                         obs = obs,
@@ -336,4 +354,9 @@ EnKF = function(ind_file,
 
   saveRDS(object = out, file = as_data_file(ind_file))
   gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
+}
+
+plot(Y[16,1:2,1], type = 'l',ylim =  range(Y[16,1:2,]))
+for(i in 1:n_en){
+  lines(Y[16,1:2,i])
 }

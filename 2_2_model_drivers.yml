@@ -1,15 +1,15 @@
-target_default: 2_3_model_parameters
+target_default: 2_2_model_drivers
 
 packages:
   - dplyr
 
 sources:
-  - 2_3_model_parameters/src/get_init_sntemp_params.R
+  - 2_2_model_drivers/src/set_driver_data.R
 
 targets:
-  2_3_model_parameters:
+  2_2_model_drivers:
     depends:
-      - 2_3_model_parameters/out/init_params.rds.ind
+      - 2_2_model_drivers/out/init_params.rds.ind
 
 # notes:
 # PRMS only uses one veg type cover per HRU

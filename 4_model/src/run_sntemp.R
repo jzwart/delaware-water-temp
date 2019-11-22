@@ -7,49 +7,74 @@
 #'@param spinup_days number of days of the spinup period. The spinup period will be from the start date - spinup_days to start date - 1
 #'@param restart T/F for whether or not to initialize SNTemp based on end of previous run
 #'@param control_file name of the control file to set variables
-run_sntemp = function(start, stop, spinup = F, spinup_days = 730, restart = F, control_file = 'delaware.control'){
+run_sntemp = function(start, stop, spinup = F, spinup_days = 730,
+                      restart = F,
+                      model_run_loc = '4_model/tmp/',
+                      control_file = 'delaware.control',
+                      precip_file = './input/prcp.cbh',
+                      tmax_file = './input/tmax.cbh',
+                      tmin_file = './input/tmin.cbh'){
 
   if(spinup){
     print('Running spinup period...')
     run_sntemp_spinup(spinup_days = spinup_days, start = start, control_file = control_file)
   }
   if(restart){
-    ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
+    ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
 
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '1'
     ctrl[save_vars_loc] = '1'
 
-    writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
+    precip_file_loc = grep('precip_day', ctrl) + 3
+    tmax_file_loc = grep('tmax_day', ctrl) + 3
+    tmin_file_loc = grep('tmin_day', ctrl) + 3
+    ctrl[precip_file_loc] = precip_file
+    ctrl[tmax_file_loc] = tmax_file
+    ctrl[tmin_file_loc] = tmin_file
+
+    writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
   }else{
-    ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
+    ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
 
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '0'
     ctrl[save_vars_loc] = '1'
 
-    writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
+    precip_file_loc = grep('precip_day', ctrl) + 3
+    tmax_file_loc = grep('tmax_day', ctrl) + 3
+    tmin_file_loc = grep('tmin_day', ctrl) + 3
+    ctrl[precip_file_loc] = precip_file
+    ctrl[tmax_file_loc] = tmax_file
+    ctrl[tmin_file_loc] = tmin_file
+
+    writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
   }
 
   set_sntemp_start_stop(start = start , stop = stop, control_file = control_file)
 
   current.wd = getwd() # getting current project root wd to reset after running batch file
 
-  setwd(file.path(current.wd, '20191002_Delaware_streamtemp/')) # set wd to where batch file lives
+  setwd(file.path(current.wd, model_run_loc)) # set wd to where batch file lives
   shell('delaware.bat') # run batch file
 
   setwd(current.wd) # set wd back to root of project
 }
 
-run_sntemp_spinup = function(spinup_days = 730, start, control_file = 'delaware.control'){
+run_sntemp_spinup = function(spinup_days = 730, start,
+                             model_run_loc = '4_model/tmp/',
+                             control_file = 'delaware.control',
+                             precip_file = './input/prcp.cbh',
+                             tmax_file = './input/tmax.cbh',
+                             tmin_file = './input/tmin.cbh'){
 
   # how many days before start date. end date should be one day before start date
   spinup_start = as.Date(as.character(start)) - spinup_days - 1
   spinup_stop = as.Date(as.character(start)) - 1
 
-  ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
+  ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
 
   init_vars_loc = grep('init_vars_from_file', ctrl) + 3
   save_vars_loc = grep('save_vars_to_file', ctrl) + 3
@@ -75,11 +100,18 @@ run_sntemp_spinup = function(spinup_days = 730, start, control_file = 'delaware.
   ctrl[stop_month_loc] = as.character(lubridate::month(spinup_stop))
   ctrl[stop_day_loc] = as.character(lubridate::day(spinup_stop))
 
-  writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
+  precip_file_loc = grep('precip_day', ctrl) + 3
+  tmax_file_loc = grep('tmax_day', ctrl) + 3
+  tmin_file_loc = grep('tmin_day', ctrl) + 3
+  ctrl[precip_file_loc] = precip_file
+  ctrl[tmax_file_loc] = tmax_file
+  ctrl[tmin_file_loc] = tmin_file
+
+  writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
 
   current.wd = getwd() # getting current project root wd to reset after running batch file
 
-  setwd(file.path(current.wd, '20191002_Delaware_streamtemp/')) # set wd to where batch file lives
+  setwd(file.path(current.wd, model_run_loc)) # set wd to where batch file lives
   shell('delaware.bat') # run batch file
 
   setwd(current.wd) # set wd back to root of project
@@ -92,12 +124,14 @@ run_sntemp_spinup = function(spinup_days = 730, start, control_file = 'delaware.
 #'@param stop stop date of the model run
 #'@param control_file name of the control file
 #'
-set_sntemp_start_stop = function(start, stop, control_file = 'delaware.control'){
+set_sntemp_start_stop = function(start, stop,
+                                 model_run_loc = '4_model/tmp/',
+                                 control_file = 'delaware.control'){
 
   start = as.Date(as.character(start))
   stop = as.Date(as.character(stop))
 
-  ctrl = readLines(file.path('20191002_Delaware_streamtemp/control', control_file)) # read in control file
+  ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
 
   start_year_loc = grep('start_time', ctrl) + 3
   start_month_loc = grep('start_time', ctrl) + 4
@@ -116,7 +150,7 @@ set_sntemp_start_stop = function(start, stop, control_file = 'delaware.control')
   ctrl[stop_month_loc] = as.character(lubridate::month(stop))
   ctrl[stop_day_loc] = as.character(lubridate::day(stop))
 
-  writeLines(text = ctrl, con = file.path('20191002_Delaware_streamtemp/control', control_file))
+  writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
 }
 
 

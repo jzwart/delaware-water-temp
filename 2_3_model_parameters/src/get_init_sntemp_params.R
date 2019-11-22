@@ -1,10 +1,11 @@
 
 
-get_init_sntemp_params = function(out_file,
+get_init_sntemp_params = function(ind_file,
                                   param_names,
                                   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
                                   param_file = 'delaware.control.param',
-                                  n_segments = 456){
+                                  n_segments = 456,
+                                  gd_config = 'lib/cfg/gd_config.yml'){
 
   params = readLines(file.path('20191002_Delaware_streamtemp/control', param_file))
 
@@ -26,6 +27,8 @@ get_init_sntemp_params = function(out_file,
       rename(!!noquote(param_names$params_to_cal[i]) := temp_name)
   }
 
-  saveRDS(object = out, file = out_file)
+  param_output_file = as_data_file(ind_file)
+  saveRDS(out, param_output_file)
+  gd_put(remote_ind = ind_file, local_source = param_output_file, config_file = gd_config)
 }
 
