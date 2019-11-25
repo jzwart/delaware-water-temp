@@ -7,17 +7,30 @@
 #'@param spinup_days number of days of the spinup period. The spinup period will be from the start date - spinup_days to start date - 1
 #'@param restart T/F for whether or not to initialize SNTemp based on end of previous run
 #'@param control_file name of the control file to set variables
-run_sntemp = function(start, stop, spinup = F, spinup_days = 730,
+run_sntemp = function(start,
+                      stop,
+                      spinup = F,
+                      spinup_days = 730,
                       restart = F,
                       model_run_loc = '4_model/tmp/',
                       control_file = 'delaware.control',
                       precip_file = './input/prcp.cbh',
                       tmax_file = './input/tmax.cbh',
-                      tmin_file = './input/tmin.cbh'){
+                      tmin_file = './input/tmin.cbh',
+                      var_init_file = 'prms_ic.out',
+                      var_save_file = 'prms_ic.out'){
 
   if(spinup){
     print('Running spinup period...')
-    run_sntemp_spinup(spinup_days = spinup_days, start = start, control_file = control_file)
+    run_sntemp_spinup(spinup_days = spinup_days,
+                      start = start,
+                      control_file = control_file,
+                      model_run_loc = model_run_loc,
+                      precip_file = precip_file,
+                      tmax_file = tmax_file,
+                      tmin_file = tmin_file,
+                      var_init_file = var_init_file,
+                      var_save_file = var_save_file)
   }
   if(restart){
     ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
@@ -34,6 +47,11 @@ run_sntemp = function(start, stop, spinup = F, spinup_days = 730,
     ctrl[tmax_file_loc] = tmax_file
     ctrl[tmin_file_loc] = tmin_file
 
+    var_init_file_loc = grep('var_init_file', ctrl) + 3
+    var_save_file_loc = grep('var_save_file', ctrl) + 3
+    ctrl[var_init_file_loc] = var_init_file
+    ctrl[var_save_file_loc] = var_save_file
+
     writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
   }else{
     ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
@@ -49,6 +67,11 @@ run_sntemp = function(start, stop, spinup = F, spinup_days = 730,
     ctrl[precip_file_loc] = precip_file
     ctrl[tmax_file_loc] = tmax_file
     ctrl[tmin_file_loc] = tmin_file
+
+    var_init_file_loc = grep('var_init_file', ctrl) + 3
+    var_save_file_loc = grep('var_save_file', ctrl) + 3
+    ctrl[var_init_file_loc] = var_init_file
+    ctrl[var_save_file_loc] = var_save_file
 
     writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
   }
@@ -68,7 +91,9 @@ run_sntemp_spinup = function(spinup_days = 730, start,
                              control_file = 'delaware.control',
                              precip_file = './input/prcp.cbh',
                              tmax_file = './input/tmax.cbh',
-                             tmin_file = './input/tmin.cbh'){
+                             tmin_file = './input/tmin.cbh',
+                             var_init_file = 'prms_ic.out',
+                             var_save_file = 'prms_ic.out'){
 
   # how many days before start date. end date should be one day before start date
   spinup_start = as.Date(as.character(start)) - spinup_days - 1
@@ -106,6 +131,11 @@ run_sntemp_spinup = function(spinup_days = 730, start,
   ctrl[precip_file_loc] = precip_file
   ctrl[tmax_file_loc] = tmax_file
   ctrl[tmin_file_loc] = tmin_file
+
+  var_init_file_loc = grep('var_init_file', ctrl) + 3
+  var_save_file_loc = grep('var_save_file', ctrl) + 3
+  ctrl[var_init_file_loc] = var_init_file
+  ctrl[var_save_file_loc] = var_save_file
 
   writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
 

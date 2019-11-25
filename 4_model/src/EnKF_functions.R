@@ -209,7 +209,7 @@ get_updated_params = function(Y, param_names, n_states_est, n_params_est, cur_st
 #' @param init_cond_cv initial condition CV (what we're )
 #' @param gd_config google drive configuration
 EnKF = function(ind_file,
-                n_en = 100,
+                n_en = 20,
                 start,
                 stop,
                 time_step = 'days',
@@ -230,6 +230,10 @@ EnKF = function(ind_file,
                 driver_cv = 0.1,
                 init_cond_cv = 0.1,
                 gd_config = 'lib/cfg/gd_config.yml'){
+
+  # temporary dates for testing
+  start = '2014-06-01'
+  stop = '2014-07-01'
 
   # copy over original run files to temporary file location
   dir.create(model_run_loc, showWarnings = F)
@@ -259,17 +263,19 @@ EnKF = function(ind_file,
     pull(param_sd)
 
   # use this to organize the matrices
-  model_locations = readRDS('2_1_model_fabric/in/network_full.rds')$edges %>%
-    pull(seg_id_nat)
+  model_fabric = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
 
-  model_locations = as.character(model_locations[!is.na(model_locations)])
+  model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
+                           model_idx = as.character(model_fabric$model_idx)) %>%
+    arrange(as.numeric(model_idx))
 
   # setting up matrices
   # observations as matrix
+  # organized by seg_id_nat
   print('setting up EnKF matrices...')
   obs = get_obs_matrix(obs_df = obs_df,
                        model_dates = dates,
-                       model_locations = model_locations,
+                       model_locations = model_locations$seg_id_nat,
                        n_step = n_step,
                        n_states = n_states_est)
 
@@ -294,10 +300,18 @@ EnKF = function(ind_file,
                         obs = obs)
 
   # do spinup period here and then initialize Y vector
-  run_sntemp(start = dates[1], stop = dates[1], spinup = T,
-             model_run_loc = model_run_loc,
-             spinup_days = 730,
-             restart = T)
+  for(n in 1:n_en){
+    run_sntemp(start = dates[1], stop = dates[1], spinup = T,
+               model_run_loc = model_run_loc,
+               spinup_days = 730,
+               restart = T,
+               precip_file = sprintf('./input/prcp_%s.cbh', n),
+               tmax_file = sprintf('./input/tmax_%s.cbh', n),
+               tmin_file = sprintf('./input/tmin_%s.cbh', n),
+               var_init_file = sprintf('prms_ic_%s.out', n),
+               var_save_file = sprintf('prms_ic_%s.out', n))
+  }
+
   stream_temp_init = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
                                            model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
     dplyr::filter(date == dates[1])
@@ -323,14 +337,22 @@ EnKF = function(ind_file,
                                           n_states_est = n_states_est,
                                           n_params_est = n_params_est,
                                           cur_step = t-1,
-                                          en = n) # I think I have to change initialization of Y vector
+                                          en = n)
 
       update_sntemp_params(param_names = param_names,
                            updated_params = updated_params)
       # model_config = Y[, t-1, n]
 
       # run model
-      run_sntemp(start = dates[t], stop = dates[t], spinup = F, restart = T)
+      run_sntemp(start = dates[t],
+                 stop = dates[t],
+                 spinup = F,
+                 restart = T,
+                 precip_file = sprintf('./input/prcp_%s.cbh', n),
+                 tmax_file = sprintf('./input/tmax_%s.cbh', n),
+                 tmin_file = sprintf('./input/tmin_%s.cbh', n),
+                 var_init_file = sprintf('prms_ic_%s.out', n),
+                 var_save_file = sprintf('prms_ic_%s.out', n))
 
       model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
                                                 model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
@@ -356,7 +378,21 @@ EnKF = function(ind_file,
   gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
 
-plot(Y[16,1:2,1], type = 'l',ylim =  range(Y[16,1:2,]))
+obs[,1,1]
+site = 29
+plot(Y[site,,1], type = 'l',ylim =  range(c(Y[site,,], obs[site,1,]), na.rm = T))
 for(i in 1:n_en){
-  lines(Y[16,1:2,i])
+  lines(Y[site,,i])
 }
+points(obs[site,1,], col = 'red')
+arrows(1:n_step, obs[site,1,]+R[site,site,], 1:n_step, obs[site,1,]-R[site,site,],
+       angle = 90, length = .1, col = 'red', code = 3)
+
+params = 456 + site
+windows()
+plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
+for(i in 1:n_en){
+  lines(Y[params,,i])
+}
+
+

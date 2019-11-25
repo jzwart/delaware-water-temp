@@ -22,9 +22,6 @@ targets:
 ##########################################
 # example of EnKF model for given location
 ##########################################
-  n_en:
-    command: da_settings[I('n_en')]
-
   start:
     command: da_settings[I('start')]
 

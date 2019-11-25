@@ -2,6 +2,7 @@ target_default: 2_2_model_drivers
 
 packages:
   - dplyr
+  - tidyr
 
 sources:
   - 2_2_model_drivers/src/set_driver_data.R
@@ -9,21 +10,34 @@ sources:
 targets:
   2_2_model_drivers:
     depends:
-      - 2_2_model_drivers/out/init_params.rds.ind
-
-# notes:
-# PRMS only uses one veg type cover per HRU
+      - 2_2_model_drivers_tmax
 
   da_settings:
     command: read_yaml('4_model/cfg/da_settings.yml')
 
-  param_names:
-    command: da_settings[I('params_to_cal')]
+  n_en:
+    command: da_settings[I('n_en')]
 
-  2_3_model_parameters/out/init_params.rds.ind:
-    command: get_init_sntemp_params(
-      ind_file = target_name,
-      param_names = param_names)
-  2_3_model_parameters/out/init_params.rds:
-    command: gd_get('2_3_model_parameters/out/init_params.rds.ind')
+  2_2_model_drivers_tmax:
+    command: set_driver_data(
+      orig_driver_file = '20191002_Delaware_streamtemp/input/tmax.cbh',
+      model_run_loc = I('4_model/tmp'),
+      driver_name = I('tmax'),
+      driver_sd = I(2),
+      n_en = n_en)
 
+  2_2_model_drivers_tmin:
+    command: set_driver_data(
+      orig_driver_file = '20191002_Delaware_streamtemp/input/tmin.cbh',
+      model_run_loc = I('4_model/tmp'),
+      driver_name = I('tmin'),
+      driver_sd = I(2),
+      n_en = n_en)
+
+  2_2_model_drivers_prcp:
+    command: set_driver_data(
+      orig_driver_file = '20191002_Delaware_streamtemp/input/prcp.cbh',
+      model_run_loc = I('4_model/tmp'),
+      driver_name = I('prcp'),
+      driver_sd = I(0.02),
+      n_en = n_en)

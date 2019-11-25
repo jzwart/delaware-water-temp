@@ -14,9 +14,6 @@ targets:
 # notes:
 # PRMS only uses one veg type cover per HRU
 
-  da_settings:
-    command: read_yaml('4_model/cfg/da_settings.yml')
-
   param_names:
     command: da_settings[I('params_to_cal')]
 

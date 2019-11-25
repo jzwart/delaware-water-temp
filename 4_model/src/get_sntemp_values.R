@@ -13,7 +13,8 @@ get_sntemp_discharge = function(model_output_file, model_fabric_file){
     mutate(model_idx = gsub('X', '', model_idx)) %>%
     rename(date = Date) %>%
     left_join(seg_ids, by = 'model_idx') %>%
-    select(seg_id_nat, model_idx, date, discharge)
+    select(seg_id_nat, model_idx, date, discharge) %>%
+    arrange(as.numeric(model_idx))
 
   return(model_output)
 }
@@ -32,7 +33,8 @@ get_sntemp_temperature = function(model_output_file, model_fabric_file){
     mutate(model_idx = gsub('X', '', model_idx)) %>%
     rename(date = Date) %>%
     left_join(seg_ids, by = 'model_idx') %>%
-    select(seg_id_nat, model_idx, date, water_temp)
+    select(seg_id_nat, model_idx, date, water_temp) %>%
+    arrange(as.numeric(model_idx))
 
   return(model_output)
 }
@@ -54,7 +56,8 @@ get_sntemp_intermediates = function(model_output_file, model_fabric_file){
     gather(key = 'parameter', value = 'parameter_value', starts_with('seg')) %>%
     mutate(parameter_value = as.numeric(parameter_value)) %>%
     left_join(seg_ids, by = 'model_idx') %>%
-    select(seg_id_nat, model_idx, date, parameter, parameter_value)
+    select(seg_id_nat, model_idx, date, parameter, parameter_value) %>%
+    arrange(as.numeric(model_idx))
 
   return(model_output)
 }
