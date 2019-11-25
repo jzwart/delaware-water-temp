@@ -231,10 +231,6 @@ EnKF = function(ind_file,
                 init_cond_cv = 0.1,
                 gd_config = 'lib/cfg/gd_config.yml'){
 
-  # temporary dates for testing
-  start = '2014-06-01'
-  stop = '2014-07-01'
-
   # copy over original run files to temporary file location
   dir.create(model_run_loc, showWarnings = F)
   print('Copying original model files to model working directory...')
@@ -263,6 +259,8 @@ EnKF = function(ind_file,
   # get initial parameters
   init_params_df = readRDS(init_param_file) %>% arrange(as.numeric(model_idx))
   n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
+
+  param_names = colnames(init_params_df)[3:ncol(init_params_df)]
 
   param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
     gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
@@ -326,7 +324,6 @@ EnKF = function(ind_file,
                    n_params_obs = n_params_obs,
                    n_step = n_step, n_en = n_en, state_sd = state_sd, param_sd = param_sd)
 
-  param_names = colnames(init_params_df)[3:ncol(init_params_df)]
 
   # start modeling
   for(t in 2:n_step){
@@ -378,21 +375,5 @@ EnKF = function(ind_file,
   gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
 
-# obs[,1,1]
-# site = 29
-# plot(Y[site,,1], type = 'l',ylim =  range(c(Y[site,,], obs[site,1,]), na.rm = T))
-# for(i in 1:n_en){
-#   lines(Y[site,,i])
-# }
-# points(obs[site,1,], col = 'red')
-# arrows(1:n_step, obs[site,1,]+R[site,site,], 1:n_step, obs[site,1,]-R[site,site,],
-#        angle = 90, length = .1, col = 'red', code = 3)
-#
-# params = 456 + site
-# windows()
-# plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
-# for(i in 1:n_en){
-#   lines(Y[params,,i])
-# }
 
 

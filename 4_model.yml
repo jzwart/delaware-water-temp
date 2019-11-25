@@ -17,7 +17,7 @@ sources:
 targets:
   4_model:
     depends:
-      - 4_model/tmp/model_out.rds.ind
+      - 4_model/out/model_out.rds.ind
 
 ##########################################
 # example of EnKF model for given location
@@ -31,7 +31,7 @@ targets:
 #  model_locations:
 #    command:
 
-  4_model/tmp/model_out.rds.ind:
+  4_model/out/model_out.rds.ind:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
