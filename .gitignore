@@ -6,8 +6,10 @@
 
 *.zip
 */tmp/*
+*/out/*
+*/in/*
 
-*.rds
+
 *.feather
 20190913_Delaware_streamtemp/*
 20191002_Delaware_streamtemp/*
