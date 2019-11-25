@@ -214,14 +214,14 @@ EnKF = function(ind_file,
                 stop,
                 time_step = 'days',
                 #process_model = 'random_walk',
-                model_locations,
+                model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
                 obs_file = '3_observations/in/obs_temp_full.rds',
-                init_param_file = '2_3_model_parameters/out/init_params.rds', # create initial parameter file
+                init_param_file = '2_3_model_parameters/out/init_params.rds',
                 model_run_loc = '4_model/tmp',
                 orig_model_loc = '20191002_Delaware_streamtemp',
                 driver_file = NULL,
                 n_states_est = 456,
-                n_states_obs = 303,
+                n_states_obs = 456,
                 n_params_est = 2,
                 n_param_loc = 456,
                 n_params_obs = 0,
@@ -241,6 +241,13 @@ EnKF = function(ind_file,
   files_to_transfer = list.files(orig_model_loc)
   file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
 
+  # use this to organize the matrices
+  model_fabric = sf::read_sf(model_fabric_file)
+
+  model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
+                           model_idx = as.character(model_fabric$model_idx)) %>%
+    arrange(as.numeric(model_idx))
+
   # get model start, stop, full dates, and n_steps
   n_en = as.numeric(n_en)
   start = as.Date(as.character(start))
@@ -254,20 +261,13 @@ EnKF = function(ind_file,
   obs_df = readRDS(obs_file)
 
   # get initial parameters
-  init_params_df = readRDS(init_param_file)
+  init_params_df = readRDS(init_param_file) %>% arrange(as.numeric(model_idx))
   n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
 
   param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
-    gather(key = 'param', value = 'param_sd', contains('tau')) %>%
+    gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
     mutate(param_sd = param_sd * param_cv) %>%
     pull(param_sd)
-
-  # use this to organize the matrices
-  model_fabric = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
-
-  model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
-                           model_idx = as.character(model_fabric$model_idx)) %>%
-    arrange(as.numeric(model_idx))
 
   # setting up matrices
   # observations as matrix
@@ -378,21 +378,21 @@ EnKF = function(ind_file,
   gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
 
-obs[,1,1]
-site = 29
-plot(Y[site,,1], type = 'l',ylim =  range(c(Y[site,,], obs[site,1,]), na.rm = T))
-for(i in 1:n_en){
-  lines(Y[site,,i])
-}
-points(obs[site,1,], col = 'red')
-arrows(1:n_step, obs[site,1,]+R[site,site,], 1:n_step, obs[site,1,]-R[site,site,],
-       angle = 90, length = .1, col = 'red', code = 3)
-
-params = 456 + site
-windows()
-plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
-for(i in 1:n_en){
-  lines(Y[params,,i])
-}
+# obs[,1,1]
+# site = 29
+# plot(Y[site,,1], type = 'l',ylim =  range(c(Y[site,,], obs[site,1,]), na.rm = T))
+# for(i in 1:n_en){
+#   lines(Y[site,,i])
+# }
+# points(obs[site,1,], col = 'red')
+# arrows(1:n_step, obs[site,1,]+R[site,site,], 1:n_step, obs[site,1,]-R[site,site,],
+#        angle = 90, length = .1, col = 'red', code = 3)
+#
+# params = 456 + site
+# windows()
+# plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
+# for(i in 1:n_en){
+#   lines(Y[params,,i])
+# }
 
 
