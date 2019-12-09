@@ -229,6 +229,7 @@ EnKF = function(ind_file,
                 param_cv = 0.2,
                 driver_cv = 0.1,
                 init_cond_cv = 0.1,
+                assimilate_obs = TRUE,
                 gd_config = 'lib/cfg/gd_config.yml'){
 
   # copy over original run files to temporary file location
@@ -264,7 +265,8 @@ EnKF = function(ind_file,
 
   param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
     gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
-    mutate(param_sd = param_sd * param_cv) %>%
+    mutate(param_sd = ifelse(param_sd < 2, 2, param_sd),
+           param_sd = param_sd * param_cv) %>%
     pull(param_sd)
 
   # setting up matrices
@@ -311,7 +313,7 @@ EnKF = function(ind_file,
   }
 
   stream_temp_init = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-                                           model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
+                                            model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
     dplyr::filter(date == dates[1])
 
   # initialize Y vector
@@ -326,14 +328,57 @@ EnKF = function(ind_file,
 
 
   # start modeling
-  for(t in 2:n_step){
+  if(assimilate_obs){
+    for(t in 2:n_step){
+      for(n in 1:n_en){
+        # set parameters / states for model config
+        updated_params = get_updated_params(Y = Y,
+                                            param_names = param_names,
+                                            n_states_est = n_states_est,
+                                            n_params_est = n_params_est,
+                                            cur_step = t-1,
+                                            en = n)
+
+        update_sntemp_params(param_names = param_names,
+                             updated_params = updated_params)
+        # model_config = Y[, t-1, n]
+
+        # run model
+        run_sntemp(start = dates[t],
+                   stop = dates[t],
+                   spinup = F,
+                   restart = T,
+                   precip_file = sprintf('./input/prcp_%s.cbh', n),
+                   tmax_file = sprintf('./input/tmax_%s.cbh', n),
+                   tmin_file = sprintf('./input/tmin_%s.cbh', n),
+                   var_init_file = sprintf('prms_ic_%s.out', n),
+                   var_save_file = sprintf('prms_ic_%s.out', n))
+
+        model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                                              model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
+          dplyr::filter(date == dates[t])
+
+        Y[ , t, n] = c(model_output$water_temp, updated_params) # store in Y vector
+      }
+      if(any(H[,,t]==1)){
+        print('updating with Kalman Filter...')
+        Y = kalman_filter(Y = Y,
+                          R = R,
+                          obs = obs,
+                          H = H,
+                          n_en = n_en,
+                          cur_step = t) # updating params / states if obs available
+      }
+      # update states / params for model config
+    }
+  }else{
     for(n in 1:n_en){
       # set parameters / states for model config
       updated_params = get_updated_params(Y = Y,
                                           param_names = param_names,
                                           n_states_est = n_states_est,
                                           n_params_est = n_params_est,
-                                          cur_step = t-1,
+                                          cur_step = 1,
                                           en = n)
 
       update_sntemp_params(param_names = param_names,
@@ -341,8 +386,8 @@ EnKF = function(ind_file,
       # model_config = Y[, t-1, n]
 
       # run model
-      run_sntemp(start = dates[t],
-                 stop = dates[t],
+      run_sntemp(start = dates[2],
+                 stop = dates[n_step],
                  spinup = F,
                  restart = T,
                  precip_file = sprintf('./input/prcp_%s.cbh', n),
@@ -352,21 +397,16 @@ EnKF = function(ind_file,
                  var_save_file = sprintf('prms_ic_%s.out', n))
 
       model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-                                                model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
-        dplyr::filter(date == dates[t])
+                                            model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
+        dplyr::filter(date %in% dates[2:n_step]) %>%
+        arrange(date, as.numeric(model_idx))
 
-      Y[ , t, n] = c(model_output$water_temp, updated_params) # store in Y vector
+      out_temp = array(model_output$water_temp, dim = c(n_states_est, n_step-1))
+      out_params = array(rep(updated_params, (n_step-1)), dim = c(n_params_est, n_step-1))
+
+      Y[1:n_states_est, 2:n_step, n] = out_temp # store states in Y vector
+      Y[(n_states_est+1):(n_states_est+n_params_est), 2:n_step, n] = out_params # store params in Y vector
     }
-    if(any(H[,,t]==1)){
-      print('updating with Kalman Filter...')
-      Y = kalman_filter(Y = Y,
-                        R = R,
-                        obs = obs,
-                        H = H,
-                        n_en = n_en,
-                        cur_step = t) # updating params / states if obs available
-    }
-    # update states / params for model config
   }
 
   out = list(Y = Y, dates = dates, obs = obs, R = R, model_locations = model_locations)
