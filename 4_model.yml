@@ -4,6 +4,7 @@ packages:
   - yaml
   - dplyr
   - tidyr
+  - scipiper
 
 sources:
   - 4_model/src/EnKF_functions.R
@@ -55,7 +56,7 @@ targets:
       ind_file = target_name,
       n_en = n_en,
       start = I('2014-04-01'),
-      stop = I('2014-10-01'),
+      stop = I('2014-10-10'),
       time_step = I('days'),
       model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
       obs_file = '3_observations/in/obs_temp_full.rds',
