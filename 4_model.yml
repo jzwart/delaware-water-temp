@@ -13,7 +13,7 @@ sources:
   - 4_model/src/run_sntemp.R
   - 4_model/src/update_sntemp.R
   - 4_model/src/set_sntemp_output.R
-  - data_for_Xiaowei/data_for_Xiaowei.R
+
 
 targets:
   4_model:
@@ -36,7 +36,7 @@ targets:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
-      start = I('2014-04-01'),
+      start = I('2012-04-01'),
       stop = I('2014-10-10'),
       time_step = I('days'),
       model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
@@ -70,37 +70,5 @@ targets:
       init_cond_cv = I(0.1),
       assimilate_obs = FALSE,
       gd_config = 'lib/cfg/gd_config.yml')
-
-##########################################
-# uncalibrated SNTemp run for input to PGDL
-##########################################
-  sntemp_output_vars:
-    command: da_settings[I('sntemp_output')]
-
-  set_sntemp_output_vars:
-    command: set_sntemp_output(output_names = sntemp_output_vars)
-
-  uncal_sntemp_run:
-    command: run_sntemp(
-      start = start,
-      stop = stop,
-      spinup = I('F'),
-      restart = I('F'),
-      model_run_loc = I('20191002_Delaware_streamtemp'))
-    depends: set_sntemp_output_vars
-
-  data_for_Xiaowei/sntemp_input_output.feather.ind:
-    command: data_for_pgdl(ind_file = target_name)
-    depends: uncal_sntemp_run
-  data_for_Xiaowei/sntemp_input_output.feather:
-    command: gd_get('data_for_Xiaowei/sntemp_input_output.feather.ind')
-
-  data_for_Xiaowei/sntemp_input_output_subset.feather.ind:
-    command: data_subset_for_pgdl(
-      ind_file = target_name,
-      full_data_file = 'data_for_Xiaowei/sntemp_input_output.feather')
-  data_for_Xiaowei/sntemp_input_output_subset.feather:
-    command: gd_get('data_for_Xiaowei/sntemp_input_output_subset.feather.ind')
-
 
 
