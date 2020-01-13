@@ -20,7 +20,7 @@ targets:
       lat = I(39.93333333),
       long = I(-75.55000000),
       model_fabric_file = '2_1_model_fabric/in/network_full.rds',
-      model_output_file = 'data_for_Xiaowei/sntemp_input_output.feather')
+      model_output_file = '4_model_for_PGDL/out/sntemp_input_output.feather')
   6_model_output/out/SNTemp_sw_rad_station_location_39.933_-75.55.rds:
     command: gd_get('6_model_output/out/SNTemp_sw_rad_station_location_39.933_-75.55.rds.ind')
 

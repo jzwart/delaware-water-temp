@@ -13,12 +13,12 @@ sources:
   - 4_model/src/run_sntemp.R
   - 4_model/src/update_sntemp.R
   - 4_model/src/set_sntemp_output.R
-  - data_for_Xiaowei/data_for_Xiaowei.R
+  - 4_model_for_PGDL/src/data_for_Xiaowei.R
 
 targets:
   4_model_for_PGDL:
     depends:
-      - data_for_Xiaowei/sntemp_input_output.feather.ind
+      - 4_model_for_PGDL/out/sntemp_input_output.feather.ind
 
 ##########################################
 # uncalibrated SNTemp run for input to PGDL
@@ -38,18 +38,18 @@ targets:
       model_run_loc = I('20191002_Delaware_streamtemp'))
     depends: set_sntemp_output_vars
 
-  data_for_Xiaowei/sntemp_input_output.feather.ind:
+  4_model_for_PGDL/out/sntemp_input_output.feather.ind:
     command: data_for_pgdl(ind_file = target_name)
     depends: uncal_sntemp_run
-  data_for_Xiaowei/sntemp_input_output.feather:
-    command: gd_get('data_for_Xiaowei/sntemp_input_output.feather.ind')
+  4_model_for_PGDL/out/sntemp_input_output.feather:
+    command: gd_get('4_model_for_PGDL/out/sntemp_input_output.feather.ind')
 
-  data_for_Xiaowei/sntemp_input_output_subset.feather.ind:
+  4_model_for_PGDL/out/sntemp_input_output_subset.feather.ind:
     command: data_subset_for_pgdl(
       ind_file = target_name,
-      full_data_file = 'data_for_Xiaowei/sntemp_input_output.feather')
-  data_for_Xiaowei/sntemp_input_output_subset.feather:
-    command: gd_get('data_for_Xiaowei/sntemp_input_output_subset.feather.ind')
+      full_data_file = '4_model_for_PGDL/out/sntemp_input_output.feather')
+  4_model_for_PGDL/out/sntemp_input_output_subset.feather:
+    command: gd_get('4_model_for_PGDL/out/sntemp_input_output_subset.feather.ind')
 
 
 
