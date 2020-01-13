@@ -1,4 +1,5 @@
 
+library(dplyr)
 
 d = readRDS('4_model/out/model_out.rds')
 dd = readRDS('4_model/out/model_out_no_assim.rds')
@@ -108,6 +109,36 @@ temp_rmse_no_assim = sqrt(rowMeans((mean_temp_no_assim - obs[,1,time_period])^2,
 
 hist(temp_rmse)
 hist(temp_rmse_no_assim)
+rmse_diff = temp_rmse_no_assim - temp_rmse
+rmse_reduced = ifelse(rmse_diff>0, 'decrease', 'increase')
+
+rmse_df = tibble(rmse = c(temp_rmse, temp_rmse_no_assim),
+                 da = c(rep('DA', length(temp_rmse)), rep('no_DA', length(temp_rmse_no_assim))),
+                 diff = rep(abs(rmse_diff), 2),
+                 reduced = rep(rmse_reduced, 2),
+                 id = rep(1:length(rmse_diff), 2))
+
+b <- runif(nrow(rmse_df), -0.1, 0.1)
+
+rmse_df$da = factor(x = rmse_df$da, levels = c('no_DA', 'DA'))
+
+windows()
+ggplot(rmse_df, aes(x = da, y = rmse)) +
+  geom_boxplot() +
+  geom_point(aes(color = reduced, size = diff)) +
+  geom_line(aes(group = id, color = reduced), linetype = '11')+
+  theme_classic() +
+  scale_color_manual(name = 'reduced',
+                     values = c('blue', 'red'))+
+  theme(strip.background = element_blank(),
+        strip.placement = 'inside',
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size =12)) +
+  xlab('') +
+  ylab(expression(RMSE~(degrees~C)))
+
 
 loc = cbind(d$model_locations, uncert, uncert_no_assim, n_obs, temp_rmse, temp_rmse_no_assim)
 

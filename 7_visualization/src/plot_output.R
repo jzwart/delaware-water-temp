@@ -5,11 +5,11 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 
-output = readRDS('4_model/tmp/model_out.rds')
+output = readRDS('4_model/out/model_out.rds')
 
 site_index = 4
 
-site = output$model_locations[site_index]
+site = output$model_locations$seg_id_nat[site_index]
 site_est_mean = apply(output$Y[site_index, , ], MARGIN = 1, FUN = mean)
 site_est_sd = apply(output$Y[site_index, , ], MARGIN = 1, FUN = sd)
 site_obs = output$obs[site_index, , ]
