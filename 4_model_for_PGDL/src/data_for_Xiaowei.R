@@ -65,7 +65,7 @@ data_for_pgdl = function(ind_file,
 }
 
 data_subset_for_pgdl = function(ind_file,
-                                sub_net_file = 'data_for_Xiaowei/network_subset.rds',
+                                sub_net_file = '4_model_for_PGDL/in/network_subset.rds',
                                 full_data_file,
                                 gd_config = 'lib/cfg/gd_config.yml'){
 
