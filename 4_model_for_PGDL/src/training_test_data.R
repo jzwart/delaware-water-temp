@@ -81,3 +81,54 @@ build_synthetic_training <- function(ind_file,
   gd_put(remote_ind = ind_file, local_source = out_file, config_file = gd_config)
 }
 
+
+#' @param ind_file indicator file
+#' @param data_file SNTemp output file
+#' @param obs_file Observation file
+#' @param percent_obs percent of observations used for training
+#' @param exp_n number of experiments using this scheme
+#' @param test_yrs how many years at the end of time series to leave as testing only
+build_real_training <- function(ind_file,
+                                data_file,
+                                obs_file,
+                                percent_obs,
+                                exp_n,
+                                test_yrs,
+                                gd_config = 'lib/cfg/gd_config.yml'){
+
+  data = feather::read_feather(data_file)
+  obs = readRDS(obs_file)
+
+  # filter observations to SNTemp model run time period
+  obs = obs %>% dplyr::filter(date >= min(data$date) & date <= max(data$date))
+
+  obs_train = obs %>% dplyr::filter(date < (max(data$date) - as.numeric(test_yrs)*365))
+  obs_test = dplyr::filter(obs, !date %in% obs_train$date)
+
+  n_obs = nrow(obs_train)
+
+  exps = 1:exp_n
+
+  n_obs_train = round(n_obs * as.numeric(percent_obs) / 100)
+
+  for(i in exps){
+    set.seed(42 + as.numeric(i))
+
+    train_loc = sample(1:n_obs, size = n_obs_train, replace = F)
+
+    cur_train_test = rep('test', nrow(obs_train))
+    cur_train_test[train_loc] = 'train'
+
+    col_name = paste0('exp',i) %>% noquote()
+    obs_train = mutate(obs_train, !!col_name := cur_train_test)
+    obs_test = mutate(obs_test, !!col_name := rep('test', nrow(obs_test)))
+  }
+
+  obs_out = bind_rows(obs_train, obs_test)
+
+  out_file = as_data_file(ind_file)
+  feather::write_feather(x = obs_out, path = out_file)
+  gd_put(remote_ind = ind_file, local_source = out_file, config_file = gd_config)
+}
+
+
