@@ -1,5 +1,31 @@
 Description of variables and units. 2019-09-30
 
+#############################################################################
+# -- The following variables are used as drivers for the PRMS-SNTemp model --
+#############################################################################
+
+Name: seg_rain
+Module: stream_temp
+Ndimen: 1
+Dimensions: nsegment - 456
+Size: 456
+Type: float
+Desc: Area-weighted average rainfall for each segment from HRUs contributing flow to the segment
+Units: meters
+
+Name: seg_tave_air
+Module: stream_temp
+Ndimen: 1
+Dimensions: nsegment - 456
+Size: 456
+Type: float
+Desc: Area-weighted average air temperature for each segment from HRUs contributing flow to the segment
+Units: degrees Celsius
+
+##########################################################################
+# -- The following are intermediate variables calculated by PRMS-SNTemp --
+##########################################################################
+
 Name: seg_humid
 Module: stream_temp
 Ndimen: 1
@@ -17,15 +43,6 @@ Size: 456
 Type: double
 Desc: Streamflow leaving a segment
 Units: m^3 sec^-1
-
-Name: seg_rain
-Module: stream_temp
-Ndimen: 1
-Dimensions: nsegment - 456
-Size: 456
-Type: float
-Desc: Area-weighted average rainfall for each segment from HRUs contributing flow to the segment
-Units: meters
 
 Name: seg_upstream_inflow
 Module: muskingum
@@ -97,7 +114,7 @@ Dimensions: nsegment - 456
 Size: 456
 Type: double
 Desc: Length of stream segment
-Units: meters 
+Units: meters
 
 Name: seg_slope
 Module: stream_temp
@@ -105,8 +122,8 @@ Ndimen: 1
 Dimensions: nsegment - 456
 Size: 456
 Type: double
-Desc: Stream segment slope 
-Units: dimensionless  
+Desc: Stream segment slope
+Units: dimensionless
 
 Name: seg_elev
 Module: stream_temp
@@ -114,8 +131,8 @@ Ndimen: 1
 Dimensions: nsegment - 456
 Size: 456
 Type: double
-Desc: Stream segment average elevation above mean sea level  
-Units: meters  
+Desc: Stream segment average elevation above mean sea level
+Units: meters
 
 Name: seg_shade
 Module: stream_temp
@@ -134,15 +151,6 @@ Size: 456
 Type: float
 Desc: Area-weighted average cloud cover fraction for each segment from HRUs contributing flow to the segment
 Units: decimal fraction
-
-Name: seg_tave_air
-Module: stream_temp
-Ndimen: 1
-Dimensions: nsegment - 456
-Size: 456
-Type: float
-Desc: Area-weighted average air temperature for each segment from HRUs contributing flow to the segment
-Units: degrees Celsius
 
 Name: seg_tave_gw
 Module: stream_temp
