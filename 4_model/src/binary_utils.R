@@ -12,6 +12,8 @@ head(binData)
 tail(binData)
 binData[1:100]
 
+
+
 binData_filt = binData[binData>-5&binData<55]
 
 hist(binData_filt)
