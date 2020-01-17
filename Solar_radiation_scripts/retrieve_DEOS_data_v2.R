@@ -2,12 +2,6 @@ library(XML)
 library(dplyr)
 library(lubridate)
 
-# check wd
-getwd()
-
-# Set wd
-setwd('..')
-
 ##### Retrieve DEOS data from all DEOS stations within DRB #####
 # Load .csv of DEOS stations within DRB
 DEOS_stations <- read.csv('data-raw/DEOS/DEOS_DRB.csv', header = TRUE)
@@ -56,7 +50,7 @@ retrieve_DEOS <- function(input_dataframe, start_yr, end_yr){
   }
   # Export all retrieved data for all stations
   message('Exporting all data retrieved for all stations')
-  names(raw_DEOS) <- c('Hour', 'Temp_degC', 'Relative_humidity_%', 'Solar_radiation_wattsperm2', 'Rainfall_mm', 'Date', 'Station', 'Latitude', 'Longitude')
+  names(raw_DEOS) <- c('Hour', 'Temp_degC', 'Relative_humidity_p', 'Solar_radiation_wattsperm2', 'Rainfall_mm', 'Date', 'Station', 'Latitude', 'Longitude')
   if (start_yr == end_yr){
     output_filename <- paste0('data-raw/DEOS/DEOS_weather_data_hourly_raw_', start_yr, '.csv')
   } else {
@@ -83,7 +77,7 @@ format_data <- function(raw_DEOS, start_yr, end_yr){
               solar_radiation_max = max(as.numeric(Solar_radiation_wattsperm2)),
               solar_radiation_sum = sum(as.numeric(Solar_radiation_wattsperm2)),
               temp_mean = mean(as.numeric(Temp_degC)),
-              rel_humidity_mean = mean(as.numeric(`Relative_humidity_%`)),
+              rel_humidity_mean = mean(as.numeric(`Relative_humidity_p`)),
               rainfall_sum = sum(as.numeric(Rainfall_mm)),)
   # Export daily data
   if (start_yr == end_yr){
