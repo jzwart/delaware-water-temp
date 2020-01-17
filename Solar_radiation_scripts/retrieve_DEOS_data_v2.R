@@ -35,7 +35,7 @@ retrieve_DEOS <- function(input_dataframe, start_yr, end_yr){
       dat_list <- XML::readHTMLTable(final_url, stringsAsFactors = FALSE)
       dat <- dat_list[[2]][c(1,3,6,17,19)] %>%
         mutate(Date = all_days[i]) %>%
-        mutate(Station = this_station, Latitude = this_latitude, Longitude = this_longitude)
+        mutate(Station = this_station, Latitude = this_latitude, Longitude = this_longitude, Data_source = "DEOS")
       raw_DEOS <- rbind(dat, raw_DEOS)
       raW_DEOS_station <- rbind(dat, raW_DEOS_station)
     }
@@ -50,7 +50,7 @@ retrieve_DEOS <- function(input_dataframe, start_yr, end_yr){
   }
   # Export all retrieved data for all stations
   message('Exporting all data retrieved for all stations')
-  names(raw_DEOS) <- c('Hour', 'Temp_degC', 'Relative_humidity_p', 'Solar_radiation_wattsperm2', 'Rainfall_mm', 'Date', 'Station', 'Latitude', 'Longitude')
+  names(raw_DEOS) <- c('Hour', 'Temp_degC', 'Relative_humidity_p', 'Solar_radiation_wattsperm2', 'Rainfall_mm', 'Date', 'Station', 'Latitude', 'Longitude', 'Data_source')
   if (start_yr == end_yr){
     output_filename <- paste0('data-raw/DEOS/DEOS_weather_data_hourly_raw_', start_yr, '.csv')
   } else {
@@ -72,7 +72,7 @@ format_data <- function(raw_DEOS, start_yr, end_yr){
   hourly_tmp <- raw_DEOS
   # Process data to get in daily timestep
   dat_daily <- hourly_tmp %>%
-    group_by(Station, Date, Latitude, Longitude) %>%
+    group_by(Station, Date, Latitude, Longitude, Data_source) %>%
     summarize(solar_radiation_mean = mean(as.numeric(Solar_radiation_wattsperm2)),
               solar_radiation_max = max(as.numeric(Solar_radiation_wattsperm2)),
               solar_radiation_sum = sum(as.numeric(Solar_radiation_wattsperm2)),
@@ -81,9 +81,9 @@ format_data <- function(raw_DEOS, start_yr, end_yr){
               rainfall_sum = sum(as.numeric(Rainfall_mm)),)
   # Export daily data
   if (start_yr == end_yr){
-    daily_output_filename <- paste0('data-raw/data_daily/DEOS_weather_data_daily_', start_yr, '.csv')
+    daily_output_filename <- paste0('data-raw/Formatted_daily_data/DEOS_daily_', start_yr, '.csv')
   } else {
-    daily_output_filename <- paste0('data-raw/data_daily/DEOS_weather_data_daily_', start_yr, "-", end_yr, '.csv')
+    daily_output_filename <- paste0('data-raw/Formatted_daily_data/DEOS_daily_', start_yr, "-", end_yr, '.csv')
   }
   write.csv(dat_daily, daily_output_filename, row.names = FALSE)
   # Return formatted daily data
