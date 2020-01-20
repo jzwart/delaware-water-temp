@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .httr-oauth
+.remake/
 
 *.zip
 */tmp/*

@@ -35,12 +35,12 @@ build_synthetic_training <- function(ind_file,
       segs_observed = sample(x = segs, size = n_segs_obs, replace = F)
 
       cur_train_test = all_data %>%
-        mutate(train_test = 'test') %>%
+        mutate(train_test = 'ignore') %>%
         group_by(seg_id_nat) %>%
         # randomize starting date of sampling
         mutate(train_test = case_when(date %in% dates[seq(sample(1:temporal_res,1), n_dates, by = temporal_res)] &
                                         seg_id_nat %in% segs_observed ~ 'train',
-                                      TRUE ~ 'test')) %>%
+                                      TRUE ~ 'ignore')) %>%
         ungroup() %>%
         mutate(train_test = case_when(date > (max(all_data$date) - as.numeric(test_yrs)*365) ~ 'test',
                                       TRUE ~ train_test)) %>%
@@ -58,12 +58,12 @@ build_synthetic_training <- function(ind_file,
       dates_observed = dates[seq(sample(1:temporal_res,1), n_dates, by = temporal_res)]
 
       cur_train_test = all_data %>%
-        mutate(train_test = 'test') %>%
+        mutate(train_test = 'ignore') %>%
         group_by(seg_id_nat) %>%
         # randomize starting date of sampling
         mutate(train_test = case_when(date %in% dates_observed &
                                         seg_id_nat %in% segs_observed ~ 'train',
-                                      TRUE ~ 'test')) %>%
+                                      TRUE ~ 'ignore')) %>%
         ungroup() %>%
         mutate(train_test = case_when(date > (max(all_data$date) - as.numeric(test_yrs)*365) ~ 'test',
                                       TRUE ~ train_test)) %>%
@@ -116,7 +116,7 @@ build_real_training <- function(ind_file,
 
     train_loc = sample(1:n_obs, size = n_obs_train, replace = F)
 
-    cur_train_test = rep('test', nrow(obs_train))
+    cur_train_test = rep('ignore', nrow(obs_train))
     cur_train_test[train_loc] = 'train'
 
     col_name = paste0('exp',i) %>% noquote()
