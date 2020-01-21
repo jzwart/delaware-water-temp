@@ -37,6 +37,8 @@ hist(binData_int)
 
 
 
+
+
 con = file('20191002_Delaware_streamtemp/prms_ic.out', open = 'rb')
 
 char = readBin(con = con, what = character(), n = 100000, endian = 'little')
