@@ -81,6 +81,27 @@ build_synthetic_training <- function(ind_file,
   gd_put(remote_ind = ind_file, local_source = out_file, config_file = gd_config)
 }
 
+subset_training = function(ind_file = target_name,
+                           full_training_file,
+                           sub_net_file,
+                           gd_config = 'lib/cfg/gd_config.yml'){
+
+  full_training = feather::read_feather(full_training_file)
+
+  # subset network
+  sub_net = readRDS(sub_net_file)
+  sub_net_sites = unique(sub_net$edges$seg_id_nat)
+  subset_training = full_training %>%
+    dplyr::filter(seg_id_nat %in% sub_net_sites)
+
+  length(unique(subset_training$seg_id_nat))
+
+  out_file = as_data_file(ind_file)
+  feather::write_feather(x = subset_training, path = out_file)
+  gd_put(remote_ind = ind_file, local_source = out_file, config_file = gd_config)
+}
+
+
 
 #' @param ind_file indicator file
 #' @param data_file SNTemp output file

@@ -1,0 +1,13 @@
+version: 0.3.0
+name: 4_model_for_PGDL/out/drb_subset_synthetic_train_10_1_inSitu.feather.ind
+type: file
+hash: b38679467f3154fb40cee20329252ba9
+time: 2020-01-22 16:42:54 UTC
+depends:
+  4_model_for_PGDL/out/drb_synthetic_train_10_1_inSitu.feather: 9297512b36bf45a25780be30e10ade68
+  4_model_for_PGDL/in/network_subset.rds: e68052e4373b0527123d6fb4457be176
+fixed: 49cba8d50529fc1a25a8da95c2f2e139
+code:
+  functions:
+    subset_training: b9c8858833c11a710acff74d4556b55f
+

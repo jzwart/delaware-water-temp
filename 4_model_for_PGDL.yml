@@ -36,7 +36,7 @@ targets:
       stop = stop,
       spinup = I('F'),
       restart = I('F'),
-      model_run_loc = I('20191002_Delaware_streamtemp'))
+      model_run_loc = I('4_model/tmp'))
     depends: set_sntemp_output_vars
 
   4_model_for_PGDL/out/sntemp_input_output.feather.ind:
@@ -65,6 +65,12 @@ targets:
       exp_n = I(5),
       test_yrs = I(12))
 
+  4_model_for_PGDL/out/drb_subset_synthetic_train_60_21_inSitu.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_synthetic_train_60_21_inSitu.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')
+
   4_model_for_PGDL/out/drb_synthetic_train_10_1_inSitu.feather.ind:
     command: build_synthetic_training(
       ind_file = target_name,
@@ -75,6 +81,12 @@ targets:
       exp_n = I(5),
       test_yrs = I(12))
 
+  4_model_for_PGDL/out/drb_subset_synthetic_train_10_1_inSitu.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_synthetic_train_10_1_inSitu.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')
+
   4_model_for_PGDL/out/drb_synthetic_train_100_14_rs.feather.ind:
     command: build_synthetic_training(
       ind_file = target_name,
@@ -84,6 +96,12 @@ targets:
       obs_type = I('rs'),
       exp_n = I(5),
       test_yrs = I(12))
+
+  4_model_for_PGDL/out/drb_subset_synthetic_train_100_14_rs.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_synthetic_train_100_14_rs.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')
 
 # -- creating real obs training datasets --
 #     file naming == site_fullOrSubset_realOrSynthetic_train_percentObs.feather
@@ -97,6 +115,12 @@ targets:
       exp_n = I(5),
       test_yrs = I(12))
 
+  4_model_for_PGDL/out/drb_subset_real_train_100.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_full_real_train_100.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')
+
   4_model_for_PGDL/out/drb_full_real_train_50.feather.ind:
     command: build_real_training(
       ind_file = target_name,
@@ -105,6 +129,12 @@ targets:
       percent_obs = I(50),
       exp_n = I(5),
       test_yrs = I(12))
+
+  4_model_for_PGDL/out/drb_subset_real_train_50.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_full_real_train_50.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')
 
   4_model_for_PGDL/out/drb_full_real_train_20.feather.ind:
     command: build_real_training(
@@ -115,6 +145,12 @@ targets:
       exp_n = I(5),
       test_yrs = I(12))
 
+  4_model_for_PGDL/out/drb_subset_real_train_20.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_full_real_train_20.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')
+
   4_model_for_PGDL/out/drb_full_real_train_10.feather.ind:
     command: build_real_training(
       ind_file = target_name,
@@ -123,6 +159,12 @@ targets:
       percent_obs = I(10),
       exp_n = I(5),
       test_yrs = I(12))
+
+  4_model_for_PGDL/out/drb_subset_real_train_10.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_full_real_train_10.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')
 
   4_model_for_PGDL/out/drb_full_real_train_02.feather.ind:
     command: build_real_training(
@@ -133,3 +175,8 @@ targets:
       exp_n = I(5),
       test_yrs = I(12))
 
+  4_model_for_PGDL/out/drb_subset_real_train_02.feather.ind:
+    command: subset_training(
+      ind_file = target_name,
+      full_training_file = '4_model_for_PGDL/out/drb_full_real_train_02.feather',
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds')

@@ -36,6 +36,17 @@ hist(binData_int)
 
 
 
+# 23 total modules called; Stream temp module is the 19th module
+#  assuming equal lengths, then starting position of stream data should be around binary length / 23 * 19
+
+start = round(length(binData) / 23 * 19 )
+end = round(length(binData) / 23 * 23)
+
+binData[start:end]
+
+summary(binData[start:end])
+
+
 
 
 
