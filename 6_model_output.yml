@@ -12,17 +12,24 @@ sources:
 targets:
   6_model_output:
     depends:
-      - 6_model_output/out/SNTemp_sw_rad_station_location_39.933_-75.55.rds.ind
+      - 6_model_output/out/SNTemp_sw_rad_station_location_DWCH_39.933_-75.55.rds.ind
 
-  6_model_output/out/SNTemp_sw_rad_station_location_39.933_-75.55.rds.ind:
+  6_model_output/out/SNTemp_sw_rad_station_location_DWCH_39.933_-75.55.rds.ind:
     command: get_segment_output(
       ind_file = target_name,
       lat = I(39.93333333),
       long = I(-75.55000000),
       model_fabric_file = '2_1_model_fabric/in/network_full.rds',
       model_output_file = '4_model_for_PGDL/out/sntemp_input_output.feather')
-  6_model_output/out/SNTemp_sw_rad_station_location_39.933_-75.55.rds:
-    command: gd_get('6_model_output/out/SNTemp_sw_rad_station_location_39.933_-75.55.rds.ind')
+  6_model_output/out/SNTemp_sw_rad_station_location_DWCH_39.933_-75.55.rds:
+    command: gd_get('6_model_output/out/SNTemp_sw_rad_station_location_DWCH_39.933_-75.55.rds.ind')
 
-
-
+  6_model_output/out/SNTemp_sw_rad_station_location_DWPK_40.09_-75.62.rds.ind:
+    command: get_segment_output(
+      ind_file = target_name,
+      lat = I(40.09),
+      long = I(-75.62),
+      model_fabric_file = '2_1_model_fabric/in/network_full.rds',
+      model_output_file = '4_model_for_PGDL/out/sntemp_input_output.feather')
+  6_model_output/out/SNTemp_sw_rad_station_location_DWPK_40.09_-75.62.rds:
+    command: gd_get('6_model_output/out/SNTemp_sw_rad_station_location_DWPK_40.09_-75.62.rds.ind')

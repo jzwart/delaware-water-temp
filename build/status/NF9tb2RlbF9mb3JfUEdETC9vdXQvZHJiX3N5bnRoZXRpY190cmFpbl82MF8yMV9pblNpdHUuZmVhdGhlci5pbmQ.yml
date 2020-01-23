@@ -1,0 +1,12 @@
+version: 0.3.0
+name: 4_model_for_PGDL/out/drb_synthetic_train_60_21_inSitu.feather.ind
+type: file
+hash: 7218b071274533dbd7cce71e56fc2e3c
+time: 2020-01-17 21:29:16 UTC
+depends:
+  4_model_for_PGDL/out/sntemp_input_output.feather: 25b752bc6ad2d54f4baf70ff1bca39fe
+fixed: 0b89ed7c28492b611af1369f3e65ff2b
+code:
+  functions:
+    build_synthetic_training: a094ba3a1e8b80b613a2a7952aed608d
+

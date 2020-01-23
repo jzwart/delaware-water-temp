@@ -1,0 +1,13 @@
+version: 0.3.0
+name: 4_model_for_PGDL/out/drb_subset_real_train_2obs.feather.ind
+type: file
+hash: 227bc06040677f9faef1bfc3828942cc
+time: 2020-01-23 19:05:05 UTC
+depends:
+  4_model_for_PGDL/out/drb_full_real_train_2obs.feather: 79b71c58d83dcfb599f62caf9cda5a0f
+  4_model_for_PGDL/in/network_subset.rds: e68052e4373b0527123d6fb4457be176
+fixed: 20c80f95da1a622b6f09e0ca2f3296b9
+code:
+  functions:
+    subset_training: b9c8858833c11a710acff74d4556b55f
+

@@ -1,0 +1,13 @@
+version: 0.3.0
+name: 4_model_for_PGDL/out/drb_full_real_train_100obs.feather.ind
+type: file
+hash: 6b0029c536f774f90aa1041c034c1c68
+time: 2020-01-23 18:40:48 UTC
+depends:
+  4_model_for_PGDL/out/sntemp_input_output.feather: 25b752bc6ad2d54f4baf70ff1bca39fe
+  3_observations/in/obs_temp_full.rds: 434957a2c2b4608acaf3cf54a9a5a111
+fixed: 8ebbc05a34a53702352ba406720c164d
+code:
+  functions:
+    build_real_training: 97b3a99f7a82e3abc3c8df03786f5434
+
