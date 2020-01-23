@@ -112,40 +112,100 @@ subset_training = function(ind_file = target_name,
 build_real_training <- function(ind_file,
                                 data_file,
                                 obs_file,
-                                percent_obs,
+                                percent_obs = NULL,
+                                max_obs,
+                                n_obs=NULL,
                                 exp_n,
                                 test_yrs,
                                 gd_config = 'lib/cfg/gd_config.yml'){
 
-  data = feather::read_feather(data_file)
-  obs = readRDS(obs_file)
+  if(!is.null(percent_obs)){
+    data = feather::read_feather(data_file)
+    obs = readRDS(obs_file)
 
-  # filter observations to SNTemp model run time period
-  obs = obs %>% dplyr::filter(date >= min(data$date) & date <= max(data$date))
+    # filter observations to SNTemp model run time period
+    obs = obs %>% dplyr::filter(date >= min(data$date) & date <= max(data$date))
 
-  obs_train = obs %>% dplyr::filter(date < (max(data$date) - as.numeric(test_yrs)*365))
-  obs_test = dplyr::filter(obs, !date %in% obs_train$date)
+    obs_train = obs %>% dplyr::filter(date < (max(data$date) - as.numeric(test_yrs)*365))
+    obs_test = dplyr::filter(obs, !date %in% obs_train$date)
 
-  n_obs = nrow(obs_train)
+    n_obs = nrow(obs_train)
 
-  exps = 1:exp_n
+    exps = 1:exp_n
 
-  n_obs_train = round(n_obs * as.numeric(percent_obs) / 100)
+    n_obs_train = round(n_obs * as.numeric(percent_obs) / 100)
 
-  for(i in exps){
-    set.seed(42 + as.numeric(i))
+    for(i in exps){
+      set.seed(42 + as.numeric(i))
 
-    train_loc = sample(1:n_obs, size = n_obs_train, replace = F)
+      train_loc = sample(1:n_obs, size = n_obs_train, replace = F)
 
-    cur_train_test = rep('ignore', nrow(obs_train))
-    cur_train_test[train_loc] = 'train'
+      cur_train_test = rep('ignore', nrow(obs_train))
+      cur_train_test[train_loc] = 'train'
 
-    col_name = paste0('exp',i) %>% noquote()
-    obs_train = mutate(obs_train, !!col_name := cur_train_test)
-    obs_test = mutate(obs_test, !!col_name := rep('test', nrow(obs_test)))
+      col_name = paste0('exp',i) %>% noquote()
+      obs_train = mutate(obs_train, !!col_name := cur_train_test)
+      obs_test = mutate(obs_test, !!col_name := rep('test', nrow(obs_test)))
+    }
+
+    obs_out = bind_rows(obs_train, obs_test)
+
+  }else if(!is.null(n_obs)){ # use n_obs and max_obs for data sparcity
+
+    data = feather::read_feather(data_file)
+    obs = readRDS(obs_file)
+
+    # filter observations to SNTemp model run time period
+    obs = obs %>% dplyr::filter(date >= min(data$date) & date <= max(data$date))
+
+    obs_train = obs %>% dplyr::filter(date < (max(data$date) - as.numeric(test_yrs)*365))
+    obs_test = dplyr::filter(obs, !date %in% obs_train$date)
+
+    # filter out segments with fewer obs than max_obs during training period
+    low_obs = obs_train %>%
+      group_by(seg_id_nat) %>%
+      mutate(n_obs = n()) %>%
+      ungroup() %>%
+      dplyr::filter(n_obs < as.numeric(max_obs)) %>%
+      select(-n_obs)
+
+    obs_train = obs_train %>%
+      group_by(seg_id_nat) %>%
+      mutate(n_obs = n()) %>%
+      ungroup() %>%
+      dplyr::filter(n_obs >= as.numeric(max_obs)) %>%
+      select(-n_obs)
+
+    length(unique(obs_train$seg_id_nat))
+
+    exps = 1:exp_n
+
+    n_obs_train = as.numeric(n_obs)
+
+    for(i in exps){
+      set.seed(42 + as.numeric(i))
+
+      cur_train_test = obs_train %>%
+        mutate(train_test = 'ignore') %>%
+        group_by(seg_id_nat) %>%
+        mutate(sample_seq = seq(1, n())) %>%
+        # randomize obs for training per segment
+        mutate(train_test = case_when(sample_seq %in% sample(1:max(sample_seq), size = n_obs_train, replace = F) ~ 'train',
+                                      TRUE ~ 'ignore')) %>%
+        ungroup() %>%
+        pull(train_test)
+
+      col_name = paste0('exp',i) %>% noquote()
+      obs_train = mutate(obs_train, !!col_name := cur_train_test)
+      low_obs = mutate(low_obs, !!col_name := rep('ignore', nrow(low_obs)))
+      obs_test = mutate(obs_test, !!col_name := rep('test', nrow(obs_test)))
+    }
+
+    obs_out = bind_rows(obs_train, low_obs, obs_test)
   }
-
-  obs_out = bind_rows(obs_train, obs_test)
+  length(unique(obs_out$seg_id_nat[obs_out$exp1 == 'train']))
+  length(unique(obs_out$seg_id_nat))
+  length(unique(obs_train$seg_id_nat))
 
   out_file = as_data_file(ind_file)
   feather::write_feather(x = obs_out, path = out_file)

@@ -4,6 +4,7 @@
 .Ruserdata
 .httr-oauth
 .remake/
+.spyproject/
 
 *.zip
 */tmp/*
