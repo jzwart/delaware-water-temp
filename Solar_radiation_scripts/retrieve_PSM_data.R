@@ -44,8 +44,6 @@ DEOS_stations <- read.csv('data-raw/DEOS/DEOS_DRB.csv', header = TRUE)
 # Define parameters
 # See https://developer.nrel.gov/docs/solar/nsrdb/psm3_data_download/ for request parameter explanations
 # Requires API key (https://developer.nrel.gov/docs/api-key/). sign up here: https://developer.nrel.gov/signup/
-# in_lon <- DEOS_stations$Lon_dd
-# in_lat <-  DEOS_stations$Lat_dd
 in_api <- 'F5EcW2D6gb8ilF8Stftz1JjgE0DPnunH8HPb5ckx'
 in_name <- 'Hayley+CorsonDosch'
 in_affiliation <- 'UW_Madison'
@@ -86,14 +84,20 @@ format_PSM <- function(file_list, DEOS_station_info, yr){
           hourly_output_name <- paste0('data-raw/PSM/PSM_hourly/PSM_hourly_', DEOS_station_info[row, "Station"], "_", yr, '.csv')
           # set file name for daily data
           daily_output_name <- paste0('data-raw/PSM/PSM_daily/PSM_daily_', DEOS_station_info[row, "Station"], "_", yr, '.csv')
-        } else
+          # set station name
+          station_name <- DEOS_station_info[row, "Station"]
+        } else {
           next
-      } else
+        }
+      } else {
         next
+      }
     }
     # Write csv of hourly data for each station
+    message(paste0('Exporting all hourly data retrieved for ', station_name))
     write.csv(PSM_tmp, hourly_output_name, row.names = FALSE)
     # Group data into daily data
+    message(paste0('Formatting all hourly data retrieved for ', station_name, ' as daily data'))
     PSM_dat_daily <- PSM_tmp %>%
       group_by(Date, Station, Latitude, Longitude, Data_source) %>%
       summarize(temp_mean = mean(as.numeric(Temperature)),
@@ -102,8 +106,17 @@ format_PSM <- function(file_list, DEOS_station_info, yr){
                 solar_radiation_max = max(as.numeric(GHI)),
                 solar_radiation_sum = sum(as.numeric(GHI)))
     # Write csv of daily data for each station
+    message(paste0('Exporting all formatted daily data retrieved for ', station_name))
     write.csv(PSM_dat_daily, daily_output_name, row.names = FALSE)
   }
+  #Bind all daily PSM data into one dataframe and export to csv
+  message('Compiling all daily data retrieved for all stations into a single dataframe')
+  PSM_daily_files <- list.files("data-raw/PSM/PSM_daily/", pattern="*.csv", full.names = TRUE)
+  PSM_daily_all <- map_df(PSM_daily_files, ~read_csv(.), .id = NULL)
+  PSM_daily_all_filename <- paste0('data-raw/Formatted_daily_data/PSM_daily_', in_year, '.csv')
+  # Export all daily PSM data as .csv
+  message('Exporting all formatted daily data for all stations as a single .csv file')
+  write.csv(PSM_daily_all, PSM_daily_all_filename, row.names = FALSE)
 }
 
 
@@ -111,13 +124,9 @@ format_PSM <- function(file_list, DEOS_station_info, yr){
 # Get parameters for function
 PSM_raw_files <- list.files(path="data-raw/PSM/PSM_raw", pattern = "*.csv", full.names = TRUE)
 DEOS_stations <- read.csv('data-raw/DEOS/DEOS_DRB.csv', header = TRUE)
-
+in_year <- '2015'
 # Call function
 format_PSM(file_list = PSM_raw_files, DEOS_station_info = DEOS_stations, yr = in_year)
 
 
-##### Bind all daily PSM data into one dataframe and export to csv #####
-PSM_daily_files <- list.files("data-raw/PSM/PSM_daily/", pattern="*.csv", full.names = TRUE)
-PSM_daily_all <- map_df(PSM_daily_files, ~read_csv(.), .id = NULL)
-PSM_daily_all_filename <- paste0('data-raw/Formatted_daily_data/PSM_daily_', in_year, '.csv')
-write.csv(PSM_daily_all, PSM_daily_all_filename, row.names = FALSE)
+

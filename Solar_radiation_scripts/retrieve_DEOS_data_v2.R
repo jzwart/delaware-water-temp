@@ -42,9 +42,9 @@ retrieve_DEOS <- function(input_dataframe, start_yr, end_yr){
     # export data for each station
     message('Exporting all data retrieved for station ', this_station)
     if (start_yr == end_yr){
-      station_output_filename <- paste0("data-raw/DEOS/", this_station, "_", start_yr, "_daily.csv")
+      station_output_filename <- paste0("data-raw/DEOS/", this_station, "_", start_yr, "_hourly.csv")
     } else {
-      station_output_filename <- paste0("data-raw/DEOS/", this_station, "_", start_yr, "-", end_yr, "_daily.csv")
+      station_output_filename <- paste0("data-raw/DEOS/", this_station, "_", start_yr, "-", end_yr, "_hourly.csv")
     }
     write.csv(raW_DEOS_station, station_output_filename, row.names = FALSE)
   }
