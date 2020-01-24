@@ -5,22 +5,18 @@
 #install.packages("devtools")
 
 # Install and load the SolMod package
-install_github("dazhiyang/SolarData")
+#install_github("dazhiyang/SolarData")
 
 #load libraries
 library(devtools)
 library(SolarData)
-library(gridExtra)
-library(XML)
 library(dplyr)
 library(lubridate)
 library(tidyverse)
-library("data.table")
 
 ##### Retrieve PSM data at location of all DEOS stations that are within the DRB #####
 
 ### define function
-
 # See https://developer.nrel.gov/docs/solar/nsrdb/psm3_data_download/ for request parameter explanations
 retrieve_PSM <- function(station_info, user_api, user_name, user_affiliation, yr, user_email, yr_leap, folder_path){
   # Iterate through stations to...
@@ -64,7 +60,7 @@ format_PSM <- function(file_list, DEOS_station_info, yr){
   # Iterate through files in folder to...
   for (file in file_list){
     # read raw data (skip first two rows of .csv)
-    PSM_tmp <- read.csv(file, header = TRUE, skip = 2)
+    PSM_tmp <- read.csv(file, header = TRUE, skip = 2, stringsAsFactors = FALSE)
     # get date.time for the PSM data
     # Note - as currently written this produces a warning that 1 failed to parse, but seems to work ok?
     PSM_tmp <- PSM_tmp %>%
@@ -124,7 +120,6 @@ format_PSM <- function(file_list, DEOS_station_info, yr){
 ### Call function
 # Get parameters for function
 PSM_raw_files <- list.files(path="data-raw/PSM/PSM_raw", pattern = "*.csv", full.names = TRUE)
-DEOS_stations <- read.csv('data-raw/DEOS/DEOS_DRB.csv', header = TRUE)
 in_year <- '2015'
 # Call function
 format_PSM(file_list = PSM_raw_files, DEOS_station_info = DEOS_stations, yr = in_year)
