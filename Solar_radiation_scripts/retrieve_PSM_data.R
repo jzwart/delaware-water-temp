@@ -64,7 +64,7 @@ retrieve_PSM(station_info = DEOS_stations, user_api = in_api, user_name = in_nam
 format_PSM <- function(file_list, DEOS_station_info, yr){
   # Iterate through files in folder to...
   for (file in file_list){
-    # read raw data (read first two rows and remainder of .csv separately)
+    # read raw data (skip first two rows of .csv)
     PSM_tmp <- read.csv(file, header = TRUE, skip = 2)
     # get date.time for the PSM data
     # Note - as currently written this produces a warning that 1 failed to parse, but seems to work ok?
