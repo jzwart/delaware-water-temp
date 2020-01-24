@@ -1,12 +1,12 @@
 version: 0.3.0
-name: 6_model_output/out/SNTemp_sw_rad_station_location_DPRC_39.75_-75.61.rds.ind
+name: 6_model_output/out/SNTemp_sw_rad_station_location_DBUK1_39.82_-75.73.rds.ind
 type: file
-hash: 030f3a3a699b9f222ebfc68befa41350
-time: 2020-01-24 18:51:29 UTC
+hash: 3f32f32e53a9d2aba16bc8156a2ef98f
+time: 2020-01-24 18:49:14 UTC
 depends:
   2_1_model_fabric/in/network_full.rds: 759a085e879c086ab479aae1ee9fd2ff
   4_model_for_PGDL/out/sntemp_input_output.feather: 25b752bc6ad2d54f4baf70ff1bca39fe
-fixed: 207fd85071e52b415e06123b3bf82bd9
+fixed: c7e3ff62eac0626630a98b61941a8945
 code:
   functions:
     get_segment_from_lat_long: 76664b819b4cf313dde84ee96e778d1c
