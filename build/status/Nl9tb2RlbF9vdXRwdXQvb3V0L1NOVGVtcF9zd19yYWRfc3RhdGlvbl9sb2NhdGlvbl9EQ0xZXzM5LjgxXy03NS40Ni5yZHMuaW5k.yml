@@ -1,0 +1,14 @@
+version: 0.3.0
+name: 6_model_output/out/SNTemp_sw_rad_station_location_DCLY_39.81_-75.46.rds.ind
+type: file
+hash: 25e13e0943b8ebf62fb58ba72af7a8fe
+time: 2020-01-24 18:47:47 UTC
+depends:
+  2_1_model_fabric/in/network_full.rds: 759a085e879c086ab479aae1ee9fd2ff
+  4_model_for_PGDL/out/sntemp_input_output.feather: 25b752bc6ad2d54f4baf70ff1bca39fe
+fixed: 91df744f28d9179d7306562010049e8f
+code:
+  functions:
+    get_segment_from_lat_long: 76664b819b4cf313dde84ee96e778d1c
+    get_segment_output: d7aca494d2ea2558395a4449a367ba9e
+

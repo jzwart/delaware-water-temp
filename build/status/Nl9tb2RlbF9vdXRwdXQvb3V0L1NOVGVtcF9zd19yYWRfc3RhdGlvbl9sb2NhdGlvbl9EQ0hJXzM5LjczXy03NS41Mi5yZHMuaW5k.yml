@@ -1,0 +1,14 @@
+version: 0.3.0
+name: 6_model_output/out/SNTemp_sw_rad_station_location_DCHI_39.73_-75.52.rds.ind
+type: file
+hash: c68b27bee4b8760c39dfa05c7868d27e
+time: 2020-01-24 18:51:20 UTC
+depends:
+  2_1_model_fabric/in/network_full.rds: 759a085e879c086ab479aae1ee9fd2ff
+  4_model_for_PGDL/out/sntemp_input_output.feather: 25b752bc6ad2d54f4baf70ff1bca39fe
+fixed: 96f85ecbd951090fa2a7afd85bf76fe7
+code:
+  functions:
+    get_segment_from_lat_long: 76664b819b4cf313dde84ee96e778d1c
+    get_segment_output: d7aca494d2ea2558395a4449a367ba9e
+
