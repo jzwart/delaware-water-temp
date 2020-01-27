@@ -13,13 +13,13 @@ Y_no_assim = dd$Y
 
 obs[,1,1]
 site = 377
-plot(Y[site,,1], type = 'l',ylim =  range(c(Y[site,,], obs[site,1,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = 'Time Step')
+plot(Y[site,,1] ~ d$dates, type = 'l',ylim =  range(c(Y[site,,], obs[site,1,], Y_no_assim[site,,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = '', lty=0)
 for(i in 1:n_en){
-  lines(Y_no_assim[site,,i], col = 'grey')
-  lines(Y[site,,i])
+  lines(Y_no_assim[site,,i] ~ d$dates, col = 'black')
+  lines(Y[site,,i] ~ d$dates, lty =0)
 }
-points(obs[site,1,], col = 'red', pch = 16, cex = 1.2)
-arrows(1:n_step, obs[site,1,]+R[site,site,], 1:n_step, obs[site,1,]-R[site,site,],
+points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
+arrows(d$dates, obs[site,1,]+R[site,site,], d$dates, obs[site,1,]-R[site,site,],
        angle = 90, length = .05, col = 'red', code = 3)
 
 params = 456*4 + site
@@ -44,6 +44,9 @@ for(site in 1:456){
   ss_tau = rbind(ss_tau, mean(Y[(456*1 + site), n_step, ]))
   gw_tau = rbind(gw_tau, mean(Y[(456*2 + site), n_step, ]))
 }
+
+windows()
+
 
 plot(uncert ~ n_obs, ylab = 'Temperature Standard Deviation', xlab= '# of Observations Assimilated', pch =16, cex = 1.5)
 

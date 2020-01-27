@@ -21,7 +21,7 @@ targets:
       - 4_model/out/model_out.rds.ind
 
 ##########################################
-# example of EnKF model for given location
+# example of EnKF model
 ##########################################
   start:
     command: da_settings[I('start')]
@@ -66,9 +66,30 @@ targets:
       n_states_est = I(456),
       n_params_obs = I(0),
       obs_cv = I(0.1),
-      param_cv = I(0.2),
+      param_cv = I(0.5),
       init_cond_cv = I(0.1),
       assimilate_obs = FALSE,
       gd_config = 'lib/cfg/gd_config.yml')
+
+
+#############################################
+# calibrating SNTemp for DRB
+#############################################
+
+  4_model/out/model_out_cal.rds.ind:
+    command: calibrate_sntemp(
+      ind_file = target_name,
+      start = start,
+      stop = stop,
+      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+      obs_file = '3_observations/in/obs_temp_full.rds',
+      init_param_file = '2_3_model_parameters/out/init_params.rds',
+      model_run_loc = I('4_model/tmp'),
+      orig_model_loc = I('20191002_Delaware_streamtemp'))
+
+
+
+
+
 
 
