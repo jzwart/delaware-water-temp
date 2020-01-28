@@ -1,0 +1,45 @@
+target_default: 4_model_calibrate
+
+packages:
+  - yaml
+  - dplyr
+  - tidyr
+  - scipiper
+
+sources:
+  - 4_model/src/EnKF_functions.R
+  - 4_model/src/process_models/random_walk.R
+  - 4_model/src/get_sntemp_values.R
+  - 4_model/src/run_sntemp.R
+  - 4_model/src/update_sntemp.R
+  - 4_model/src/set_sntemp_output.R
+  - 4_model_calibrate/src/calibrate_sntemp.R
+
+
+targets:
+  4_model_calibrate:
+    depends:
+      - 4_model_calibrate/out/model_out_cal.rds.ind
+
+
+#############################################
+# calibrating SNTemp for DRB
+#############################################
+
+  4_model/out/model_out_cal.rds.ind:
+    command: calibrate_sntemp(
+      ind_file = target_name,
+      start = start,
+      stop = stop,
+      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+      obs_file = '3_observations/in/obs_temp_full.rds',
+      init_param_file = '2_3_model_parameters/out/init_params.rds',
+      model_run_loc = I('4_model/tmp'),
+      orig_model_loc = I('20191002_Delaware_streamtemp'))
+
+
+
+
+
+
+
