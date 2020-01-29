@@ -22,6 +22,7 @@ EnKF = function(ind_file,
                 init_param_file = '2_3_model_parameters/out/init_params.rds',
                 model_run_loc = '4_model/tmp',
                 orig_model_loc = '20191002_Delaware_streamtemp',
+                subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
                 gd_config = 'lib/cfg/gd_config.yml'){
 
   # copy over original run files to temporary file location
@@ -52,7 +53,36 @@ EnKF = function(ind_file,
   param_names = colnames(init_params_df)[3:ncol(init_params_df)]
 
 
-  subsetted_segs = readRDS('path/to/subsetted_segs.rds')
+  # read in subbasin outlets from yaml file
+  subbasin_outlets = yaml::read_yaml(subbasin_outlet_file)$subbasin_outlets
+
+  # find out which basins are nested in other basins - we have to remove segments from downstream basin that
+  #   overlaps with segments from upstream basins
+  col_upstream_rows = is_b_upstream_of_a(seg_id_nat_a = subbasin_outlets, seg_id_nat_b = subbasin_outlets)
+
+  subbasins = list()  # store subbasins in list
+  for(cur_basin_outlet in subbasin_outlets){
+    upstream_basin_outlets = colnames(col_upstream_rows)[which(col_upstream_rows[rownames(col_upstream_rows) ==
+                                                                                   cur_basin_outlet])]
+
+    upstream_basin_outlets = upstream_basin_outlets[upstream_basin_outlets != cur_basin_outlet]
+
+    if(length(upstream_basin_outlets) == 0){ # if no upstream basins
+      cur_basin = create_subbasin(subbasin_seg_id_nat = get_upstream_segs(seg_id_nat = cur_basin_outlet))
+
+      subbasins = c(subbasins, list(cur_basin))
+      names(subbasins)[which(cur_basin_outlet == subbasin_outlets)] = eval(cur_basin_outlet)
+    }else{ # otherwise there are upstream basins, so remove the overlaps with nested subbasins
+      upstream_subbasin_segs = unlist(get_upstream_segs(seg_id_nat = upstream_basin_outlets)) %>% unique()
+      upstream_segs = get_upstream_segs(seg_id_nat = cur_basin_outlet) #
+      upstream_segs = upstream_segs[!upstream_segs %in% upstream_subbasin_segs] # remove upstream subbasin segs
+
+      cur_basin = create_subbasin(subbasin_seg_id_nat = upstream_segs)
+
+      subbasins = c(subbasins, list(cur_basin))
+      names(subbasins)[which(cur_basin_outlet == subbasin_outlets)] = eval(cur_basin_outlet)    }
+  }
+
 
   # figure out how to calibrate for upstream segments of DRB before moving downstream
   #  need to pull obs in calibrated segment and only update parameters in cal segment
