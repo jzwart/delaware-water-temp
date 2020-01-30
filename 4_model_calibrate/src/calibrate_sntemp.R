@@ -14,16 +14,16 @@
 #' @param driver_cv coefficient of variation of driver data
 #' @param init_cond_cv initial condition CV (what we're )
 #' @param gd_config google drive configuration
-EnKF = function(ind_file,
-                start,
-                stop,
-                model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
-                obs_file = '3_observations/in/obs_temp_full.rds',
-                init_param_file = '2_3_model_parameters/out/init_params.rds',
-                model_run_loc = '4_model/tmp',
-                orig_model_loc = '20191002_Delaware_streamtemp',
-                subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
-                gd_config = 'lib/cfg/gd_config.yml'){
+calibrate_sntemp = function(ind_file,
+                            start,
+                            stop,
+                            model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+                            obs_file = '3_observations/in/obs_temp_full.rds',
+                            init_param_file = '2_3_model_parameters/out/init_params.rds',
+                            model_run_loc = '4_model/tmp',
+                            orig_model_loc = '20191002_Delaware_streamtemp',
+                            subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
+                            gd_config = 'lib/cfg/gd_config.yml'){
 
   # copy over original run files to temporary file location
   dir.create(model_run_loc, showWarnings = F)
@@ -55,12 +55,16 @@ EnKF = function(ind_file,
 
   subbasins = readRDS(subbasin_file)
 
+  cal_order = get_calibration_order(subbasin_outlet_file = subbasin_outlet_file)
 
-  # figure out how to calibrate for upstream segments of DRB before moving downstream
-  #  need to pull obs in calibrated segment and only update parameters in cal segment
+  # need to calibrate for upstream segments of DRB before moving downstream
+  #  need to pull obs in calibrated segment and only update parameters in calibrated segment
 
-  for(cur_segs in subsetted_segs){
+  for(cur_subbasin_outlet in cal_order$subbasin_outlet){
 
+    cur_subbasin = subbasins[cur_subbasin_outlet][[cur_subbasin_outlet]]
+
+    # get subbasin parameter locations
 
     # supply subsetted_segs parameters as initial params to calibrate
     optim()

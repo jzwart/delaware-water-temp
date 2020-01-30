@@ -16,6 +16,7 @@ sources:
   - 4_model_calibrate/src/calibrate_sntemp.R
   - 4_model_calibrate/src/get_subbasins.R
   - 4_model/src/get_upstream_downstream_segs.R
+  - 4_model_calibrate/src/get_calibration_order.R
 
 
 targets:
