@@ -11,7 +11,7 @@ close(con)
 head(binData)
 tail(binData)
 binData[1:100]
-
+binData_int[1:100]
 
 
 
@@ -47,14 +47,3 @@ binData[start:end]
 summary(binData[start:end])
 
 
-
-
-
-con = file('20191002_Delaware_streamtemp/prms_ic.out', open = 'rb')
-
-char = readBin(con = con, what = character(), n = 100000, endian = 'little')
-
-char
-any(char!='')
-
-close(con)

@@ -22,7 +22,7 @@ EnKF = function(ind_file,
                 init_param_file = '2_3_model_parameters/out/init_params.rds',
                 model_run_loc = '4_model/tmp',
                 orig_model_loc = '20191002_Delaware_streamtemp',
-                subbasin_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
+                subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
                 gd_config = 'lib/cfg/gd_config.yml'){
 
   # copy over original run files to temporary file location
