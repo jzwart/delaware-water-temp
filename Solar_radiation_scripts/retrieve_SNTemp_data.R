@@ -2,6 +2,7 @@
 # load necessary libraries
 library(dplyr)
 library(tidyverse)
+library(data.table)
 
 ##### Read and Format SNTemp data #####
 
