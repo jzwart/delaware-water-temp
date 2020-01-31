@@ -23,6 +23,7 @@ calibrate_sntemp = function(ind_file,
                             model_run_loc = '4_model/tmp',
                             orig_model_loc = '20191002_Delaware_streamtemp',
                             subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
+                            subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
                             gd_config = 'lib/cfg/gd_config.yml'){
 
   # copy over original run files to temporary file location
@@ -65,6 +66,7 @@ calibrate_sntemp = function(ind_file,
     cur_subbasin = subbasins[cur_subbasin_outlet][[cur_subbasin_outlet]]
 
     # get subbasin parameter locations
+    cur_subbasin$model_idx
 
     # supply subsetted_segs parameters as initial params to calibrate
     optim()
