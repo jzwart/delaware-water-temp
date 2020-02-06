@@ -17,8 +17,8 @@ run_sntemp = function(start,
                       precip_file = './input/prcp.cbh',
                       tmax_file = './input/tmax.cbh',
                       tmin_file = './input/tmin.cbh',
-                      var_init_file = 'prms_ic.out',
-                      var_save_file = 'prms_ic.out'){
+                      var_init_file = 'prms_ic.txt',
+                      var_save_file = 'prms_ic.txt'){
 
   if(spinup){
     print('Running spinup period...')
@@ -92,8 +92,8 @@ run_sntemp_spinup = function(spinup_days = 730, start,
                              precip_file = './input/prcp.cbh',
                              tmax_file = './input/tmax.cbh',
                              tmin_file = './input/tmin.cbh',
-                             var_init_file = 'prms_ic.out',
-                             var_save_file = 'prms_ic.out'){
+                             var_init_file = 'prms_ic.txt',
+                             var_save_file = 'prms_ic.txt'){
 
   # how many days before start date. end date should be one day before start date
   spinup_start = as.Date(as.character(start)) - spinup_days - 1

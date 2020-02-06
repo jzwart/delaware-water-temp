@@ -47,3 +47,6 @@ binData[start:end]
 summary(binData[start:end])
 
 
+
+
+

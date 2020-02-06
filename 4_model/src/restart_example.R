@@ -13,7 +13,7 @@ model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
 
 out = data.frame()
 
-spinup_days = 730
+spinup_days = 20
 
 for(i in 1:length(starts)){
   if(i == 1){
