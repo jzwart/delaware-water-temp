@@ -125,7 +125,6 @@ plot_site_data <- function(files, site_list, sr_year) {
     site_plot_C <- df_site %>% ggplot()+
       aes(x = solar_radiation_mean, y=temp_mean, color=Data_source) +
       geom_point(size = 0.5) +
-      geom_line() +
       facet_wrap(~Data_source, ncol=1, scales = 'free_y') +
       coord_cartesian(ylim = c(t_min, t_max), xlim = c(0, sr_max)) +
       theme_light() +
@@ -139,7 +138,6 @@ plot_site_data <- function(files, site_list, sr_year) {
     site_plot_D <- df_site %>% ggplot()+
       aes(x = solar_radiation_mean, y=rel_humidity_mean, color=Data_source) +
       geom_point(size = 0.5) +
-      geom_line() +
       facet_wrap(~Data_source, ncol=1, scales = 'free_y') +
       coord_cartesian(ylim = c(0, 100), xlim = c(0, sr_max)) +
       theme_light() +
