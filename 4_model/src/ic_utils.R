@@ -36,7 +36,9 @@ close(fc)
 # paste(tmp[[2]], collapse = ' ')
 
 # row 77 is stream temp
-tmp[[77]][2] = '20.3232'
+tmp[[77]][2:200] = '20.3232'
+
+tmp[[80]][2:200] = '100.1'
 
 out = lapply(X = 1:length(tmp), FUN = function(x){paste(tmp[[x]], collapse = ' ')})
 
