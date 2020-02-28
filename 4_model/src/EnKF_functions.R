@@ -373,7 +373,7 @@ EnKF = function(ind_file,
   state_sd = mutate_at(init_states_median, 3:ncol(init_states_median), as.numeric) %>%
     gather(key = 'state', value = 'state_sd', -seg_id_nat, -model_idx) %>%
     mutate(state_sd = ifelse(state_sd < 2, 2, state_sd),
-           state_sd = state_sd * obs_cv) %>%
+           state_sd = state_sd * init_cond_cv) %>%
     pull(state_sd)
 
   # initialize Y vector
@@ -453,9 +453,18 @@ EnKF = function(ind_file,
                                           cur_step = 1,
                                           en = n)
 
+      updated_states = get_updated_states(Y = Y,
+                                          state_names = state_names,
+                                          n_states_est = n_states_est,
+                                          n_params_est = n_params_est,
+                                          cur_step = 1,
+                                          en = n)
+
       update_sntemp_params(param_names = param_names,
                            updated_params = updated_params)
-      # model_config = Y[, t-1, n]
+      update_sntemp_states(state_names = state_names,
+                           updated_states = updated_states,
+                           ic_file = sprintf('prms_ic_%s.txt', n))
 
       # run model
       run_sntemp(start = dates[2],
@@ -473,10 +482,10 @@ EnKF = function(ind_file,
         dplyr::filter(date %in% dates[2:n_step]) %>%
         arrange(date, as.numeric(model_idx))
 
-      out_temp = array(model_output$water_temp, dim = c(n_states_est, n_step-1))
+      out_temp = array(model_output$water_temp, dim = c(nrow(model_locations), n_step-1))
       out_params = array(rep(updated_params, (n_step-1)), dim = c(n_params_est, n_step-1))
 
-      Y[1:n_states_est, 2:n_step, n] = out_temp # store states in Y vector
+      Y[1:nrow(model_locations), 2:n_step, n] = out_temp # store temp in Y vector
       Y[(n_states_est+1):(n_states_est+n_params_est), 2:n_step, n] = out_params # store params in Y vector
     }
   }

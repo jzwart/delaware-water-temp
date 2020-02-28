@@ -12,10 +12,10 @@ n_step = length(d$dates)
 Y_no_assim = dd$Y
 
 obs[,1,1]
-site = 455
+site = 377
 plot(Y[site,,1] ~ d$dates, type = 'l',ylim =  range(c(Y[site,,], obs[site,1,], Y_no_assim[site,,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = '', lty=0)
 for(i in 1:n_en){
-  # lines(Y_no_assim[site,,i] ~ d$dates, col = 'black')
+  lines(Y_no_assim[site,,i] ~ d$dates, col = 'grey')
   lines(Y[site,,i] ~ d$dates)
 }
 points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
@@ -41,8 +41,8 @@ for(site in 1:456){
   uncert = rbind(uncert, sd(Y[site,n_step,]))
   uncert_no_assim = rbind(uncert_no_assim, sd(Y_no_assim[site, n_step, ]))
   n_obs = rbind(n_obs, sum(!is.na(obs[site,1,])))
-  ss_tau = rbind(ss_tau, mean(Y[(456*1 + site), n_step, ]))
-  gw_tau = rbind(gw_tau, mean(Y[(456*2 + site), n_step, ]))
+  ss_tau = rbind(ss_tau, mean(Y[(456*2 + site), n_step, ]))
+  gw_tau = rbind(gw_tau, mean(Y[(456*3 + site), n_step, ]))
 }
 
 windows()
@@ -70,7 +70,7 @@ ggplot() +
 # reduction in uncertainty
 windows()
 ggplot() +
-  geom_sf(data = loc, aes(color = (uncert_no_assim - uncert), size = .1*(uncert_no_assim - uncert)))+
+  geom_sf(data = loc, aes(color = (uncert_no_assim - uncert), size = .01*(uncert_no_assim - uncert)))+
   scale_color_viridis_c(direction = -1) +
   theme_minimal()
 
@@ -86,7 +86,7 @@ plot(loc$red_uncert ~ loc$n_obs)
 abline(lm(loc$red_uncert~loc$n_obs))
 
 windows()
-loc$ss_tau = loc$ss_tau + 40
+# loc$ss_tau = loc$ss_tau + 40
 ggplot() +
   geom_sf(data = loc, aes(color = ss_tau ))+
   scale_color_viridis_c() +
@@ -102,7 +102,7 @@ ggplot() +
   theme(legend.title = element_text('Temp SD'))
 
 # RMSE
-time_period = 1:n_step
+time_period = 100:n_step
 mean_Y = rowMeans(Y, dims = 2) # mean of ensembles for each time step
 mean_Y_no_assim = rowMeans(Y_no_assim, dims = 2)
 mean_temp = mean_Y[1:456, time_period]
