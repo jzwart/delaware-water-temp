@@ -1,0 +1,17 @@
+target_default: 2_4_model_states
+
+packages:
+  - dplyr
+
+sources:
+  - 2_4_model_states/src/get_init_sntemp_states.R
+
+targets:
+  2_4_model_states:
+    depends:
+      - state_names
+
+  state_names:
+    command: da_settings[I('states_to_update')]
+
+

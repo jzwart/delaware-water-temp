@@ -5,6 +5,7 @@ include:
   - 2_1_model_fabric.yml
   - 2_2_model_drivers.yml
   - 2_3_model_parameters.yml
+  - 2_4_model_states.yml
   - 3_observations.yml
   - 4_model.yml
   - 4_model_calibrate.yml
@@ -17,7 +18,8 @@ targets:
       - 1_geo_boundary
       - 2_1_model_fabric
       - 2_2_model_drivers
-      - 2_3_model_parameters.yml
+      - 2_3_model_parameters
+      - 2_4_model_states
       - 3_observations
       - 4_model
       - 4_model_calibrate

@@ -63,3 +63,41 @@ get_sntemp_intermediates = function(model_output_file, model_fabric_file){
 }
 
 
+get_sntemp_initial_states = function(state_names,
+                                     model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+                                     state_order_file = '4_model/cfg/state_order.rds',
+                                     model_run_loc = '4_model/tmp',
+                                     ic_file = 'prms_ic.txt'){
+  # order of the states in the ic file - PRMS-SNTemp ic file isn't documented so these are the order of the states AS LONG AS
+  #  we use the same modules every time
+  state_order = readRDS(state_order_file)
+
+  # open the ic file
+  fc = file(file.path(model_run_loc, ic_file))
+  ic = strsplit(readLines(fc, skipNul = T), ' +') # reading in text with irregular white space seperators
+  close(fc)
+
+  model_fabric = sf::read_sf(model_fabric_file)
+
+  seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
+    arrange(as.numeric(model_idx))
+
+  out = seg_ids
+
+  for(i in 1:length(state_names$states_to_update)){
+
+    cur_state = state_names$states_to_update[i]
+    cur_state_row = state_order$row_idx[state_order$state_name == cur_state]
+
+    cur_state_vals = na.omit(as.numeric(ic[[cur_state_row]]))
+
+    out = out %>%
+      mutate(temp_name = cur_state_vals) %>%
+      rename(!!noquote(cur_state) := temp_name)
+  }
+
+  return(out)
+}
+
+
+

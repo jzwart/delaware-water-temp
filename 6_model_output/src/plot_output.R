@@ -12,17 +12,17 @@ n_step = length(d$dates)
 Y_no_assim = dd$Y
 
 obs[,1,1]
-site = 377
+site = 455
 plot(Y[site,,1] ~ d$dates, type = 'l',ylim =  range(c(Y[site,,], obs[site,1,], Y_no_assim[site,,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = '', lty=0)
 for(i in 1:n_en){
-  lines(Y_no_assim[site,,i] ~ d$dates, col = 'black')
-  lines(Y[site,,i] ~ d$dates, lty =0)
+  # lines(Y_no_assim[site,,i] ~ d$dates, col = 'black')
+  lines(Y[site,,i] ~ d$dates)
 }
 points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
 arrows(d$dates, obs[site,1,]+R[site,site,], d$dates, obs[site,1,]-R[site,site,],
        angle = 90, length = .05, col = 'red', code = 3)
 
-params = 456*4 + site
+params = 456*1 + site
 windows()
 plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
 for(i in 1:n_en){

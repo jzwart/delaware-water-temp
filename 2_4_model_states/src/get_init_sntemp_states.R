@@ -1,17 +1,16 @@
 
 
-get_init_sntemp_params = function(ind_file,
-                                  param_names,
+get_init_sntemp_states = function(ind_file,
+                                  state_names,
                                   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
-                                  param_file = 'delaware.control.param',
+                                  state_order_file = '4_model/cfg/state_order.rds',
                                   n_segments = 456,
                                   gd_config = 'lib/cfg/gd_config.yml'){
 
-  params = readLines(file.path('20191002_Delaware_streamtemp/control', param_file))
+  state_order = readRDS(state_order_file)
 
   model_fabric = sf::read_sf(model_fabric_file)
 
-  # order by model_idx
   seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
     arrange(as.numeric(model_idx))
 

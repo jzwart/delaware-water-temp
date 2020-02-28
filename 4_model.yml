@@ -36,7 +36,7 @@ targets:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
-      start = I('2012-04-01'),
+      start = I('2014-04-01'),
       stop = I('2014-10-10'),
       time_step = I('days'),
       model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
@@ -44,6 +44,7 @@ targets:
       init_param_file = '2_3_model_parameters/out/init_params.rds',
       model_run_loc = I('4_model/tmp'),
       orig_model_loc = I('20191002_Delaware_streamtemp'),
+      state_names = state_names,
       n_states_est = I(456),
       n_params_obs = I(0),
       obs_cv = I(0.1),
@@ -55,8 +56,8 @@ targets:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
-      start = I('2014-04-01'),
-      stop = I('2014-10-10'),
+      start = I('2014-06-01'),
+      stop = I('2014-06-10'),
       time_step = I('days'),
       model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
       obs_file = '3_observations/in/obs_temp_full.rds',
