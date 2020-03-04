@@ -84,9 +84,9 @@ get_sntemp_initial_states = function(state_names,
 
   out = seg_ids
 
-  for(i in 1:length(state_names$states_to_update)){
+  for(i in 1:length(state_names)){
 
-    cur_state = state_names$states_to_update[i]
+    cur_state = state_names[i]
     cur_state_row = state_order$row_idx[state_order$state_name == cur_state]
 
     cur_state_vals = na.omit(as.numeric(ic[[cur_state_row]]))

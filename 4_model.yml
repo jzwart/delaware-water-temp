@@ -32,12 +32,12 @@ targets:
 #  model_locations:
 #    command:
 
-  4_model/out/model_out.rds.ind:
+  4_model/out/model_out2.rds.ind:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
-      start = I('2014-04-01'),
-      stop = I('2014-10-10'),
+      start = I('2014-05-01'),
+      stop = I('2014-07-10'),
       time_step = I('days'),
       model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
       obs_file = '3_observations/in/obs_temp_full.rds',
@@ -47,7 +47,7 @@ targets:
       state_names = state_names,
       n_states_est = I(456),
       n_params_obs = I(0),
-      obs_cv = I(0.1),
+      obs_cv = I(0.01),
       param_cv = I(0.2),
       init_cond_cv = I(0.1),
       gd_config = 'lib/cfg/gd_config.yml')

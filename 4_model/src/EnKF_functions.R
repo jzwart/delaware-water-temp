@@ -281,7 +281,8 @@ EnKF = function(ind_file,
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
   n_step = length(dates)
 
-  n_states_est = length(state_names$states_to_update) * nrow(model_locations)
+  state_names = state_names$states_to_update
+  n_states_est = length(state_names) * nrow(model_locations)
   n_states_obs = nrow(model_locations) # only assimilating temperature obs
   state_sd = rep(obs_cv * 5, n_states_est)  # UPDATE THIS #########
 
@@ -356,11 +357,11 @@ EnKF = function(ind_file,
     init_states = dplyr::left_join(init_states, cur_ic, by = c('seg_id_nat', 'model_idx'), suffix = c('',n))
   }
   init_states_median = model_locations
-  for(i in 1:length(state_names$states_to_update)){
-    cur_state = init_states %>% select(c(1, 2, starts_with(state_names$states_to_update[i]))) %>%
-      gather(key = 'state', value = 'value', starts_with(state_names$states_to_update[i])) %>%
+  for(i in 1:length(state_names)){
+    cur_state = init_states %>% select(c(1, 2, starts_with(state_names[i]))) %>%
+      gather(key = 'state', value = 'value', starts_with(state_names[i])) %>%
       group_by(seg_id_nat, model_idx) %>%
-      summarise(!!noquote(state_names$states_to_update[i]) := median(value)) %>%
+      summarise(!!noquote(state_names[i]) := median(value)) %>%
       ungroup() %>% arrange(as.numeric(model_idx))
 
     init_states_median = dplyr::left_join(init_states_median, cur_state, by = c('seg_id_nat', 'model_idx'))

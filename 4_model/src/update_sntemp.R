@@ -36,9 +36,9 @@ update_sntemp_states = function(state_names,
   close(fc)
 
   # update the states
-  for(i in 1:length(state_names$states_to_update)){
+  for(i in 1:length(state_names)){
 
-    cur_state = state_names$states_to_update[i]
+    cur_state = state_names[i]
     cur_state_row = state_order$row_idx[state_order$state_name == cur_state]
 
     ic[[cur_state_row]] = as.character(updated_states[((i-1)*n_segments+1):(i*n_segments)])
