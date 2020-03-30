@@ -219,6 +219,34 @@ gather_states = function(ic_out){
   return(states)
 }
 
+
+model_spinup = function(n_en,
+                        start,
+                        stop,
+                        time_step = 'days',
+                        model_run_loc = '4_model/tmp',
+                        spinup_days = 730){
+
+  n_en = as.numeric(n_en)
+  spinup_days = as.numeric(spinup_days)
+  start = as.Date(as.character(start))
+  stop = as.Date(as.character(stop))
+  dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
+
+  for(n in 1:n_en){
+    run_sntemp(start = dates[1], stop = dates[1], spinup = T,
+               model_run_loc = model_run_loc,
+               spinup_days = spinup_days,
+               restart = T,
+               precip_file = sprintf('./input/prcp_%s.cbh', n),
+               tmax_file = sprintf('./input/tmax_%s.cbh', n),
+               tmin_file = sprintf('./input/tmin_%s.cbh', n),
+               var_init_file = sprintf('prms_ic_spinup_%s.txt', n),
+               var_save_file = sprintf('prms_ic_spinup_%s.txt', n))
+  }
+}
+
+
 #' wrapper function for running EnKF for given model
 #'
 #' @param n_en number of model ensembles
@@ -293,13 +321,19 @@ EnKF = function(ind_file,
   init_params_df = readRDS(init_param_file) %>% arrange(as.numeric(model_idx))
   n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
 
-  param_names = colnames(init_params_df)[3:ncol(init_params_df)]
+  if(n_params_est > 0){
+    param_names = colnames(init_params_df)[3:ncol(init_params_df)]
 
-  param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
-    gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
-    mutate(param_sd = ifelse(param_sd < 2, 2, param_sd),
-           param_sd = param_sd * param_cv) %>%
-    pull(param_sd)
+    param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
+      gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
+      mutate(param_sd = ifelse(param_sd < 2, 2, param_sd),
+             param_sd = param_sd * param_cv) %>%
+      pull(param_sd)
+  }else{
+    param_names = NULL
+    param_sd = NULL
+  }
+
 
   # setting up matrices
   # observations as matrix
@@ -332,19 +366,6 @@ EnKF = function(ind_file,
                         n_step = n_step,
                         obs = obs)
 
-  # do spinup period here and then initialize Y vector
-  for(n in 1:n_en){
-    run_sntemp(start = dates[1], stop = dates[1], spinup = T,
-               model_run_loc = model_run_loc,
-               spinup_days = 730,
-               restart = T,
-               precip_file = sprintf('./input/prcp_%s.cbh', n),
-               tmax_file = sprintf('./input/tmax_%s.cbh', n),
-               tmin_file = sprintf('./input/tmin_%s.cbh', n),
-               var_init_file = sprintf('prms_ic_%s.txt', n),
-               var_save_file = sprintf('prms_ic_%s.txt', n))
-  }
-
   # for initial states, we want to use the observation for the first time step, if avaialble, otherwise use
   #  the mean of the ensembles' initial conditions.
 
@@ -352,7 +373,7 @@ EnKF = function(ind_file,
   for(n in 1:n_en){
     cur_ic = get_sntemp_initial_states(state_names = state_names,
                                        model_run_loc = model_run_loc,
-                                       ic_file = sprintf('prms_ic_%s.txt', n))
+                                       ic_file = sprintf('prms_ic_spinup_%s.txt', n))
 
     init_states = dplyr::left_join(init_states, cur_ic, by = c('seg_id_nat', 'model_idx'), suffix = c('',n))
   }
@@ -394,12 +415,16 @@ EnKF = function(ind_file,
     for(t in 2:n_step){
       for(n in 1:n_en){
         # set parameters / states for model config
-        updated_params = get_updated_params(Y = Y,
-                                            param_names = param_names,
-                                            n_states_est = n_states_est,
-                                            n_params_est = n_params_est,
-                                            cur_step = t-1,
-                                            en = n)
+        if(n_params_est>0){
+          updated_params = get_updated_params(Y = Y,
+                                              param_names = param_names,
+                                              n_states_est = n_states_est,
+                                              n_params_est = n_params_est,
+                                              cur_step = t-1,
+                                              en = n)
+          update_sntemp_params(param_names = param_names,
+                               updated_params = updated_params)
+        }
 
         updated_states = get_updated_states(Y = Y,
                                             state_names = state_names,
@@ -408,11 +433,18 @@ EnKF = function(ind_file,
                                             cur_step = t-1,
                                             en = n)
 
-        update_sntemp_params(param_names = param_names,
-                             updated_params = updated_params)
-        update_sntemp_states(state_names = state_names,
-                             updated_states = updated_states,
-                             ic_file = sprintf('prms_ic_%s.txt', n))
+        if(t==2){
+          update_sntemp_states(state_names = state_names,
+                               updated_states = updated_states,
+                               ic_file_in = sprintf('prms_ic_spinup_%s.txt', n),
+                               ic_file_out = sprintf('prms_ic_%s.txt', n))
+        }else{
+          update_sntemp_states(state_names = state_names,
+                               updated_states = updated_states,
+                               ic_file_in = sprintf('prms_ic_%s.txt', n),
+                               ic_file_out = sprintf('prms_ic_%s.txt', n))
+        }
+
 
         # run model
         run_sntemp(start = dates[t],
@@ -431,7 +463,11 @@ EnKF = function(ind_file,
                                            ic_file = sprintf('prms_ic_%s.txt', n))
         predicted_states = gather_states(ic_out) # predicted states from model
 
-        Y[ , t, n] = c(predicted_states, updated_params) # store in Y vector
+        if(n_params_est > 0){
+          Y[ , t, n] = c(predicted_states, updated_params) # store in Y vector
+        }else{
+          Y[ , t, n] = predicted_states # only updating states, not params
+        }
       }
       if(any(H[,,t]==1)){
         print('updating with Kalman Filter...')
@@ -442,18 +478,20 @@ EnKF = function(ind_file,
                           n_en = n_en,
                           cur_step = t) # updating params / states if obs available
       }
-      # update states / params for model config
     }
   }else{
     for(n in 1:n_en){
       # set parameters / states for model config
-      updated_params = get_updated_params(Y = Y,
-                                          param_names = param_names,
-                                          n_states_est = n_states_est,
-                                          n_params_est = n_params_est,
-                                          cur_step = 1,
-                                          en = n)
-
+      if(n_params_est>0){
+        updated_params = get_updated_params(Y = Y,
+                                            param_names = param_names,
+                                            n_states_est = n_states_est,
+                                            n_params_est = n_params_est,
+                                            cur_step = t-1,
+                                            en = n)
+        update_sntemp_params(param_names = param_names,
+                             updated_params = updated_params)
+      }
       updated_states = get_updated_states(Y = Y,
                                           state_names = state_names,
                                           n_states_est = n_states_est,
@@ -461,11 +499,17 @@ EnKF = function(ind_file,
                                           cur_step = 1,
                                           en = n)
 
-      update_sntemp_params(param_names = param_names,
-                           updated_params = updated_params)
-      update_sntemp_states(state_names = state_names,
-                           updated_states = updated_states,
-                           ic_file = sprintf('prms_ic_%s.txt', n))
+      if(t==2){
+        update_sntemp_states(state_names = state_names,
+                             updated_states = updated_states,
+                             ic_file_in = sprintf('prms_ic_spinup_%s.txt', n),
+                             ic_file_out = sprintf('prms_ic_%s.txt', n))
+      }else{
+        update_sntemp_states(state_names = state_names,
+                             updated_states = updated_states,
+                             ic_file_in = sprintf('prms_ic_%s.txt', n),
+                             ic_file_out = sprintf('prms_ic_%s.txt', n))
+      }
 
       # run model
       run_sntemp(start = dates[2],
@@ -484,10 +528,12 @@ EnKF = function(ind_file,
         arrange(date, as.numeric(model_idx))
 
       out_temp = array(model_output$water_temp, dim = c(nrow(model_locations), n_step-1))
-      out_params = array(rep(updated_params, (n_step-1)), dim = c(n_params_est, n_step-1))
 
       Y[1:nrow(model_locations), 2:n_step, n] = out_temp # store temp in Y vector
-      Y[(n_states_est+1):(n_states_est+n_params_est), 2:n_step, n] = out_params # store params in Y vector
+      if(n_params_est > 0){
+        out_params = array(rep(updated_params, (n_step-1)), dim = c(n_params_est, n_step-1))
+        Y[(n_states_est+1):(n_states_est+n_params_est), 2:n_step, n] = out_params # store params in Y vector
+      }
     }
   }
 

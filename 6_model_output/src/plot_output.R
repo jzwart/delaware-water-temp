@@ -24,7 +24,7 @@ points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
 arrows(d$dates, obs[site,1,]+R[site,site,], d$dates, obs[site,1,]-R[site,site,],
        angle = 90, length = .05, col = 'red', code = 3)
 
-params = 456*1 + site
+params = 456*2 + site
 windows()
 plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
 for(i in 1:n_en){

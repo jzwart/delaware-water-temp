@@ -31,6 +31,14 @@ targets:
 
 #  model_locations:
 #    command:
+  model_spinup:
+    command: model_spinup(
+      n_en = n_en,
+      start = I('2014-05-01'),
+      stop = I('2014-07-10'),
+      time_step = I('days'),
+      model_run_loc = I('4_model/tmp'),
+      spinup_days = I(730))
 
   4_model/out/model_out2.rds.ind:
     command: EnKF(
@@ -47,7 +55,7 @@ targets:
       state_names = state_names,
       n_states_est = I(456),
       n_params_obs = I(0),
-      obs_cv = I(0.01),
+      obs_cv = I(0.05),
       param_cv = I(0.2),
       init_cond_cv = I(0.1),
       gd_config = 'lib/cfg/gd_config.yml')

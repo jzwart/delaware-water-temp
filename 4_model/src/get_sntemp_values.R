@@ -64,6 +64,7 @@ get_sntemp_intermediates = function(model_output_file, model_fabric_file){
 
 
 get_sntemp_initial_states = function(state_names,
+                                     by_seg = T,
                                      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
                                      state_order_file = '4_model/cfg/state_order.rds',
                                      model_run_loc = '4_model/tmp',
@@ -77,23 +78,39 @@ get_sntemp_initial_states = function(state_names,
   ic = strsplit(readLines(fc, skipNul = T), ' +') # reading in text with irregular white space seperators
   close(fc)
 
-  model_fabric = sf::read_sf(model_fabric_file)
+  if(by_seg){ #states are per segment
+    model_fabric = sf::read_sf(model_fabric_file)
 
-  seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
-    arrange(as.numeric(model_idx))
+    seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
+      arrange(as.numeric(model_idx))
 
-  out = seg_ids
+    out = seg_ids
 
-  for(i in 1:length(state_names)){
+    for(i in 1:length(state_names)){
 
-    cur_state = state_names[i]
-    cur_state_row = state_order$row_idx[state_order$state_name == cur_state]
+      cur_state = state_names[i]
+      cur_state_row = state_order$row_idx[state_order$state_name == cur_state]
 
-    cur_state_vals = na.omit(as.numeric(ic[[cur_state_row]]))
+      cur_state_vals = na.omit(as.numeric(ic[[cur_state_row]]))
 
-    out = out %>%
-      mutate(temp_name = cur_state_vals) %>%
-      rename(!!noquote(cur_state) := temp_name)
+      out = out %>%
+        mutate(temp_name = cur_state_vals) %>%
+        rename(!!noquote(cur_state) := temp_name)
+    }
+  }else{
+    for(i in 1:length(state_names)){
+
+      cur_state = state_names[i]
+      cur_state_row = state_order$row_idx[state_order$state_name == cur_state]
+
+      cur_state_vals = na.omit(as.numeric(ic[[cur_state_row]]))
+
+      out = tibble(!!noquote(cur_state) := cur_state_vals) # temporary fix for sesnativity testing
+
+      # out = out %>%
+      #   mutate(temp_name = cur_state_vals) %>%
+      #   rename(!!noquote(cur_state) := temp_name)
+    }
   }
 
   return(out)

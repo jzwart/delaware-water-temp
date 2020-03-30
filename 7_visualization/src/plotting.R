@@ -172,7 +172,7 @@ for(sites in most_obs$model_idx[1:10]){
 
 # doing facet wrap
 all_sites = tibble()
-for(sites in most_obs$model_idx[20:28]){
+for(sites in most_obs$model_idx[1:9]){
   site_index = as.numeric(sites)
 
   site = output$model_locations$seg_id_nat[site_index]
@@ -218,5 +218,10 @@ ggplot(data = all_sites) +
   xlab('')
 
 Metrics::rmse(all_sites$temp_est, all_sites$temp_obs)
+
+
+dim(output$Y)
+
+
 
 
