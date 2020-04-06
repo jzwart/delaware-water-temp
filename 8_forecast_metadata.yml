@@ -6,6 +6,8 @@ packages:
   - tidyr
   - scipiper
   - EML
+  - ncdf4
+  - uuid
 
 sources:
   - 8_forecast_metadata/src/efi_metadata_workflow.R
@@ -13,14 +15,22 @@ sources:
 targets:
   8_forecast_metadata:
     depends:
-      - 8_forecast_metadata/out/model_out.ncdf.ind
+      - 8_forecast_metadata/out/model_out.nc.ind
 
-  8_forecast_metadata/out/model_out.ncdf.ind:
+  forecast_issue_time:
+    command: da_settings[I('forecast_issue_time')]
+
+  forecast_id:
+    command: da_settings[I('forecast_id')]
+
+  forecast_project_id:
+    command: da_settings[I('forecast_project_id')]
+
+  8_forecast_metadata/out/model_out.nc.ind:
     command: array_to_ncdf(
       ind_file = target_name,
       output_array_file = '4_model/out/model_out.rds',
-      n_en,
-      n_steps,
-      n_states_est,
-      n_params_est)
-
+      n_en = n_en,
+      forecast_issue_time = forecast_issue_time,
+      forecast_id = forecast_id,
+      forecast_project_id = forecast_project_id)
