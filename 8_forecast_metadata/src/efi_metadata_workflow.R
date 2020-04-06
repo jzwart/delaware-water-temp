@@ -30,7 +30,7 @@ array_to_ncdf = function(ind_file,
 
 
   #Set dimensions
-  ens <- as.integer(seq(1, n_en, 1))
+  ens <- as.integer(seq(1, n_en$n_en, 1))
   model_locations <- as.integer(output_array$model_locations$model_idx)
   timestep <- as.integer(seq(1, n_steps, 1))
   dates <- as.Date(output_array$dates)
@@ -115,6 +115,30 @@ array_to_ncdf = function(ind_file,
 #
 # temp = ncvar_get(nc = nc, varid = 'stream_temp' )
 
+create_forecast_eml = function(ind_file,
+                               model_out_nc_file,
+                               gd_config = 'lib/cfg/gd_config.yml'){
 
+  model_out = nc_open(model_out_nc_file)
+
+  attributes <- tibble::tribble(
+    ~attributeName, ~attributeDefinition, ~unit, ~formatString, ~numberType, ~definition,
+    "time",          "time",                       "year",     "YYYY-MM-DD", "numberType", NA,
+    "location",         "stream segment model index",         "meter",   NA,          "real", NA,
+    "ensemble",      "index of ensemble member",   "dimensionless",    NA,         "integer", NA,
+    "species_1",     "Population size of species 1", "numberPerMeterSquared", NA,  "real", NA,
+    "species_2",     "Population size of species 2", "numberPerMeterSquared", NA,  "real", NA,
+    "forecast_issue_time",     "time that forecast was created", NA, "YYYY-MM-DD",  NA, NA,
+    "data_assimilation",     "Flag whether time step included data assimilation", "dimensionless", NA, "integer", NA,
+    "Forecast_id",     "ID for specific forecast cycle", NA, NA,  NA, "forecast id",
+    "ForecastProject_id",     "ID for forecasting project", NA, NA,  NA, "project id"
+  )
+  attrList <- set_attributes(attributes,
+                             col_classes = c("Date", "numeric", "numeric",
+                                             "numeric","numeric", "Date",
+                                             "numeric", "character", "character"))
+  physical <- set_physical("logistic-forecast-ensemble-multi-variable-multi-depth.csv")
+
+}
 
 
