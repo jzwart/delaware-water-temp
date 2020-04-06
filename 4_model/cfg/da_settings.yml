@@ -5,7 +5,7 @@ n_params_est: 10 # number of parameters we're calibrating
 n_params_obs: 0 # number of parameters for which we have observations
 n_states_obs: 10 # number of states we're updating; will be dependent on obs
 start: '1980-10-01'
-stop: '2016-09-30'
+stop: '2019-12-31'
 
 
 params_to_cal: [] # parameters we want to calibrate

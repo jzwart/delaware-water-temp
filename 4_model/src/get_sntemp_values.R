@@ -44,6 +44,12 @@ get_sntemp_intermediates = function(model_output_file, model_fabric_file){
   model_output = read.table(model_output_file, header = T, stringsAsFactors = F) %>%
     dplyr::slice(-1) # first row indicates column type
 
+  # model_otuput = read.csv(model_output_file,sep = ' ', skip = 20, header = T, stringsAsFactors = F)
+  #
+  # fc = file(file.path(model_output_file))
+  # ic = strsplit(readLines(fc, skipNul = T), ' +') # reading in text with irregular white space seperators
+  # close(fc)
+
   model_fabric = sf::read_sf(model_fabric_file)
 
   seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx))
