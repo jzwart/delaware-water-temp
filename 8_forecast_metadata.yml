@@ -1,0 +1,26 @@
+target_default: 8_forecast_metadata
+
+packages:
+  - yaml
+  - dplyr
+  - tidyr
+  - scipiper
+  - EML
+
+sources:
+  - 8_forecast_metadata/src/efi_metadata_workflow.R
+
+targets:
+  8_forecast_metadata:
+    depends:
+      - 8_forecast_metadata/out/model_out.ncdf.ind
+
+  8_forecast_metadata/out/model_out.ncdf.ind:
+    command: array_to_ncdf(
+      ind_file = target_name,
+      output_array_file = '4_model/out/model_out.rds',
+      n_en,
+      n_steps,
+      n_states_est,
+      n_params_est)
+
