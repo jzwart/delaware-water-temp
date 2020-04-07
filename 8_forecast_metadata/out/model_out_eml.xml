@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="DRB_DA_SNTemp_20200310" system="uuid" xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0 https://eml.ecoinformatics.org/eml-2.2.0/eml.xsd">
+  <dataset>
+    <title>DRB stream temperature forecast</title>
+    <creator id="http://orcid.org/0000-0002-3870-405X">
+      <individualName>
+        <givenName>Jacob</givenName>
+        <surName>Zwart</surName>
+      </individualName>
+      <electronicMailAddress>jzwart@usgs.gov</electronicMailAddress>
+    </creator>
+    <pubDate>2020-03-10</pubDate>
+    <abstract>EML metadata for stream temperature forecasts</abstract>
+    <keywordSet>
+      <keyword>forecast</keyword>
+      <keyword>ecosystem</keyword>
+      <keyword>timeseries</keyword>
+      <keyword>water</keyword>
+      <keywordThesaurus>EFI controlled vocabulary</keywordThesaurus>
+    </keywordSet>
+    <intellectualRights>USGS policies</intellectualRights>
+    <coverage>
+      <geographicCoverage>
+        <geographicDescription>Delaware River Basin</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-76.396</westBoundingCoordinate>
+          <eastBoundingCoordinate>-74.358</eastBoundingCoordinate>
+          <northBoundingCoordinate>42.462</northBoundingCoordinate>
+          <southBoundingCoordinate>38.684</southBoundingCoordinate>
+          <boundingAltitudes>
+            <altitudeMinimum>-1.2</altitudeMinimum>
+            <altitudeMaximum>787</altitudeMaximum>
+            <altitudeUnits>meter</altitudeUnits>
+          </boundingAltitudes>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <temporalCoverage>
+        <rangeOfDates>
+          <beginDate>
+            <calendarDate>2014-04-01</calendarDate>
+          </beginDate>
+          <endDate>
+            <calendarDate>2014-04-01</calendarDate>
+          </endDate>
+        </rangeOfDates>
+      </temporalCoverage>
+    </coverage>
+    <contact>
+      <references>http://orcid.org/0000-0002-3870-405X</references>
+    </contact>
+    <methods>methods go here</methods>
+    <dataTable>
+      <entityName>8_forecast_metadata/out/model_out.nc</entityName>
+      <entityDescription>Delaware River Basin stream temperature forecasts</entityDescription>
+      <physical>
+        <objectName>model_out.nc</objectName>
+        <size unit="bytes">7055894</size>
+        <authentication method="MD5">7bf36963418d145983d52e0ac9670b55</authentication>
+        <dataFormat>
+          <textFormat>
+            <recordDelimiter>&#13;
+</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>valid_date</attributeName>
+          <attributeDefinition>forecast valid date</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>location</attributeName>
+          <attributeDefinition>stream segment model index</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>integer</numberType>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>ensemble</attributeName>
+          <attributeDefinition>index of ensemble member</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>integer</numberType>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>stream_temp</attributeName>
+          <attributeDefinition>arithemtic mean stream temperature</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>forecast_issue_time</attributeName>
+          <attributeDefinition>time that forecast was created</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>data_assimilation</attributeName>
+          <attributeDefinition>flag whether time step included data assimilation</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>dimensionless</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>integer</numberType>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>forecast_id</attributeName>
+          <attributeDefinition>ID for specific forecast cycle</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>forecast id</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>forecast_project_id</attributeName>
+          <attributeDefinition>ID for forecasting project</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>project id</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+      </attributeList>
+    </dataTable>
+  </dataset>
+</eml:eml>
