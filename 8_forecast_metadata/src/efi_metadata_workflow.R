@@ -119,26 +119,87 @@ create_forecast_eml = function(ind_file,
                                model_out_nc_file,
                                gd_config = 'lib/cfg/gd_config.yml'){
 
-  model_out = nc_open(model_out_nc_file)
+  model_out <- nc_open(model_out_nc_file)
+
+  dates <- ncvar_get(nc = model_out, varid = 'time')
+
+  forecast_issue_time <- ncatt_get(nc = model_out, varid = 0, attname = 'forecast_issue_time')$value
+
+  ForecastProject_id <- ncatt_get(nc = model_out, varid = 0, attname = 'ForecastProject_id')$value
+
+  Forecast_id <- ncatt_get(nc = model_out, varid = 0, attname = 'Forecast_id')$value
+
+  nc_close(model_out)
 
   attributes <- tibble::tribble(
     ~attributeName, ~attributeDefinition, ~unit, ~formatString, ~numberType, ~definition,
-    "time",          "time",                       "year",     "YYYY-MM-DD", "numberType", NA,
-    "location",         "stream segment model index",         "meter",   NA,          "real", NA,
-    "ensemble",      "index of ensemble member",   "dimensionless",    NA,         "integer", NA,
-    "species_1",     "Population size of species 1", "numberPerMeterSquared", NA,  "real", NA,
-    "species_2",     "Population size of species 2", "numberPerMeterSquared", NA,  "real", NA,
+    "valid_date",          "forecast valid date",    "date",     "YYYY-MM-DD", "numberType", NA,
+    "location",         "stream segment model index",   "dimensionless",   NA,  "integer", NA,
+    "ensemble",      "index of ensemble member",   "dimensionless",    NA,    "integer", NA,
+    "stream_temp",     "arithemtic mean stream temperature", "celsius", NA,  "real", NA,
     "forecast_issue_time",     "time that forecast was created", NA, "YYYY-MM-DD",  NA, NA,
-    "data_assimilation",     "Flag whether time step included data assimilation", "dimensionless", NA, "integer", NA,
-    "Forecast_id",     "ID for specific forecast cycle", NA, NA,  NA, "forecast id",
-    "ForecastProject_id",     "ID for forecasting project", NA, NA,  NA, "project id"
+    "data_assimilation",     "flag whether time step included data assimilation", "dimensionless", NA, "integer", NA,
+    "forecast_id",     "ID for specific forecast cycle", NA, NA,  NA, "forecast id",
+    "forecast_project_id",     "ID for forecasting project", NA, NA,  NA, "project id"
   )
   attrList <- set_attributes(attributes,
                              col_classes = c("Date", "numeric", "numeric",
-                                             "numeric","numeric", "Date",
+                                             "numeric", "Date",
                                              "numeric", "character", "character"))
-  physical <- set_physical("logistic-forecast-ensemble-multi-variable-multi-depth.csv")
+  physical <- set_physical(model_out_nc_file)
 
+  dataTable <- eml$dataTable(
+    entityName = model_out_nc_file,
+    entityDescription = 'Delaware River Basin stream temperature forecasts',
+    physical = physical,
+    attributeList = attrList)
+
+  me <- list(individualName = list(givenName = "Jacob",
+                                   surName = "Zwart"),
+             electronicMailAddress = "jzwart@usgs.gov",
+             id = 'http://orcid.org/0000-0002-3870-405X')
+
+  coverage <- EML::set_coverage(begin = as_datetime(dates[1]),
+                                end = as_datetime(tail((dates)[1])),
+                                geographicDescription = "Delaware River Basin",
+                                west = -76.396, east = -74.358,  # could read in geo boundary and set this with function
+                                north = 42.462, south = 38.684,
+                                altitudeMaximum = 787, altitudeMinimum = -1.2, altitudeUnits = 'meter')
+
+  keywordSet <- list(
+    list(
+      keywordThesaurus = "EFI controlled vocabulary",
+      keyword = list("forecast",
+                     "ecosystem",
+                     "timeseries",
+                     "water")
+    ))
+
+
+  ### methods details here ###
+  methods = list(methods = 'methods go here')
+  ###########
+
+  dataset = eml$dataset(title = 'DRB stream temperature forecast',
+                        creator = me,
+                        contact = list(references = 'http://orcid.org/0000-0002-3870-405X'),
+                        pubDate = forecast_issue_time,
+                        intellectualRights = 'USGS policies',
+                        abstract = 'EML metadata for stream temperature forecasts',
+                        dataTable = dataTable,
+                        keywordSet = keywordSet,
+                        coverage = coverage,
+                        methods = methods)
+
+  eml_out <- eml$eml(dataset = dataset,
+                    packageId = ForecastProject_id,
+                    system = "uuid")
+
+  ### validate the EML
+  eml_validate(eml_out)
+
+  write_eml(eml_out, scipiper::as_data_file(ind_file))
+  gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
 
 
