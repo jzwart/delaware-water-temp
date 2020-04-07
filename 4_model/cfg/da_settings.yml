@@ -10,11 +10,10 @@ stop: '2019-12-31'
 # metadata settings
 # change this to reflect the actual forecast issue time
 forecast_issue_time: '2020-03-10'
-#ID that applies to the specific forecast. Make new ID for every new forecast - will need to update based on
-forecast_id: 'fodsiajafa2424oji'
 # ID that applies to set of forecasts
 forecast_project_id: 'DRB_DA_SNTemp_20200310'
-
+#ID that applies to the specific forecast. Make new ID for every new forecast - will need to update based on
+# forecast_id: 'fodsiajafa2424oji'
 
 params_to_cal: [] # parameters we want to calibrate
 

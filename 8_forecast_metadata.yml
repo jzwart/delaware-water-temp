@@ -8,6 +8,7 @@ packages:
   - EML
   - ncdf4
   - uuid
+  - lubridate
 
 file_extensions:
   - nc
@@ -15,20 +16,24 @@ file_extensions:
 
 sources:
   - 8_forecast_metadata/src/efi_metadata_workflow.R
+  - 8_forecast_metadata/src/create_forecast_id.R
 
 targets:
   8_forecast_metadata:
     depends:
       - 8_forecast_metadata/out/model_out.nc.ind
 
+  # when the forecast was issued
   forecast_issue_time:
     command: da_settings[I('forecast_issue_time')]
 
-  forecast_id:
-    command: da_settings[I('forecast_id')]
-
+  # applies to a set of forecasts - equivalent to a DOI and shouldn't change unless algorithms change
   forecast_project_id:
     command: da_settings[I('forecast_project_id')]
+
+  # Unique ID for when the forecast was generated.
+  forecast_id:
+    command: create_forecast_id(forecast_project_id)
 
   8_forecast_metadata/out/model_out.nc.ind:
     command: array_to_ncdf(
