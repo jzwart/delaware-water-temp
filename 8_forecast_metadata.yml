@@ -35,6 +35,7 @@ targets:
   forecast_id:
     command: create_forecast_id(forecast_project_id)
 
+  # update the file out to reflect forecast_id ?
   8_forecast_metadata/out/model_out.nc.ind:
     command: array_to_ncdf(
       ind_file = target_name,
