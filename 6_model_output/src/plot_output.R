@@ -1,7 +1,7 @@
 
 library(dplyr)
 
-d = readRDS('4_model/out/model_out.rds')
+d = readRDS('4_model/out/model_out2.rds')
 dd = readRDS('4_model/out/model_out_no_assim.rds')
 
 obs = d$obs
@@ -11,24 +11,44 @@ n_en = 20
 n_step = length(d$dates)
 Y_no_assim = dd$Y
 
+#lordsville site is seg_id_nat == 1573; model_idx = 224
 obs[,1,1]
-site = 377
-plot(Y[site,,1], type = 'l',ylim =  range(c(Y[site,,], obs[site,1,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = 'Time Step')
+site = 224
+windows()
+plot(Y[site,,1] ~ d$dates, type = 'l',ylim =  range(c(Y[site,,], obs[site,1,], Y_no_assim[site,,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = '', lty=0)
 for(i in 1:n_en){
-  lines(Y_no_assim[site,,i], col = 'grey')
-  lines(Y[site,,i])
+  # lines(Y_no_assim[site,,i] ~ d$dates, col = 'grey')
+  lines(Y[site,,i] ~ d$dates)
 }
-points(obs[site,1,], col = 'red', pch = 16, cex = 1.2)
-arrows(1:n_step, obs[site,1,]+R[site,site,], 1:n_step, obs[site,1,]-R[site,site,],
+points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
+arrows(d$dates, obs[site,1,]+R[site,site,], d$dates, obs[site,1,]-R[site,site,],
        angle = 90, length = .05, col = 'red', code = 3)
 
-params = 456*4 + site
+params = 456*2 + site
 windows()
 plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
 for(i in 1:n_en){
   lines(Y[params,,i])
 }
 
+gw_sum = Y[456*2 + site,,]
+gw_tau = Y[456*4 + site,,]
+seg_tave_gw = gw_sum / gw_tau
+ss_sum = Y[456*1 + site,,]
+ss_tau = Y[456*3 + site,,]
+seg_tave_ss = ss_sum / ss_tau
+
+windows()
+plot(seg_tave_gw[,1]~d$dates)
+windows()
+plot(seg_tave_ss[,1]~d$dates)
+
+
+windows()
+plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
+for(i in 1:n_en){
+  lines(Y[params,,i])
+}
 
 
 uncert = c()
@@ -41,9 +61,12 @@ for(site in 1:456){
   uncert = rbind(uncert, sd(Y[site,n_step,]))
   uncert_no_assim = rbind(uncert_no_assim, sd(Y_no_assim[site, n_step, ]))
   n_obs = rbind(n_obs, sum(!is.na(obs[site,1,])))
-  ss_tau = rbind(ss_tau, mean(Y[(456*1 + site), n_step, ]))
-  gw_tau = rbind(gw_tau, mean(Y[(456*2 + site), n_step, ]))
+  ss_tau = rbind(ss_tau, mean(Y[(456*2 + site), n_step, ]))
+  gw_tau = rbind(gw_tau, mean(Y[(456*3 + site), n_step, ]))
 }
+
+windows()
+
 
 plot(uncert ~ n_obs, ylab = 'Temperature Standard Deviation', xlab= '# of Observations Assimilated', pch =16, cex = 1.5)
 
@@ -67,7 +90,7 @@ ggplot() +
 # reduction in uncertainty
 windows()
 ggplot() +
-  geom_sf(data = loc, aes(color = (uncert_no_assim - uncert), size = .1*(uncert_no_assim - uncert)))+
+  geom_sf(data = loc, aes(color = (uncert_no_assim - uncert), size = .01*(uncert_no_assim - uncert)))+
   scale_color_viridis_c(direction = -1) +
   theme_minimal()
 
@@ -83,7 +106,7 @@ plot(loc$red_uncert ~ loc$n_obs)
 abline(lm(loc$red_uncert~loc$n_obs))
 
 windows()
-loc$ss_tau = loc$ss_tau + 40
+# loc$ss_tau = loc$ss_tau + 40
 ggplot() +
   geom_sf(data = loc, aes(color = ss_tau ))+
   scale_color_viridis_c() +

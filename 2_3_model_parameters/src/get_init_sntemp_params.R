@@ -11,20 +11,25 @@ get_init_sntemp_params = function(ind_file,
 
   model_fabric = sf::read_sf(model_fabric_file)
 
+  # order by model_idx
   seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
     arrange(as.numeric(model_idx))
 
   out = seg_ids
 
-  for(i in 1:length(param_names$params_to_cal)){
-    param_loc_start = grep(param_names$params_to_cal[i], params) + 5
-    param_loc_end = param_loc_start + n_segments - 1
+  if(length(param_names$params_to_cal) == 0){
+    out = out
+  }else{
+    for(i in 1:length(param_names$params_to_cal)){
+      param_loc_start = grep(param_names$params_to_cal[i], params) + 5
+      param_loc_end = param_loc_start + n_segments - 1
 
-    cur_param_vals = params[param_loc_start:param_loc_end]
+      cur_param_vals = params[param_loc_start:param_loc_end]
 
-    out = out %>%
-      mutate(temp_name = cur_param_vals) %>%
-      rename(!!noquote(param_names$params_to_cal[i]) := temp_name)
+      out = out %>%
+        mutate(temp_name = cur_param_vals) %>%
+        rename(!!noquote(param_names$params_to_cal[i]) := temp_name)
+    }
   }
 
   param_output_file = as_data_file(ind_file)

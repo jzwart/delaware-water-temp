@@ -10,10 +10,12 @@
 */tmp/*
 */out/*
 */in/*
+*/sens/*
 
 *.feather
 20190913_Delaware_streamtemp/*
 20191002_Delaware_streamtemp/*
+20191002_Delaware_streamtemp_orig/*
 
 !data_for_Xiaowei/network_full.rds
 !data_for_Xiaowei/network_subset.rds

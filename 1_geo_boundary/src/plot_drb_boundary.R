@@ -168,16 +168,17 @@ us_map = sf::st_as_sf(maps::map(database = 'state', fill = T, plot = F, col = 'w
 
 seg_plot = ggplot() +
   geom_sf(data = main_states, fill = 'grey93', color = 'grey80') +
-  geom_sf(data = seg_obs, aes(col = obs_bins, fill = obs_bins), size = 1.1) +
+  # geom_sf(data = seg_obs, aes(col = obs_bins, fill = obs_bins), size = 1.1) +
+  geom_sf(data = seg_obs, col = 'blue', fill = 'blue', size = 1.1) +
   geom_sf(data = boundary$geometry, col = 'black', alpha = 0) +
-  scale_color_manual(values = col_labs) +   scale_fill_manual(values = col_labs) +
+  #scale_color_manual(values = col_labs) +   scale_fill_manual(values = col_labs) +
   theme_minimal()+
   ylim(c(38.5,42.5))+
-  xlim(c(76.5,74)) +
-  guides(color=guide_legend(title="Days of observations"),fill=guide_legend(title="Days of observations"))
+  xlim(c(76.5,74)) #+
+  #guides(color=guide_legend(title="Days of observations"),fill=guide_legend(title="Days of observations"))
 
 seg_plot
-ggsave(filename = 'C:/Users/jzwart/Documents/Jake/Conferences/2019/GLEON/stream_obs_map.png',
+ggsave(filename = 'C:/Users/jzwart/Documents/Jake/Conferences/2019/GLEON/stream_map.png',
        plot = seg_plot, width = 6, height = 12, units = 'in', dpi = 400)
 
 sites_v_obs = seg_obs %>% select(obs_dates) %>% arrange(obs_dates) %>% mutate(seq_id = seq(1,nrow(.))) %>%

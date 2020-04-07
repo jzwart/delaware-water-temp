@@ -61,15 +61,14 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
 #' @param n_params_est number of parameters we're calibrating
 #' @param n_step number of model timesteps
 #' @param obs observation matrix created with get_obs_matrix function
-get_obs_id_matrix = function(n_states, n_params_obs, n_params_est, n_step, obs){
+get_obs_id_matrix = function(n_states_obs, n_states_est, n_params_obs, n_params_est, n_step, obs){
 
-  # dimensions will be n_depths by Y vector length (or n_depths + n_params)
-  H = array(0, dim=c(n_states + n_params_obs, n_states + n_params_est, n_step))
+  H = array(0, dim=c(n_states_obs + n_params_obs, n_states_est + n_params_est, n_step))
 
   # order goes 1) states, 2)params for which we have obs, 3) params for which we're estimating but don't have obs
 
   for(t in 1:n_step){
-    H[1:(n_states + n_params_obs), 1:(n_states + n_params_obs), t] = diag(ifelse(is.na(obs[,,t]),0, 1), n_states + n_params_obs, n_states + n_params_obs)
+    H[1:(n_states_obs + n_params_obs), 1:(n_states_obs + n_params_obs), t] = diag(ifelse(is.na(obs[,,t]),0, 1), n_states_obs + n_params_obs, n_states_obs + n_params_obs)
   }
 
   return(H)
@@ -86,6 +85,7 @@ get_obs_id_matrix = function(n_states, n_params_obs, n_params_est, n_step, obs){
 get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states){
 
   # need to know location and time of observation
+   # model_locations is arranged by model_idx
 
   obs_df_filtered = obs_df %>%
     dplyr::filter(seg_id_nat %in% model_locations,
@@ -151,24 +151,30 @@ kalman_filter = function(Y, R, obs, H, n_en, cur_step){
 #' @param Y Y vector
 #' @param obs observation matrix
 initialize_Y = function(Y, init_states, init_params,
-                        n_states_est, n_params_est,
+                        n_states_est, n_states_obs, n_params_est,
                         n_params_obs, n_step, n_en,
                         state_sd, param_sd){
 
-  # initializing states with earliest observations and parameters
-  # first_obs = coalesce(!!!lapply(seq_len(dim(obs)[3]), function(i){obs[,,i]})) %>% # turning array into list, then using coalesce to find first obs in each position.
-  #   ifelse(is.na(.), mean(., na.rm = T), .) # setting initial temp state to mean of earliest temp obs from other sites if no obs
-
-  # initializing states with end of spinup from SNTemp
-  first_states = init_states %>%
-    arrange(seg_id_nat) %>% pull(water_temp) # always arrange by seg_id_nat
+  # initializing states with end of spinup from SNTemp ic files (or obs if available)
+  if(n_states_est > 0){
+    state_names = colnames(init_states)[3:ncol(init_states)]
+    first_states = c()
+    for(i in 1:length(state_names)){
+      cur_state = init_states %>%
+        arrange(as.numeric(model_idx)) %>% pull(2+i)
+      first_states = c(first_states, cur_state)
+    }
+    first_states = as.numeric(first_states)
+  }else{
+    first_states = NULL
+  }
 
   if(n_params_est > 0){
     param_names = colnames(init_params)[3:ncol(init_params)]
     first_params = c()
     for(i in 1:length(param_names)){
       cur_param = init_params %>%
-        arrange(seg_id_nat) %>% pull(2+i)
+        arrange(as.numeric(model_idx)) %>% pull(2+i)
       first_params = c(first_params, cur_param)
     }
     first_params = as.numeric(first_params)
@@ -191,6 +197,55 @@ get_updated_params = function(Y, param_names, n_states_est, n_params_est, cur_st
 
   return(updated_params)
 }
+
+get_updated_states = function(Y, state_names, n_states_est, n_params_est, cur_step, en){
+
+  updated_states = Y[1:n_states_est, cur_step, en]
+
+  return(updated_states)
+}
+
+gather_states = function(ic_out){
+
+  state_names = colnames(ic_out)[3:ncol(ic_out)]
+  states = c()
+  for(i in 1:length(state_names)){
+    cur_state = ic_out %>%
+      arrange(as.numeric(model_idx)) %>% pull(2+i)
+    states = c(states, cur_state)
+  }
+  states = as.numeric(states)
+
+  return(states)
+}
+
+
+model_spinup = function(n_en,
+                        start,
+                        stop,
+                        time_step = 'days',
+                        model_run_loc = '4_model/tmp',
+                        spinup_days = 730){
+
+  n_en = as.numeric(n_en)
+  spinup_days = as.numeric(spinup_days)
+  start = as.Date(as.character(start))
+  stop = as.Date(as.character(stop))
+  dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
+
+  for(n in 1:n_en){
+    run_sntemp(start = dates[1], stop = dates[1], spinup = T,
+               model_run_loc = model_run_loc,
+               spinup_days = spinup_days,
+               restart = T,
+               precip_file = sprintf('./input/prcp_%s.cbh', n),
+               tmax_file = sprintf('./input/tmax_%s.cbh', n),
+               tmin_file = sprintf('./input/tmin_%s.cbh', n),
+               var_init_file = sprintf('prms_ic_spinup_%s.txt', n),
+               var_save_file = sprintf('prms_ic_spinup_%s.txt', n))
+  }
+}
+
 
 #' wrapper function for running EnKF for given model
 #'
@@ -219,6 +274,7 @@ EnKF = function(ind_file,
                 init_param_file = '2_3_model_parameters/out/init_params.rds',
                 model_run_loc = '4_model/tmp',
                 orig_model_loc = '20191002_Delaware_streamtemp',
+                state_names,
                 driver_file = NULL,
                 n_states_est = 456,
                 n_states_obs = 456,
@@ -241,6 +297,7 @@ EnKF = function(ind_file,
   # use this to organize the matrices
   model_fabric = sf::read_sf(model_fabric_file)
 
+  # arrange by model_idx
   model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
                            model_idx = as.character(model_fabric$model_idx)) %>%
     arrange(as.numeric(model_idx))
@@ -252,22 +309,31 @@ EnKF = function(ind_file,
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
   n_step = length(dates)
 
-  state_sd = rep(obs_cv * 5, n_states_est)
+  state_names = state_names$states_to_update
+  n_states_est = length(state_names) * nrow(model_locations)
+  n_states_obs = nrow(model_locations) # only assimilating temperature obs
+  state_sd = rep(obs_cv * 5, n_states_est)  # UPDATE THIS #########
 
   # get observation matrix
   obs_df = readRDS(obs_file)
 
-  # get initial parameters
+  # get initial parameters; arrange by model_idx
   init_params_df = readRDS(init_param_file) %>% arrange(as.numeric(model_idx))
   n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
 
-  param_names = colnames(init_params_df)[3:ncol(init_params_df)]
+  if(n_params_est > 0){
+    param_names = colnames(init_params_df)[3:ncol(init_params_df)]
 
-  param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
-    gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
-    mutate(param_sd = ifelse(param_sd < 2, 2, param_sd),
-           param_sd = param_sd * param_cv) %>%
-    pull(param_sd)
+    param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
+      gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
+      mutate(param_sd = ifelse(param_sd < 2, 2, param_sd),
+             param_sd = param_sd * param_cv) %>%
+      pull(param_sd)
+  }else{
+    param_names = NULL
+    param_sd = NULL
+  }
+
 
   # setting up matrices
   # observations as matrix
@@ -277,7 +343,7 @@ EnKF = function(ind_file,
                        model_dates = dates,
                        model_locations = model_locations$seg_id_nat,
                        n_step = n_step,
-                       n_states = n_states_est)
+                       n_states = n_states_obs)
 
   # Y vector for storing state / param estimates and updates
   Y = get_Y_vector(n_states = n_states_est,
@@ -286,42 +352,59 @@ EnKF = function(ind_file,
                    n_en = n_en)
 
   # observation error matrix
-  R = get_obs_error_matrix(n_states = n_states_est,
+  R = get_obs_error_matrix(n_states = n_states_obs,
                            n_params_obs = n_params_obs,
                            n_step = n_step,
                            state_sd = state_sd,
                            param_sd = param_sd)
 
   # observation identity matrix
-  H = get_obs_id_matrix(n_states = n_states_est,
+  H = get_obs_id_matrix(n_states_obs = n_states_obs,
+                        n_states_est = n_states_est,
                         n_params_obs = n_params_obs,
                         n_params_est = n_params_est,
                         n_step = n_step,
                         obs = obs)
 
-  # do spinup period here and then initialize Y vector
-  for(n in 1:n_en){
-    run_sntemp(start = dates[1], stop = dates[1], spinup = T,
-               model_run_loc = model_run_loc,
-               spinup_days = 730,
-               restart = T,
-               precip_file = sprintf('./input/prcp_%s.cbh', n),
-               tmax_file = sprintf('./input/tmax_%s.cbh', n),
-               tmin_file = sprintf('./input/tmin_%s.cbh', n),
-               var_init_file = sprintf('prms_ic_%s.out', n),
-               var_save_file = sprintf('prms_ic_%s.out', n))
-  }
+  # for initial states, we want to use the observation for the first time step, if avaialble, otherwise use
+  #  the mean of the ensembles' initial conditions.
 
-  stream_temp_init = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-                                            model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
-    dplyr::filter(date == dates[1])
+  init_states = model_locations
+  for(n in 1:n_en){
+    cur_ic = get_sntemp_initial_states(state_names = state_names,
+                                       model_run_loc = model_run_loc,
+                                       ic_file = sprintf('prms_ic_spinup_%s.txt', n))
+
+    init_states = dplyr::left_join(init_states, cur_ic, by = c('seg_id_nat', 'model_idx'), suffix = c('',n))
+  }
+  init_states_median = model_locations
+  for(i in 1:length(state_names)){
+    cur_state = init_states %>% select(c(1, 2, starts_with(state_names[i]))) %>%
+      gather(key = 'state', value = 'value', starts_with(state_names[i])) %>%
+      group_by(seg_id_nat, model_idx) %>%
+      summarise(!!noquote(state_names[i]) := median(value)) %>%
+      ungroup() %>% arrange(as.numeric(model_idx))
+
+    init_states_median = dplyr::left_join(init_states_median, cur_state, by = c('seg_id_nat', 'model_idx'))
+  }
+  rm(init_states)
+
+  # changing initial temperature state to obs if obs is available (since everything is ordered by model_idx, just use ifelse() function)
+  init_states_median$seg_tave_water = ifelse(!is.na(obs[,1,1]), obs[,1,1], init_states_median$seg_tave_water)
+
+  state_sd = mutate_at(init_states_median, 3:ncol(init_states_median), as.numeric) %>%
+    gather(key = 'state', value = 'state_sd', -seg_id_nat, -model_idx) %>%
+    mutate(state_sd = ifelse(state_sd < 2, 2, state_sd),
+           state_sd = state_sd * init_cond_cv) %>%
+    pull(state_sd)
 
   # initialize Y vector
   print('intializing Y vector...')
   Y = initialize_Y(Y = Y,
-                   init_states = stream_temp_init,
+                   init_states = init_states_median,
                    init_params = init_params_df,
                    n_states_est = n_states_est,
+                   n_states_obs = n_states_obs,
                    n_params_est = n_params_est,
                    n_params_obs = n_params_obs,
                    n_step = n_step, n_en = n_en, state_sd = state_sd, param_sd = param_sd)
@@ -332,16 +415,36 @@ EnKF = function(ind_file,
     for(t in 2:n_step){
       for(n in 1:n_en){
         # set parameters / states for model config
-        updated_params = get_updated_params(Y = Y,
-                                            param_names = param_names,
+        if(n_params_est>0){
+          updated_params = get_updated_params(Y = Y,
+                                              param_names = param_names,
+                                              n_states_est = n_states_est,
+                                              n_params_est = n_params_est,
+                                              cur_step = t-1,
+                                              en = n)
+          update_sntemp_params(param_names = param_names,
+                               updated_params = updated_params)
+        }
+
+        updated_states = get_updated_states(Y = Y,
+                                            state_names = state_names,
                                             n_states_est = n_states_est,
                                             n_params_est = n_params_est,
                                             cur_step = t-1,
                                             en = n)
 
-        update_sntemp_params(param_names = param_names,
-                             updated_params = updated_params)
-        # model_config = Y[, t-1, n]
+        if(t==2){
+          update_sntemp_states(state_names = state_names,
+                               updated_states = updated_states,
+                               ic_file_in = sprintf('prms_ic_spinup_%s.txt', n),
+                               ic_file_out = sprintf('prms_ic_%s.txt', n))
+        }else{
+          update_sntemp_states(state_names = state_names,
+                               updated_states = updated_states,
+                               ic_file_in = sprintf('prms_ic_%s.txt', n),
+                               ic_file_out = sprintf('prms_ic_%s.txt', n))
+        }
+
 
         # run model
         run_sntemp(start = dates[t],
@@ -351,14 +454,20 @@ EnKF = function(ind_file,
                    precip_file = sprintf('./input/prcp_%s.cbh', n),
                    tmax_file = sprintf('./input/tmax_%s.cbh', n),
                    tmin_file = sprintf('./input/tmin_%s.cbh', n),
-                   var_init_file = sprintf('prms_ic_%s.out', n),
-                   var_save_file = sprintf('prms_ic_%s.out', n))
+                   var_init_file = sprintf('prms_ic_%s.txt', n),
+                   var_save_file = sprintf('prms_ic_%s.txt', n))
 
-        model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-                                              model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
-          dplyr::filter(date == dates[t])
 
-        Y[ , t, n] = c(model_output$water_temp, updated_params) # store in Y vector
+        ic_out = get_sntemp_initial_states(state_names = state_names,
+                                           model_run_loc = model_run_loc,
+                                           ic_file = sprintf('prms_ic_%s.txt', n))
+        predicted_states = gather_states(ic_out) # predicted states from model
+
+        if(n_params_est > 0){
+          Y[ , t, n] = c(predicted_states, updated_params) # store in Y vector
+        }else{
+          Y[ , t, n] = predicted_states # only updating states, not params
+        }
       }
       if(any(H[,,t]==1)){
         print('updating with Kalman Filter...')
@@ -369,21 +478,38 @@ EnKF = function(ind_file,
                           n_en = n_en,
                           cur_step = t) # updating params / states if obs available
       }
-      # update states / params for model config
     }
   }else{
     for(n in 1:n_en){
       # set parameters / states for model config
-      updated_params = get_updated_params(Y = Y,
-                                          param_names = param_names,
+      if(n_params_est>0){
+        updated_params = get_updated_params(Y = Y,
+                                            param_names = param_names,
+                                            n_states_est = n_states_est,
+                                            n_params_est = n_params_est,
+                                            cur_step = t-1,
+                                            en = n)
+        update_sntemp_params(param_names = param_names,
+                             updated_params = updated_params)
+      }
+      updated_states = get_updated_states(Y = Y,
+                                          state_names = state_names,
                                           n_states_est = n_states_est,
                                           n_params_est = n_params_est,
                                           cur_step = 1,
                                           en = n)
 
-      update_sntemp_params(param_names = param_names,
-                           updated_params = updated_params)
-      # model_config = Y[, t-1, n]
+      if(t==2){
+        update_sntemp_states(state_names = state_names,
+                             updated_states = updated_states,
+                             ic_file_in = sprintf('prms_ic_spinup_%s.txt', n),
+                             ic_file_out = sprintf('prms_ic_%s.txt', n))
+      }else{
+        update_sntemp_states(state_names = state_names,
+                             updated_states = updated_states,
+                             ic_file_in = sprintf('prms_ic_%s.txt', n),
+                             ic_file_out = sprintf('prms_ic_%s.txt', n))
+      }
 
       # run model
       run_sntemp(start = dates[2],
@@ -393,19 +519,21 @@ EnKF = function(ind_file,
                  precip_file = sprintf('./input/prcp_%s.cbh', n),
                  tmax_file = sprintf('./input/tmax_%s.cbh', n),
                  tmin_file = sprintf('./input/tmin_%s.cbh', n),
-                 var_init_file = sprintf('prms_ic_%s.out', n),
-                 var_save_file = sprintf('prms_ic_%s.out', n))
+                 var_init_file = sprintf('prms_ic_%s.txt', n),
+                 var_save_file = sprintf('prms_ic_%s.txt', n))
 
       model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
                                             model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
         dplyr::filter(date %in% dates[2:n_step]) %>%
         arrange(date, as.numeric(model_idx))
 
-      out_temp = array(model_output$water_temp, dim = c(n_states_est, n_step-1))
-      out_params = array(rep(updated_params, (n_step-1)), dim = c(n_params_est, n_step-1))
+      out_temp = array(model_output$water_temp, dim = c(nrow(model_locations), n_step-1))
 
-      Y[1:n_states_est, 2:n_step, n] = out_temp # store states in Y vector
-      Y[(n_states_est+1):(n_states_est+n_params_est), 2:n_step, n] = out_params # store params in Y vector
+      Y[1:nrow(model_locations), 2:n_step, n] = out_temp # store temp in Y vector
+      if(n_params_est > 0){
+        out_params = array(rep(updated_params, (n_step-1)), dim = c(n_params_est, n_step-1))
+        Y[(n_states_est+1):(n_states_est+n_params_est), 2:n_step, n] = out_params # store params in Y vector
+      }
     }
   }
 

@@ -17,8 +17,8 @@ run_sntemp = function(start,
                       precip_file = './input/prcp.cbh',
                       tmax_file = './input/tmax.cbh',
                       tmin_file = './input/tmin.cbh',
-                      var_init_file = 'prms_ic.out',
-                      var_save_file = 'prms_ic.out'){
+                      var_init_file = 'prms_ic.txt',
+                      var_save_file = 'prms_ic.txt'){
 
   if(spinup){
     print('Running spinup period...')
@@ -76,7 +76,7 @@ run_sntemp = function(start,
     writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
   }
 
-  set_sntemp_start_stop(start = start , stop = stop, control_file = control_file)
+  set_sntemp_start_stop(start = start , stop = stop, model_run_loc = model_run_loc, control_file = control_file)
 
   current.wd = getwd() # getting current project root wd to reset after running batch file
 
@@ -86,14 +86,14 @@ run_sntemp = function(start,
   setwd(current.wd) # set wd back to root of project
 }
 
-run_sntemp_spinup = function(spinup_days = 730, start,
-                             model_run_loc = '4_model/tmp/',
-                             control_file = 'delaware.control',
-                             precip_file = './input/prcp.cbh',
-                             tmax_file = './input/tmax.cbh',
-                             tmin_file = './input/tmin.cbh',
-                             var_init_file = 'prms_ic.out',
-                             var_save_file = 'prms_ic.out'){
+run_sntemp_spinup = function(spinup_days, start,
+                             model_run_loc,
+                             control_file,
+                             precip_file,
+                             tmax_file,
+                             tmin_file,
+                             var_init_file,
+                             var_save_file){
 
   # how many days before start date. end date should be one day before start date
   spinup_start = as.Date(as.character(start)) - spinup_days - 1
@@ -155,8 +155,8 @@ run_sntemp_spinup = function(spinup_days = 730, start,
 #'@param control_file name of the control file
 #'
 set_sntemp_start_stop = function(start, stop,
-                                 model_run_loc = '4_model/tmp/',
-                                 control_file = 'delaware.control'){
+                                 model_run_loc,
+                                 control_file){
 
   start = as.Date(as.character(start))
   stop = as.Date(as.character(stop))

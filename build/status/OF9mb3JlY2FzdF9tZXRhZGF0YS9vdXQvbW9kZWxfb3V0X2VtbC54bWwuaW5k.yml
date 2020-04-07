@@ -1,0 +1,12 @@
+version: 0.3.0
+name: 8_forecast_metadata/out/model_out_eml.xml.ind
+type: file
+hash: 4c5513feae7fa1001d18e86456ce7a39
+time: 2020-04-07 14:29:32 UTC
+depends:
+  8_forecast_metadata/out/model_out.nc: 7bf36963418d145983d52e0ac9670b55
+fixed: 575e986684b16ad2d51878caac165a59
+code:
+  functions:
+    create_forecast_eml: 37580baa2a30a0145059c42d5b030070
+
