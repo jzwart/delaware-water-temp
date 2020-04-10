@@ -24,3 +24,16 @@ targets:
   2_3_model_parameters/out/init_params.rds:
     command: gd_get('2_3_model_parameters/out/init_params.rds.ind')
 
+## claibration parameters ##
+  calibration_settings:
+    command: read_yaml('4_model_calibrate/cfg/calibration_settings.yml')
+
+  param_names_calibration:
+    command: calibration_settings[I('params_to_cal')]
+
+  2_3_model_parameters/out/calibration_params_init.rds.ind:
+    command: get_init_sntemp_params(
+      ind_file = target_name,
+      param_names = param_names_calibration)
+  2_3_model_parameters/out/calibration_params_init.rds:
+    command: gd_get('2_3_model_parameters/out/calibration_params_init.rds.ind')

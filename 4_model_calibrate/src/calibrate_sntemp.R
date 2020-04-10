@@ -44,16 +44,17 @@ calibrate_sntemp = function(ind_file,
   stop = as.Date(as.character(stop))
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = 'days')
 
-  # get observation matrix
-  obs_df = readRDS(obs_file)
+  # get observations
+  obs_df = readRDS(obs_file) %>%
+    left_join(model_locations, by = 'seg_id_nat')
 
   # get initial parameters
   init_params_df = readRDS(init_param_file) %>% arrange(as.numeric(model_idx))
-  n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
+  # n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
 
   param_names = colnames(init_params_df)[3:ncol(init_params_df)]
 
-
+  # read in the subbasins and calibration order
   subbasins = readRDS(subbasin_file)
 
   cal_order = get_calibration_order(subbasin_outlet_file = subbasin_outlet_file)
@@ -66,25 +67,75 @@ calibrate_sntemp = function(ind_file,
     cur_subbasin = subbasins[cur_subbasin_outlet][[cur_subbasin_outlet]]
 
     # get subbasin parameter locations
-    cur_subbasin$model_idx
+    cur_model_idxs = as.character(cur_subbasin$model_idx)
+
+
+
 
     # supply subsetted_segs parameters as initial params to calibrate
     optim()
-
-    update_sntemp_params(param_names = param_names,
-                         updated_params = updated_params)
-
-    run_sntemp(start = start,
-               stop = stop,
-               spinup = F,
-               restart = F)
-
 
 
 
   }
 
-
-
-
 }
+
+
+
+
+cal_sntemp_run = function(start,
+                          stop,
+                          model_run_loc,
+                          spinup = F,
+                          restart = F,
+                          obs,
+                          model_idxs_to_cal,
+                          obs,
+                          params,
+                          param_names){
+
+  cur_obs = dplyr::filter(obs, model_idx %in% model_idxs_to_cal,
+                          date >= as.Date(start),
+                          date <= as.Date(stop))
+
+
+
+  update_sntemp_params(param_names = param_names,
+                       updated_params = params,
+                       model_run_loc = model_run_loc)
+
+  run_sntemp(start = start,
+             stop = stop,
+             spinup = spinup,
+             restart = restart,
+             model_run_loc = model_run_loc)
+
+  preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                         model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
+
+  compare = left_join(preds, select(cur_obs, model_idx, date, temp_C),
+                      by = c('model_idx', 'date'))
+
+  # plot(compare$water_temp ~ compare$temp_C,
+  #      ylim = c(0, max(compare$temp_C, na.rm = T)), ylab = 'pred', xlab = 'obs')
+
+  return(rmse(compare$temp_C, compare$water_temp, na.rm = T)) #optimize on water temp RMSE
+}
+
+
+rmse = function (actual, predicted, na.rm = T)
+{
+  return(sqrt(mse(actual, predicted, na.rm)))
+}
+
+mse = function (actual, predicted, na.rm = T)
+{
+  return(mean(se(actual, predicted), na.rm = na.rm))
+}
+
+se = function (actual, predicted)
+{
+  return((actual - predicted)^2)
+}
+
