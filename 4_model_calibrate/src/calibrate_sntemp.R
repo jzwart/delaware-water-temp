@@ -17,13 +17,13 @@
 calibrate_sntemp = function(ind_file,
                             start,
                             stop,
-                            model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
-                            obs_file = '3_observations/in/obs_temp_full.rds',
-                            init_param_file = '2_3_model_parameters/out/init_params.rds',
-                            model_run_loc = '4_model/tmp',
-                            orig_model_loc = '20191002_Delaware_streamtemp',
-                            subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
-                            subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
+                            model_fabric_file,
+                            obs_file,
+                            init_param_file,
+                            model_run_loc,
+                            orig_model_loc,
+                            subbasin_file,
+                            subbasin_outlet_file,
                             gd_config = 'lib/cfg/gd_config.yml'){
 
   # copy over original run files to temporary file location
@@ -69,7 +69,10 @@ calibrate_sntemp = function(ind_file,
     # get subbasin parameter locations
     cur_model_idxs = as.character(cur_subbasin$model_idx)
 
+    # pull out parameters for current subbasin
+    cur_init_params = init_params_df %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
 
+    #
 
 
     # supply subsetted_segs parameters as initial params to calibrate
@@ -98,7 +101,6 @@ cal_sntemp_run = function(start,
   cur_obs = dplyr::filter(obs, model_idx %in% model_idxs_to_cal,
                           date >= as.Date(start),
                           date <= as.Date(stop))
-
 
 
   update_sntemp_params(param_names = param_names,

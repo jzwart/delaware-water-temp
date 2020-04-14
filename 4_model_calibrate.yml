@@ -29,6 +29,11 @@ targets:
 #############################################
 # calibrating SNTemp for DRB
 #############################################
+  cal_start:
+    command: calibration_settings[I('start')]
+
+  cal_stop:
+    command: calibration_settings[I('stop')]
 
   4_model_calibrate/out/drb_subbasins.rds.ind:
     command: get_subbasins(
@@ -40,14 +45,15 @@ targets:
   4_model_calibrate/out/model_out_cal.rds.ind:
     command: calibrate_sntemp(
       ind_file = target_name,
-      start = start,
-      stop = stop,
+      start = cal_start,
+      stop = cal_stop,
       model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
       obs_file = '3_observations/in/obs_temp_full.rds',
       init_param_file = '2_3_model_parameters/out/calibration_params_init.rds',
       model_run_loc = I('4_model/tmp'),
       orig_model_loc = I('20191002_Delaware_streamtemp'),
-      subbasin_file = '4_model_calibrate/out/drb_subbasins.rds')
+      subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
+      subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml')
 
 
 
