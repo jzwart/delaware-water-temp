@@ -69,14 +69,34 @@ calibrate_sntemp = function(ind_file,
     # get subbasin parameter locations
     cur_model_idxs = as.character(cur_subbasin$model_idx)
 
+    # observations for current subbasin
+    cur_obs = dplyr::filter(obs, model_idx %in% cur_model_idxs,
+                            date >= as.Date(start),
+                            date <= as.Date(stop))
+
     # pull out parameters for current subbasin
     cur_init_params = init_params_df %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
 
-    #
+    cur_params_to_cal = dplyr::filter(cur_init_params, calibrate == T) %>%
+      pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
+      # arranging in order of param_names and then model_idx (which is the way the update_sntemp_params function works since it was made for DA work)
+      arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
+      pull(param_value)
 
 
     # supply subsetted_segs parameters as initial params to calibrate
-    optim()
+    print('Starting calibration of ')
+    cur_cal_out = optim(fn = cal_sntemp_run,
+                        par = as.numeric(cur_params_to_cal),
+                        start = start,
+                        stop = stop,
+                        spinup = F,
+                        restart = F,
+                        model_run_loc = model_run_loc,
+                        obs = cur_obs,
+                        model_idxs_to_cal = cur_model_idxs,
+                        all_params = cur_init_params,
+                        param_names = param_names)
 
 
 
@@ -85,26 +105,42 @@ calibrate_sntemp = function(ind_file,
 }
 
 
+combine_cal_uncal_params = function(cal_params, all_params, param_names){
+  updated_cal_params = all_params %>%
+    pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
+    arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
+    dplyr::filter(calibrate) %>%
+    mutate(param_value = as.numeric(cal_params))
+
+  out = all_params %>%
+    pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
+    arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
+    left_join(updated_cal_params, by = c('seg_id_nat','model_idx','calibrate', 'param_name'), suffix = c('','_cal')) %>%
+    mutate(param_value = ifelse(calibrate, as.character(param_value_cal), param_value)) %>%
+    pull(param_value)
+
+  return(out)
+}
 
 
-cal_sntemp_run = function(start,
+
+cal_sntemp_run = function(par,
+                          start,
                           stop,
                           model_run_loc,
                           spinup = F,
                           restart = F,
                           obs,
                           model_idxs_to_cal,
-                          obs,
-                          params,
+                          all_params,
                           param_names){
 
-  cur_obs = dplyr::filter(obs, model_idx %in% model_idxs_to_cal,
-                          date >= as.Date(start),
-                          date <= as.Date(stop))
-
+  updated_params = combine_cal_uncal_params(cal_params = par,
+                           all_params = all_params,
+                           param_names = param_names)
 
   update_sntemp_params(param_names = param_names,
-                       updated_params = params,
+                       updated_params = updated_params,
                        model_run_loc = model_run_loc)
 
   run_sntemp(start = start,
@@ -116,11 +152,11 @@ cal_sntemp_run = function(start,
   preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
                          model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
 
-  compare = left_join(preds, select(cur_obs, model_idx, date, temp_C),
+  compare = left_join(preds, select(obs, model_idx, date, temp_C),
                       by = c('model_idx', 'date'))
 
-  # plot(compare$water_temp ~ compare$temp_C,
-  #      ylim = c(0, max(compare$temp_C, na.rm = T)), ylab = 'pred', xlab = 'obs')
+  plot(compare$water_temp ~ compare$temp_C,
+       ylim = c(0, max(compare$temp_C, na.rm = T)), ylab = 'pred', xlab = 'obs')
 
   return(rmse(compare$temp_C, compare$water_temp, na.rm = T)) #optimize on water temp RMSE
 }
