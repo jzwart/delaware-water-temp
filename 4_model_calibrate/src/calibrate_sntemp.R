@@ -59,6 +59,24 @@ calibrate_sntemp = function(ind_file,
 
   cal_order = get_calibration_order(subbasin_outlet_file = subbasin_outlet_file)
 
+  # setting params to initial conditions before calibrating
+  init_params = init_params_df %>%
+    pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
+    arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
+    pull(param_value)
+
+  update_sntemp_params(param_names = param_names,
+                       updated_params = init_params,
+                       model_run_loc = model_run_loc)
+
+  # run sntemp once with spinup to create a starting point for the model
+  run_sntemp(start = (start-1),
+             stop = (start-1),
+             spinup = T,
+             restart = F,
+             var_save_file = 'prms_ic.txt',
+             model_run_loc = model_run_loc)
+
   # need to calibrate for upstream segments of DRB before moving downstream
   #  need to pull obs in calibrated segment and only update parameters in calibrated segment
 
@@ -74,10 +92,14 @@ calibrate_sntemp = function(ind_file,
                             date >= as.Date(start),
                             date <= as.Date(stop))
 
-    # pull out parameters for current subbasin
-    cur_init_params = init_params_df %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
+    # current parameters (after calibrating subbasin if further along than first subbasin)
+    cur_params = get_sntemp_params(param_names = param_names,
+                                   model_run_loc = model_run_loc)
 
-    cur_params_to_cal = dplyr::filter(cur_init_params, calibrate == T) %>%
+    # pull out parameters for current subbasin
+    cur_params = cur_params %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
+
+    cur_params_to_cal = dplyr::filter(cur_params, calibrate == T) %>%
       pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
       # arranging in order of param_names and then model_idx (which is the way the update_sntemp_params function works since it was made for DA work)
       arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
@@ -85,20 +107,48 @@ calibrate_sntemp = function(ind_file,
 
 
     # supply subsetted_segs parameters as initial params to calibrate
-    print('Starting calibration of ')
+    sprintf('Starting calibration of %s', cur_subbasin_outlet)
     cur_cal_out = optim(fn = cal_sntemp_run,
-                        par = as.numeric(cur_params_to_cal),
+                        par = as.numeric(cur_params_to_cal),# method = 'L-BFGS-B', lower = 0, upper = 100,
                         start = start,
                         stop = stop,
                         spinup = F,
-                        restart = F,
+                        restart = T,
+                        var_init_file = 'prms_ic.txt',
+                        var_save_file = 'ic_out_dont_use.txt',
                         model_run_loc = model_run_loc,
                         obs = cur_obs,
                         model_idxs_to_cal = cur_model_idxs,
-                        all_params = cur_init_params,
+                        all_params = cur_params,
                         param_names = param_names)
 
 
+    # update param file with calibrated params
+    updated_params = combine_cal_uncal_params(cal_params = cur_cal_out$par,
+                                              all_params = cur_init_params,
+                                              param_names = param_names)
+
+    update_sntemp_params(param_names = param_names,
+                         updated_params = updated_params,
+                         model_run_loc = model_run_loc)
+
+#
+#     # optionally run SNTemp with calibrated params to see how well we're doing
+#     run_sntemp(start = start,
+#                stop = stop,
+#                spinup = F,
+#                restart = T,
+#                var_init_file = 'prms_ic.txt',
+#                var_save_file = 'ic_out_dont_use.txt',
+#                model_run_loc = model_run_loc)
+#
+#     preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+#                                    model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
+#
+#     compare = left_join(preds, select(obs, model_idx, date, temp_C),
+#                         by = c('model_idx', 'date'))
+#
+#     rmse(compare$temp_C, compare$water_temp, na.rm = T)
 
   }
 
@@ -130,6 +180,8 @@ cal_sntemp_run = function(par,
                           model_run_loc,
                           spinup = F,
                           restart = F,
+                          var_init_file,
+                          var_save_file,
                           obs,
                           model_idxs_to_cal,
                           all_params,
@@ -147,7 +199,9 @@ cal_sntemp_run = function(par,
              stop = stop,
              spinup = spinup,
              restart = restart,
-             model_run_loc = model_run_loc)
+             model_run_loc = model_run_loc,
+             var_init_file = var_init_file,
+             var_save_file = var_save_file)
 
   preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
                          model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
@@ -155,10 +209,28 @@ cal_sntemp_run = function(par,
   compare = left_join(preds, select(obs, model_idx, date, temp_C),
                       by = c('model_idx', 'date'))
 
-  plot(compare$water_temp ~ compare$temp_C,
-       ylim = c(0, max(compare$temp_C, na.rm = T)), ylab = 'pred', xlab = 'obs')
+  # plot(compare$water_temp ~ compare$temp_C,
+  #      ylim = c(0, max(compare$temp_C, na.rm = T)), ylab = 'pred', xlab = 'obs')
 
-  return(rmse(compare$temp_C, compare$water_temp, na.rm = T)) #optimize on water temp RMSE
+  return(nll(compare$temp_C, compare$water_temp)) #optimize on NLL for water temp
+  # return(rmse(compare$temp_C, compare$water_temp, na.rm = T)) #optimize on water temp RMSE
+}
+
+# returns negative log likelihood
+nll = function(obs, pred){
+  if (any(is.na(obs))){
+    NA_obs <- which(is.na(obs))
+    res <- obs[-NA_obs] - pred[-NA_obs]
+  } else{
+    res <- obs - pred
+  }
+
+  nRes <- length(res)
+  SSE <- sum(res^2)
+  sigma2 <- SSE/nRes
+  NLL <- 0.5*((SSE/sigma2) + nRes*log(2*pi*sigma2))
+
+  return(NLL)
 }
 
 
@@ -176,4 +248,41 @@ se = function (actual, predicted)
 {
   return((actual - predicted)^2)
 }
+
+
+# function for retrieving parameters from param file
+get_sntemp_params = function(param_names,
+                             model_run_loc,
+                             model_fabric_file = 'GIS/Segments_subset.shp',
+                             param_file = 'delaware.control.param',
+                             n_segments = 456){
+
+  params = readLines(file.path(model_run_loc, 'control', param_file))
+
+  model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
+
+  # order by model_idx
+  seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
+    arrange(as.numeric(model_idx))
+
+  out = seg_ids
+
+  if(length(param_names) == 0){
+    out = out
+  }else{
+    for(i in 1:length(param_names)){
+      param_loc_start = grep(param_names[i], params) + 5
+      param_loc_end = param_loc_start + n_segments - 1
+
+      cur_param_vals = params[param_loc_start:param_loc_end]
+
+      out = out %>%
+        mutate(temp_name = cur_param_vals) %>%
+        rename(!!noquote(param_names[i]) := temp_name)
+    }
+  }
+
+  return(out)
+}
+
 
