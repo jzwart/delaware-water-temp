@@ -88,7 +88,7 @@ calibrate_sntemp = function(ind_file,
     cur_model_idxs = as.character(cur_subbasin$model_idx)
 
     # observations for current subbasin
-    cur_obs = dplyr::filter(obs, model_idx %in% cur_model_idxs,
+    cur_obs = dplyr::filter(obs_df, model_idx %in% cur_model_idxs,
                             date >= as.Date(start),
                             date <= as.Date(stop))
 
@@ -104,7 +104,6 @@ calibrate_sntemp = function(ind_file,
       # arranging in order of param_names and then model_idx (which is the way the update_sntemp_params function works since it was made for DA work)
       arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
       pull(param_value)
-
 
     # supply subsetted_segs parameters as initial params to calibrate
     sprintf('Starting calibration of %s', cur_subbasin_outlet)
@@ -132,23 +131,23 @@ calibrate_sntemp = function(ind_file,
                          updated_params = updated_params,
                          model_run_loc = model_run_loc)
 
-#
-#     # optionally run SNTemp with calibrated params to see how well we're doing
-#     run_sntemp(start = start,
-#                stop = stop,
-#                spinup = F,
-#                restart = T,
-#                var_init_file = 'prms_ic.txt',
-#                var_save_file = 'ic_out_dont_use.txt',
-#                model_run_loc = model_run_loc)
-#
-#     preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-#                                    model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
-#
-#     compare = left_join(preds, select(obs, model_idx, date, temp_C),
-#                         by = c('model_idx', 'date'))
-#
-#     rmse(compare$temp_C, compare$water_temp, na.rm = T)
+
+    # optionally run SNTemp with calibrated params to see how well we're doing
+    run_sntemp(start = start,
+               stop = stop,
+               spinup = F,
+               restart = T,
+               var_init_file = 'prms_ic.txt',
+               var_save_file = 'ic_out_dont_use.txt',
+               model_run_loc = model_run_loc)
+
+    preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                                   model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
+
+    compare = left_join(preds, select(cur_obs, model_idx, date, temp_C),
+                        by = c('model_idx', 'date'))
+
+    rmse(compare$temp_C, compare$water_temp, na.rm = T)
 
   }
 
