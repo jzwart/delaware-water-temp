@@ -26,6 +26,32 @@ calibrate_sntemp = function(ind_file,
                             subbasin_outlet_file,
                             gd_config = 'lib/cfg/gd_config.yml'){
 
+
+  ############## for debugging purposes ###########
+  source('4_model/src/EnKF_functions.R')
+  source('4_model/src/get_sntemp_values.R')
+  source('4_model/src/run_sntemp.R')
+  source('4_model/src/update_sntemp.R')
+  source('4_model/src/set_sntemp_output.R')
+  source('4_model_calibrate/src/calibrate_sntemp.R')
+  source('4_model_calibrate/src/get_subbasins.R')
+  source('4_model/src/get_upstream_downstream_segs.R')
+  source('4_model_calibrate/src/get_calibration_order.R')
+  start = '2014-05-01'
+  stop = '2014-07-10'
+  model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
+  obs_file = '3_observations/in/obs_temp_full.rds'
+  init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
+  model_run_loc = I('4_model_calibrate/tmp')
+  orig_model_loc = I('20191002_Delaware_streamtemp')
+  subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
+  subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
+  library(tidyverse)
+  library(igraph)
+  library(hydroPSO)
+ #######################################################################
+
+
   # copy over original run files to temporary file location
   dir.create(model_run_loc, showWarnings = F)
   print('Copying original model files to model working directory...')
@@ -82,6 +108,10 @@ calibrate_sntemp = function(ind_file,
 
   for(cur_subbasin_outlet in cal_order$subbasin_outlet){
 
+    # for debugging:
+    cur_subbasin_outlet = '4182'
+    #############
+
     cur_subbasin = subbasins[cur_subbasin_outlet][[cur_subbasin_outlet]]
 
     # get subbasin parameter locations
@@ -107,20 +137,73 @@ calibrate_sntemp = function(ind_file,
 
     # supply subsetted_segs parameters as initial params to calibrate
     sprintf('Starting calibration of %s', cur_subbasin_outlet)
-    cur_cal_out = optim(fn = cal_sntemp_run,
-                        par = as.numeric(cur_params_to_cal),# method = 'L-BFGS-B', lower = 0, upper = 100,
-                        start = start,
-                        stop = stop,
-                        spinup = F,
-                        restart = T,
-                        var_init_file = 'prms_ic.txt',
-                        var_save_file = 'ic_out_dont_use.txt',
-                        model_run_loc = model_run_loc,
-                        obs = cur_obs,
-                        model_idxs_to_cal = cur_model_idxs,
-                        all_params = cur_params,
-                        param_names = param_names)
+    # cur_cal_out = optim(fn = cal_sntemp_run,
+    #                     par = as.numeric(cur_params_to_cal),# method = 'L-BFGS-B', lower = 0, upper = 100,
+    #                     start = start,
+    #                     stop = stop,
+    #                     spinup = F,
+    #                     restart = T,
+    #                     var_init_file = 'prms_ic.txt',
+    #                     var_save_file = 'ic_out_dont_use.txt',
+    #                     model_run_loc = model_run_loc,
+    #                     obs = cur_obs,
+    #                     model_idxs_to_cal = cur_model_idxs,
+    #                     all_params = cur_params,
+    #                     param_names = param_names)
 
+    all_params = cur_params # currently debugging PSO
+
+    cur_cal_out = hydroPSO(par = as.numeric(cur_params_to_cal),
+                           fn = 'hydromodInR',
+                           lower = rep(0, length(cur_params_to_cal)),
+                           upper = rep(200, length(cur_params_to_cal)),
+                           control = list(),
+                           model.FUN = cal_sntemp_run,
+                           model.FUN.args = list(param.values = as.numeric(cur_params_to_cal),
+                                                 start = start,
+                                                 stop = stop,
+                                                 spinup = F,
+                                                 restart = T,
+                                                 var_init_file = 'prms_ic.txt',
+                                                 var_save_file = 'ic_out_dont_use.txt',
+                                                 model_run_loc = model_run_loc,
+                                                 obs = cur_obs,
+                                                 model_idxs_to_cal = cur_model_idxs,
+                                                 all_params = all_params,
+                                                 param_names = param_names),
+    )
+
+    #########files needed for running hydroPSO
+    param_file_name = 'delaware.control.param'
+
+    param_files = tibble(ParameterNmbr = c(1,2),
+                        ParameterName = c('gw_tau','gw_tau'),
+                        Filename = c(param_file_name, param_file_name),
+                        Row.Number = c(60274, 60275),
+                        Col.Start = c(1,1),
+                        Col.End = c(1,1),
+                        DecimalPlaces = c(2,2))
+
+    write.table(param_files, file = '4_model_calibrate/in/ParamFiles.txt')
+
+    param_ranges = tibble(ParameterNmbr = c(1,2),
+                          ParameterName = c('gw_tau','gw_tau'),
+                          MinValue = c(0,0),
+                          MaxValue = c(200,200))
+
+    write.table(param_ranges, file = '4_model_calibrate/in/ParamRanges.txt')
+
+
+    cur_cal_out = hydroPSO(par = as.numeric(cur_params_to_cal),
+                           fn = 'hydromodInR',
+                           lower = rep(0, length(cur_params_to_cal)),
+                           upper = rep(200, length(cur_params_to_cal)),
+                           control = list(),
+                           model.FUN = cal_sntemp_run,
+                           model.FUN.args = list(param.values = as.numeric(cur_params_to_cal),
+                                                 out.FUN.args = list(param.values = as.numeric(cur_params_to_cal),
+                                                                     model_idxs_to_cal = model_idxs_to_cal)),
+    )
 
     # update param file with calibrated params
     updated_params = combine_cal_uncal_params(cal_params = cur_cal_out$par,
@@ -173,7 +256,7 @@ combine_cal_uncal_params = function(cal_params, all_params, param_names){
 
 
 
-cal_sntemp_run = function(par,
+cal_sntemp_run = function(param.values,
                           start,
                           stop,
                           model_run_loc,
@@ -185,8 +268,12 @@ cal_sntemp_run = function(par,
                           model_idxs_to_cal,
                           all_params,
                           param_names){
+  # debugging
+  print(param.values)
+  print(model_idxs_to_cal)
+   #
 
-  updated_params = combine_cal_uncal_params(cal_params = par,
+  updated_params = combine_cal_uncal_params(cal_params = pararm.values,
                            all_params = all_params,
                            param_names = param_names)
 
