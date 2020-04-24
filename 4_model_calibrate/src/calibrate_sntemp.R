@@ -49,6 +49,7 @@ calibrate_sntemp = function(ind_file,
   library(tidyverse)
   library(igraph)
   library(hydroPSO)
+  library(hydroGOF)
  #######################################################################
 
 
@@ -176,7 +177,7 @@ calibrate_sntemp = function(ind_file,
     #########files needed for running hydroPSO
     param_file_name = 'delaware.control.param'
 
-    param_files = tibble(ParameterNmbr = c(1,2),
+    param_files = tibble(ParameterNmbr = c(1,1),
                         ParameterName = c('gw_tau','gw_tau'),
                         Filename = c(param_file_name, param_file_name),
                         Row.Number = c(60274, 60275),
@@ -186,10 +187,10 @@ calibrate_sntemp = function(ind_file,
 
     write.table(param_files, file = '4_model_calibrate/in/ParamFiles.txt')
 
-    param_ranges = tibble(ParameterNmbr = c(1,2),
-                          ParameterName = c('gw_tau','gw_tau'),
-                          MinValue = c(0,0),
-                          MaxValue = c(200,200))
+    param_ranges = tibble(ParameterNmbr = c(1),
+                          ParameterName = c('gw_tau'),
+                          MinValue = c(0),
+                          MaxValue = c(200))
 
     write.table(param_ranges, file = '4_model_calibrate/in/ParamRanges.txt')
 
