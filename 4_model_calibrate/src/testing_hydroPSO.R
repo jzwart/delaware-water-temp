@@ -19,20 +19,16 @@ setwd(model.drty )
 gof.FUN <- "sntemp_lik"
 gof.FUN.args <- list(model_run_loc = model_run_loc,
                      obs = cur_obs)
-###Getting the OBSERVATIONS (not strictly necessary for this example)
-obs.fname <- "M2.HOB"
-obs.fname <- paste(file.path(model.drty),"/",obs.fname,sep="")
-obs <- read.hobs(fname=obs.fname)
+
 ###MAIN model function
-model.FUN="hydromod",
-model.FUN.args=list(
-  model.drty=model.drty,
-  param.files=paste(model.drty,"/PSO.in/ParamFiles.txt",sep=""),
-  76
-  exe.fname="run_me.bat",
+model.FUN <- "hydromod"
+model.FUN.args <- list(
+  model.drty = model_run_loc,
+  param.files = file.path(model_run_loc,"PSO.in/ParamFiles.txt"),
+  exe.fname = "delaware.bat",
   ###Function for reading the simulated equivalents
-  out.FUN="read.hsim",
-  out.FUN.args=list(
+  out.FUN = "read.hsim",
+  out.FUN.args = list(
     fname="M2.LST",
     nobs=42),
   ###Function assessing the simulated equivalents against the observations
@@ -72,7 +68,7 @@ hydroPSO(
 
 
 
-
+# returns nll of predictions / observations for sntemp
 sntemp_lik = function(model_run_loc, obs){
 
   preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
@@ -111,17 +107,17 @@ nll = function(obs, pred){
 
 
 sntemp_out = function(param.values,
-                          start,
-                          stop,
-                          model_run_loc,
-                          spinup = F,
-                          restart = F,
-                          var_init_file,
-                          var_save_file,
-                          obs,
-                          model_idxs_to_cal,
-                          all_params,
-                          param_names){
+                      start,
+                      stop,
+                      model_run_loc,
+                      spinup = F,
+                      restart = F,
+                      var_init_file,
+                      var_save_file,
+                      obs,
+                      model_idxs_to_cal,
+                      all_params,
+                      param_names){
   # debugging
   print(param.values)
   print(model_idxs_to_cal)

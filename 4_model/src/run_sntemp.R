@@ -183,3 +183,44 @@ set_sntemp_start_stop = function(start, stop,
   writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
 }
 
+
+
+#' For hydroPSO functions
+#'
+set_sntemp_restart = function(restart,
+                              model_run_loc,
+                              control_file,
+                              var_init_file,
+                              var_save_file){
+
+  if(restart){
+    ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
+
+    init_vars_loc = grep('init_vars_from_file', ctrl) + 3
+    save_vars_loc = grep('save_vars_to_file', ctrl) + 3
+    ctrl[init_vars_loc] = '1'
+    ctrl[save_vars_loc] = '1'
+
+    var_init_file_loc = grep('var_init_file', ctrl) + 3
+    var_save_file_loc = grep('var_save_file', ctrl) + 3
+    ctrl[var_init_file_loc] = var_init_file
+    ctrl[var_save_file_loc] = var_save_file
+
+    writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
+  }else{
+    ctrl = readLines(file.path(model_run_loc, 'control', control_file)) # read in control file
+
+    init_vars_loc = grep('init_vars_from_file', ctrl) + 3
+    save_vars_loc = grep('save_vars_to_file', ctrl) + 3
+    ctrl[init_vars_loc] = '0'
+    ctrl[save_vars_loc] = '1'
+
+    var_init_file_loc = grep('var_init_file', ctrl) + 3
+    var_save_file_loc = grep('var_save_file', ctrl) + 3
+    ctrl[var_init_file_loc] = var_init_file
+    ctrl[var_save_file_loc] = var_save_file
+
+    writeLines(text = ctrl, con = file.path(model_run_loc, 'control', control_file))
+  }
+}
+
