@@ -141,10 +141,10 @@ get_sntemp_initial_states = function(state_names,
 get_sntemp_params = function(param_names,
                              model_run_loc,
                              model_fabric_file = 'GIS/Segments_subset.shp',
-                             param_file = 'delaware.control.param',
+                             param_file = 'input/myparam.param',
                              n_segments = 456){
 
-  params = readLines(file.path(model_run_loc, 'control', param_file))
+  params = readLines(file.path(model_run_loc, param_file))
 
   model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
 

@@ -97,7 +97,8 @@ calibrate_sntemp = function(ind_file,
 
   update_sntemp_params(param_names = param_names,
                        updated_params = init_params,
-                       model_run_loc = model_run_loc)
+                       model_run_loc = model_run_loc,
+                       param_file = 'input/myparam.param')
 
   # run sntemp once with spinup to create a starting point for the model
   run_sntemp(start = (start-1),
@@ -134,7 +135,8 @@ calibrate_sntemp = function(ind_file,
 
     # current parameters (after calibrating subbasin if further along than first subbasin)
     cur_params = get_sntemp_params(param_names = param_names,
-                                   model_run_loc = model_run_loc)
+                                   model_run_loc = model_run_loc,
+                                   param_file = 'input/myparam.param')
 
     # pull out parameters for current subbasin
     cur_params = cur_params %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
@@ -148,9 +150,10 @@ calibrate_sntemp = function(ind_file,
     write_hydroPSO_params(params = cur_params_to_cal,
                           param_ranges = param_ranges,
                           model_run_loc = model_run_loc,
-                          param_file_name = 'control/delaware.control.param',
+                          param_file_name = 'input/myparam.param',
                           param_file_out = 'PSO.in/ParamFiles.txt',
-                          param_range_file_out = 'PSO.in/ParamRanges.txt')
+                          param_range_file_out = 'PSO.in/ParamRanges.txt',
+                          col_start = 1, col_end = 3, dec_places = 0)
 
     # make sure to update simulation dates and restart files before running hydroPSO
     set_sntemp_start_stop(start = start,
@@ -166,7 +169,7 @@ calibrate_sntemp = function(ind_file,
 
 
     ###Goodness-of-fit, either customised or pre-defined from hydroGOF
-    gof.FUN <- "sntemp_lik"
+    gof.FUN <- "sntemp_rmse"
     gof.FUN.args <- list()
 
     ###MAIN model function
@@ -188,12 +191,14 @@ calibrate_sntemp = function(ind_file,
     #set.seed(1111)
     orig_wd = getwd()
     setwd(model_run_loc)
-    hydroPSO(
+    hydroPSO(verbose = T,
       fn="hydromod",
       model.FUN = model.FUN,
       model.FUN.args=model.FUN.args,
-      method="spso2011") ###END MAIN hydroPSO ALGORITHM
-
+      method="spso2011",
+      control = list(
+        maxit = 30, npart = 50
+      )) ###END MAIN hydroPSO ALGORITHM
     setwd(orig_wd)
 
     ####################################################################
@@ -234,7 +239,8 @@ sntemp_preds = function(model_run_loc, file_out_name, obs){
     arrange(as.numeric(model_idx), date) %>%
     dplyr::filter(!is.na(temp_C))
 
-  # saveRDS(compare, file.path(model_run_loc, file_out_name))
+  print(rmse(compare$temp_C, compare$water_temp, na.rm = T))
+  saveRDS(compare, file.path(model_run_loc, file_out_name))
 
   preds_vec = compare$water_temp
 
@@ -245,6 +251,12 @@ sntemp_preds = function(model_run_loc, file_out_name, obs){
 sntemp_lik = function(sim, obs){
 
   return(nll(obs, sim))
+}
+
+# returns rmse of predictions / observations for sntemp
+sntemp_rmse = function(sim, obs){
+
+  return(rmse(obs, sim))
 }
 
 # returns negative log likelihood

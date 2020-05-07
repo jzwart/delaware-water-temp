@@ -6,7 +6,10 @@ write_hydroPSO_params = function(params,
                                  model_run_loc,
                                  param_file_name = 'control/delaware.control.param',
                                  param_file_out = 'PSO.in/ParamFiles.txt',
-                                 param_range_file_out = 'PSO.in/ParamRanges.txt'){
+                                 param_range_file_out = 'PSO.in/ParamRanges.txt',
+                                 col_start = 1,
+                                 col_end = 10,
+                                 dec_places = 0){
 
   par_number = seq(1, nrow(params))
   par_name = paste(params$param_name, params$model_idx, sep = '_')
@@ -24,18 +27,18 @@ write_hydroPSO_params = function(params,
     row_number[i] = cur_param_loc
   }
 
-  col_start = rep(1, nrow(params))
-  col_end = rep(1, nrow(params))
-  dec_places = rep(3, nrow(params))
+  col_start_vec = rep(col_start, nrow(params))
+  col_end_vec = rep(col_end, nrow(params))
+  dec_places_vec = rep(dec_places, nrow(params))
 
   # specific format of param_file and param_ranges for hydroPSO - see https://www.rforge.net/hydroPSO/files/hydroPSO_vignette.pdf
   param_files_out = tibble(ParameterNmbr = par_number,
                            ParameterName = par_name,
                            Filename = file_name,
                            Row.Number = row_number,
-                           Col.Start = col_start,
-                           Col.End = col_end,
-                           DecimalPlaces = dec_places)
+                           Col.Start = col_start_vec,
+                           Col.End = col_end_vec,
+                           DecimalPlaces = dec_places_vec)
 
   params = left_join(params, param_ranges, by = c('param_name' = 'param'))
 
