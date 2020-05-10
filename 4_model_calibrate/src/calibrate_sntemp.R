@@ -40,11 +40,11 @@ calibrate_sntemp = function(ind_file,
   source('4_model_calibrate/src/write_hydroPSO_params.R')
   library(tidyverse)
   library(igraph)
-  library(hydroPSO)
+  library(hydroPSO) # need to use modified version of this package on https://github.com/jzwart/hydroPSO
   library(hydroGOF)
   library(hydroTSM)
   start = '2014-05-01'
-  stop = '2014-07-10'
+  stop = '2015-10-10'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
