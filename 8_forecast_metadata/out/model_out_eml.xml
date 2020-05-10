@@ -55,7 +55,7 @@
       <physical>
         <objectName>model_out.nc</objectName>
         <size unit="bytes">7055894</size>
-        <authentication method="MD5">7bf36963418d145983d52e0ac9670b55</authentication>
+        <authentication method="MD5">5135760cc7a4b45ec29765b3c200a547</authentication>
         <dataFormat>
           <textFormat>
             <recordDelimiter>&#13;

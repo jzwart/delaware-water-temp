@@ -1,0 +1,13 @@
+version: 0.3.0
+name: 4_model_for_PGDL/out/sntemp_input_output.feather.ind
+type: file
+hash: 3d938af1b786eee4fbac9f68487bdbfa
+time: 2020-04-09 20:59:13 UTC
+depends:
+  uncal_sntemp_run: 86e46d6a79bc33343946873c6b588cba
+fixed: 9921d8a66194630a835716212b44f2c4
+code:
+  functions:
+    data_for_pgdl: c318c7f8d4ba6e3f812d98af221ce82f
+    get_sntemp_intermediates: 32d605b11dfb82427e5031b4b3513469
+

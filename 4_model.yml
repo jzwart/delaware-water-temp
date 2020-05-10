@@ -55,7 +55,7 @@ targets:
       state_names = state_names,
       n_states_est = I(456),
       n_params_obs = I(0),
-      obs_cv = I(0.05),
+      obs_cv = I(0.1),
       param_cv = I(0.2),
       init_cond_cv = I(0.1),
       gd_config = 'lib/cfg/gd_config.yml')

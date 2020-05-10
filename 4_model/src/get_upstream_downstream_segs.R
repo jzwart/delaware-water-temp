@@ -1,12 +1,12 @@
 
 
-create_graph = function(param_file = 'delaware.control.param',
-                        model_run_loc = '4_model/tmp',
-                        model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+create_graph = function(model_run_loc = '4_model/tmp',
+                        param_file = 'delaware.control.param',
+                        model_fabric_file = 'GIS/Segments_subset.shp',
                         n_segments = 456){
 
   # use this to organize connect to seg_id_nat
-  model_fabric = sf::read_sf(model_fabric_file)
+  model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
 
   model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
                            model_idx = as.character(model_fabric$model_idx)) %>%
@@ -37,9 +37,9 @@ create_graph = function(param_file = 'delaware.control.param',
 #' @param seg_id_nat segments of the network for which you want upstream segments
 #'
 get_upstream_segs = function(seg_id_nat,
-                             param_file = 'delaware.control.param',
                              model_run_loc = '4_model/tmp',
-                             model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+                             param_file = 'delaware.control.param',
+                             model_fabric_file = 'GIS/Segments_subset.shp',
                              n_segments = 456){
 
   seg_id_nat = as.character(seg_id_nat)
@@ -68,9 +68,9 @@ get_upstream_segs = function(seg_id_nat,
 #' @param seg_id_nat segments of the network for which you want upstream segments
 #'
 get_downstream_segs = function(seg_id_nat,
-                               param_file = 'delaware.control.param',
                                model_run_loc = '4_model/tmp',
-                               model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+                               param_file = 'delaware.control.param',
+                               model_fabric_file = 'GIS/Segments_subset.shp',
                                n_segments = 456){
 
   seg_id_nat = as.character(seg_id_nat)
@@ -99,9 +99,9 @@ get_downstream_segs = function(seg_id_nat,
 #'
 is_b_downstream_of_a <- function(seg_id_nat_a,
                                  seg_id_nat_b,
-                                 param_file = 'delaware.control.param',
                                  model_run_loc = '4_model/tmp',
-                                 model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+                                 param_file = 'delaware.control.param',
+                                 model_fabric_file = 'GIS/Segments_subset.shp',
                                  n_segments = 456){
 
   network_graph = suppressWarnings(create_graph(param_file = param_file,
@@ -121,9 +121,9 @@ is_b_downstream_of_a <- function(seg_id_nat_a,
 #'
 is_b_upstream_of_a <- function(seg_id_nat_a,
                                seg_id_nat_b,
-                               param_file = 'delaware.control.param',
                                model_run_loc = '4_model/tmp',
-                               model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+                               param_file = 'delaware.control.param',
+                               model_fabric_file = 'GIS/Segments_subset.shp',
                                n_segments = 456){
 
   network_graph = suppressWarnings(create_graph(param_file = param_file,
@@ -142,9 +142,10 @@ is_b_upstream_of_a <- function(seg_id_nat_a,
 
 
 create_subbasin = function(subbasin_seg_id_nat,
-                           model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'){
+                           model_run_loc = '4_model/tmp',
+                           model_fabric_file = 'GIS/Segments_subset.shp'){
 
-  subbasin_model_fabric = sf::read_sf(model_fabric_file) %>%
+  subbasin_model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file)) %>%
     dplyr::filter(seg_id_nat %in% subbasin_seg_id_nat)
 
   return(subbasin_model_fabric)
