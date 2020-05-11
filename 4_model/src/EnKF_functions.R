@@ -422,6 +422,9 @@ EnKF = function(ind_file,
                                               n_params_est = n_params_est,
                                               cur_step = t-1,
                                               en = n)
+          if(any(updated_params<=0)){ # forcing positive for now but should come up with a better search solution
+            updated_params[updated_params<=0] = 1
+          }
           update_sntemp_params(param_names = param_names,
                                updated_params = updated_params)
         }

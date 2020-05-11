@@ -1,7 +1,7 @@
 
 
 create_graph = function(model_run_loc = '4_model/tmp',
-                        param_file = 'delaware.control.param',
+                        param_file = 'input/myparam.param',
                         model_fabric_file = 'GIS/Segments_subset.shp',
                         n_segments = 456){
 
@@ -13,7 +13,7 @@ create_graph = function(model_run_loc = '4_model/tmp',
     arrange(as.numeric(model_idx))
 
   # tosegment is a parameter in the param file
-  params = readLines(file.path(model_run_loc, 'control', param_file))
+  params = readLines(file.path(model_run_loc, param_file))
 
   param_loc_start = grep('tosegment_nhm', params) + 5
   param_loc_end = param_loc_start + n_segments - 1
@@ -38,7 +38,7 @@ create_graph = function(model_run_loc = '4_model/tmp',
 #'
 get_upstream_segs = function(seg_id_nat,
                              model_run_loc = '4_model/tmp',
-                             param_file = 'delaware.control.param',
+                             param_file = 'input/myparam.param',
                              model_fabric_file = 'GIS/Segments_subset.shp',
                              n_segments = 456){
 
@@ -69,7 +69,7 @@ get_upstream_segs = function(seg_id_nat,
 #'
 get_downstream_segs = function(seg_id_nat,
                                model_run_loc = '4_model/tmp',
-                               param_file = 'delaware.control.param',
+                               param_file = 'input/myparam.param',
                                model_fabric_file = 'GIS/Segments_subset.shp',
                                n_segments = 456){
 
@@ -100,7 +100,7 @@ get_downstream_segs = function(seg_id_nat,
 is_b_downstream_of_a <- function(seg_id_nat_a,
                                  seg_id_nat_b,
                                  model_run_loc = '4_model/tmp',
-                                 param_file = 'delaware.control.param',
+                                 param_file = 'input/myparam.param',
                                  model_fabric_file = 'GIS/Segments_subset.shp',
                                  n_segments = 456){
 
@@ -122,7 +122,7 @@ is_b_downstream_of_a <- function(seg_id_nat_a,
 is_b_upstream_of_a <- function(seg_id_nat_a,
                                seg_id_nat_b,
                                model_run_loc = '4_model/tmp',
-                               param_file = 'delaware.control.param',
+                               param_file = 'input/myparam.param',
                                model_fabric_file = 'GIS/Segments_subset.shp',
                                n_segments = 456){
 
