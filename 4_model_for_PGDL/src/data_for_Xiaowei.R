@@ -16,8 +16,8 @@
 # feather::write_feather(x = stream_temp, path = 'data_for_Xiaowei/model_estimated_temperature.feather')
 
 data_for_pgdl = function(ind_file,
-                         model_output_file = '4_model/tmp/output/stream_temp.out.nsegment',
-                         model_fabric_file = '4_model/tmp/GIS/Segments_subset.shp',
+                         model_output_file = '4_model_for_PGDL/tmp/output/stream_temp.out.nsegment',
+                         model_fabric_file = '4_model_for_PGDL/tmp/GIS/Segments_subset.shp',
                          gd_config = 'lib/cfg/gd_config.yml'){
 
   stream_temp_intermediates = get_sntemp_intermediates(model_output_file = model_output_file,
@@ -42,15 +42,15 @@ data_for_pgdl = function(ind_file,
     spread(key = 'parameter', value = 'parameter_value')
 
   # get static variables
-  hru_mapping = read.table('4_model/tmp/control/delaware.control.param', skip = 4, stringsAsFactors = F)
+  hru_mapping = read.table('4_model_for_PGDL/tmp/input/myparam.param', skip = 4, stringsAsFactors = F)
 
-  seg_length = hru_mapping[(grep('seg_length',hru_mapping[,1])+6):(grep('seg_length',hru_mapping[,1])+461),] # seg_length, units are in m
+  seg_length = hru_mapping[(grep('seg_length',hru_mapping[,1])+5):(grep('seg_length',hru_mapping[,1])+460),] # seg_length, units are in m
   seg_length = tibble(model_idx = as.character(seq(1,456)), seg_length = as.numeric(seg_length)) # in meters
 
-  seg_slope = hru_mapping[(grep('seg_slope',hru_mapping[,1])+6):(grep('seg_slope',hru_mapping[,1])+461),] # seg_slope, units dimensionless
+  seg_slope = hru_mapping[(grep('seg_slope',hru_mapping[,1])+5):(grep('seg_slope',hru_mapping[,1])+460),] # seg_slope, units dimensionless
   seg_slope = tibble(model_idx = as.character(seq(1,456)), seg_slope = as.numeric(seg_slope)) # dimensionless
 
-  seg_elev = hru_mapping[(grep('seg_elev',hru_mapping[,1])+6):(grep('seg_elev',hru_mapping[,1])+461),] # seg_elev, units are in m
+  seg_elev = hru_mapping[(grep('seg_elev',hru_mapping[,1])+5):(grep('seg_elev',hru_mapping[,1])+460),] # seg_elev, units are in m
   seg_elev = tibble(model_idx = as.character(seq(1,456)), seg_elev = as.numeric(seg_elev)) # in meters
 
 
