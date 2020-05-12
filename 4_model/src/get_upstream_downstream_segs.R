@@ -63,7 +63,63 @@ get_upstream_segs = function(seg_id_nat,
   return(out)
 }
 
+#' @param seg_id_nat segments of the network for which you want upstream segments
+#'
+get_direct_upstream_segs = function(seg_id_nat,
+                                    model_run_loc = '4_model/tmp',
+                                    param_file = 'input/myparam.param',
+                                    model_fabric_file = 'GIS/Segments_subset.shp',
+                                    n_segments = 456){
 
+  seg_id_nat = as.character(seg_id_nat)
+
+  network_graph = suppressWarnings(create_graph(param_file = param_file,
+                                                model_run_loc = model_run_loc,
+                                                model_fabric_file = model_fabric_file,
+                                                n_segments = n_segments))
+
+  # see https://github.com/robertness/lucy/blob/master/R/lucy.R for upstream /downstream functions
+  # grab upstream segments of seg_id_nat supplied
+  upstream <- igraph::shortest.paths(graph = network_graph,
+                                     v = igraph::V(network_graph),
+                                     to = seg_id_nat, mode = "out")
+
+  # create named list of segments upstream
+  out = sapply(colnames(upstream), function(seg){
+    cur = names(which(upstream[,seg] == min(upstream[!is.infinite(upstream[,seg]) & upstream[,seg] !=0, seg])))
+  }, USE.NAMES = T)
+
+  return(out)
+}
+
+#' @param seg_id_nat segments of the network for which you want upstream segments
+#'
+get_direct_downstream_segs = function(seg_id_nat,
+                                      model_run_loc = '4_model/tmp',
+                                      param_file = 'input/myparam.param',
+                                      model_fabric_file = 'GIS/Segments_subset.shp',
+                                      n_segments = 456){
+
+  seg_id_nat = as.character(seg_id_nat)
+
+  network_graph = suppressWarnings(create_graph(param_file = param_file,
+                                                model_run_loc = model_run_loc,
+                                                model_fabric_file = model_fabric_file,
+                                                n_segments = n_segments))
+
+  # see https://github.com/robertness/lucy/blob/master/R/lucy.R for upstream /downstream functions
+  # grab upstream segments of seg_id_nat supplied
+  upstream <- igraph::shortest.paths(graph = network_graph,
+                                     v = igraph::V(network_graph),
+                                     to = seg_id_nat, mode = "in")
+
+  # create named list of segments upstream
+  out = sapply(colnames(upstream), function(seg){
+    cur = names(which(upstream[,seg] == min(upstream[!is.infinite(upstream[,seg]) & upstream[,seg] !=0, seg])))
+  }, USE.NAMES = T)
+
+  return(out)
+}
 
 #' @param seg_id_nat segments of the network for which you want upstream segments
 #'
