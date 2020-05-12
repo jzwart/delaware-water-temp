@@ -2,9 +2,10 @@ Description of variables and units. 2019-09-30
 
 #############################################################################
 # -- The following variables are used as drivers for the PRMS-SNTemp model --
+# -------  They are in sntemp_input.feather --------
 #############################################################################
 
-Name: seg_rain
+Name: seg_prcp
 Module: stream_temp
 Ndimen: 1
 Dimensions: nsegment - 456
@@ -13,17 +14,27 @@ Type: float
 Desc: Area-weighted average rainfall for each segment from HRUs contributing flow to the segment
 Units: meters
 
-Name: seg_tave_air
+Name: seg_tmin_air
 Module: stream_temp
 Ndimen: 1
 Dimensions: nsegment - 456
 Size: 456
 Type: float
-Desc: Area-weighted average air temperature for each segment from HRUs contributing flow to the segment
+Desc: Area-weighted minimum air temperature for each segment from HRUs contributing flow to the segment
+Units: degrees Celsius
+
+Name: seg_tmax_air
+Module: stream_temp
+Ndimen: 1
+Dimensions: nsegment - 456
+Size: 456
+Type: float
+Desc: Area-weighted maximum air temperature for each segment from HRUs contributing flow to the segment
 Units: degrees Celsius
 
 ##########################################################################
 # -- The following are intermediate variables calculated by PRMS-SNTemp --
+# ------- They are in sntemp_output.feather ---------
 ##########################################################################
 
 Name: seg_humid
