@@ -1,7 +1,9 @@
 
 
 
-
+library(tidyverse)
+source('4_model_calibrate/src/get_subbasins.R')
+source('4_model_calibrate/src/get_subbasin_obs.R')
 
 data_list = readRDS('4_model_calibrate/out/drb_subbasins.rds')
 
@@ -25,12 +27,19 @@ for(cur in names(data_list)){
   obs_per_basin$obs_test[obs_per_basin$subbasin_outlet == cur] = sum(cur_obs$date >= as.Date('2004-10-02'))
 }
 
-data = left_join(data, obs_per_basin, by = 'subbasin_outlet')
+all_obs = readRDS('3_observations/in/obs_temp_full.rds') %>%
+  group_by(seg_id_nat) %>%
+  summarise(n_obs_seg = n()) %>%
+  ungroup()
+
+data = left_join(data, obs_per_basin, by = 'subbasin_outlet') %>%
+  mutate(seg_id_nat = as.character(seg_id_nat)) %>%
+  left_join(all_obs, by = 'seg_id_nat')
 
 # pull out subbasin outlets
 outlets = dplyr::filter(data, seg_id_nat == subbasin_outlet)
 
-n_params_cal = 4
+n_params_cal = 2
 
 data = data %>%
   group_by(subbasin_outlet) %>%
@@ -99,8 +108,32 @@ ggplot() +
 
 
 
+windows()
+ggplot() +
+  geom_sf(data = data, color = 'grey80') +
+  geom_sf(data = dplyr::filter(data, subbasin_outlet == '4182'), color = 'blue') +
+  theme_minimal() +
+  geom_sf(data = outlets$geometry[outlets$subbasin_outlet == '4182'], color = 'black', lwd = 1.4)
 
 
 
+cur  = dplyr::filter(data, subbasin_outlet == '4182')
+
+cur$n_segs
+
+
+
+windows()
+ggplot() +
+  geom_sf(data = dplyr::filter(data, subbasin_outlet == '4182'), color = 'blue') +
+  geom_sf(data = dplyr::filter(data, seg_id_nat == '2007'), color = 'red', size =2) +
+  theme_minimal() +
+  geom_sf(data = outlets$geometry[outlets$subbasin_outlet == '4182'], color = 'black', lwd = 1.4)
+
+windows()
+ggplot() +
+  geom_sf(data = dplyr::filter(data, subbasin_outlet == '4182'), aes(color = n_obs_seg), size = 2) +
+  theme_minimal() +
+  scale_color_viridis_c(direction = -1)
 
 
