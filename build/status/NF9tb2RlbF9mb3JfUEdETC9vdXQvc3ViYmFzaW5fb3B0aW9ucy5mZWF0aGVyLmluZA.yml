@@ -1,0 +1,18 @@
+version: 0.3.0
+name: 4_model_for_PGDL/out/subbasin_options.feather.ind
+type: file
+hash: 7a1f744fd2f05a72aca27b2a7a67900f
+time: 2020-05-15 21:36:58 UTC
+depends:
+  4_model_calibrate/out/drb_subbasins.rds: 8ba6c73c0f0716cc9ab448efc5a5fb00
+  4_model_for_PGDL/out/sntemp_output.feather: 61053282ba2d5a05c05fc177dcff426c
+  3_observations/in/obs_temp_full.rds: 434957a2c2b4608acaf3cf54a9a5a111
+fixed: 664d71c5fe4f0c9f1fd04e23ffc38cdb
+code:
+  functions:
+    get_subbasin_obs: 1c0c53e7b8f6911d517adeff0b4b1538
+    mse: b6d26b2d4d425d99ec1027c8c1f6205b
+    rmse: b5819696393fae2f89ac85fbe6fa82dc
+    se: 458a9bf75b1803ce865bd713c7a1b67f
+    subbasin_options: 3eb18c1a6cf441d258c141d6f32c11d7
+

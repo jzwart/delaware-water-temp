@@ -107,6 +107,16 @@ ggplot() +
   geom_sf(data = outlets$geometry[outlets$subbasin_outlet %in% data_low_obs$subbasin_outlet], color = 'black', lwd = 1.4)
 
 
+options = feather::read_feather('4_model_for_PGDL/out/subbasin_options.feather')
+data = left_join(select(data, seg_id_nat, geometry) %>% mutate(seg_id_nat = as.character(seg_id_nat)), options )
+
+windows()
+ggplot() +
+  geom_sf(data = data, aes(color = subbasin_uncal_sntemp_rmse)) +
+  scale_color_viridis_c(direction = -1) +
+  theme_minimal() +
+  geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
+
 
 windows()
 ggplot() +
@@ -120,7 +130,6 @@ ggplot() +
 cur  = dplyr::filter(data, subbasin_outlet == '4182')
 
 cur$n_segs
-
 
 
 windows()

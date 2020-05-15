@@ -16,6 +16,9 @@ sources:
   - 4_model_for_PGDL/src/data_for_Xiaowei.R
   - 4_model_for_PGDL/src/training_test_data.R
   - 4_model_for_PGDL/src/get_segment_driver.R
+  - 4_model_calibrate/src/get_subbasins.R
+  - 4_model_calibrate/src/get_subbasin_obs.R
+  - 4_model_for_PGDL/src/subbasins_options.R
 
 targets:
   4_model_for_PGDL:
@@ -82,6 +85,12 @@ targets:
     command: gd_get('4_model_for_PGDL/out/sntemp_output_subset.feather.ind')
 
 
+  4_model_for_PGDL/out/subbasin_options.feather.ind:
+    command: subbasin_options(
+      ind_file = target_name,
+      subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
+      uncal_sntemp_pred_file = '4_model_for_PGDL/out/sntemp_output.feather',
+      obs_file = '3_observations/in/obs_temp_full.rds')
 
 
 # -- creating synthetic training datasets --
