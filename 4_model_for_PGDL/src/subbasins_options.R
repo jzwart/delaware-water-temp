@@ -24,8 +24,8 @@ subbasin_options = function(ind_file,
 
     cur_obs = get_subbasin_obs(cur_basin)
 
-    obs_per_basin$obs_train[obs_per_basin$subbasin_outlet == cur] = sum(cur_obs$date < as.Date('2004-10-02') & cur_obs$date > as.Date('1980-01-01'))
-    obs_per_basin$obs_test[obs_per_basin$subbasin_outlet == cur] = sum(cur_obs$date >= as.Date('2004-10-02'))
+    obs_per_basin$subbasin_obs_train[obs_per_basin$subbasin_outlet == cur] = sum(cur_obs$date < as.Date('2004-10-02') & cur_obs$date > as.Date('1980-01-01'))
+    obs_per_basin$subbasin_obs_test[obs_per_basin$subbasin_outlet == cur] = sum(cur_obs$date >= as.Date('2004-10-02'))
   }
 
   all_obs = readRDS(obs_file) %>%
