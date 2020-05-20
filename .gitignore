@@ -21,6 +21,7 @@
 20191002_Delaware_streamtemp_orig/*
 prms_sntemp/20191002_Delaware_streamtemp/*
 
+
 !data_for_Xiaowei/network_full.rds
 !data_for_Xiaowei/network_subset.rds
 !2_1_model_fabric/in/network_full.rds
