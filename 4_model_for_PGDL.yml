@@ -35,7 +35,9 @@ targets:
     command: uncal_settings[I('sntemp_output')]
 
   set_sntemp_output_vars:
-    command: set_sntemp_output(output_names = sntemp_output_vars)
+    command: set_sntemp_output(
+      output_names = sntemp_output_vars,
+      model_run_loc = '4_model_for_PGDL/tmp')
 
   uncal_start:
     command: uncal_settings[I('start')]
@@ -72,7 +74,12 @@ targets:
 
 # includes output in 4_model_for_PGDL/cfg/uncal_settings.yml
   4_model_for_PGDL/out/sntemp_output.feather.ind:
-    command: data_for_pgdl(ind_file = target_name)
+    command: data_for_pgdl(
+      ind_file = target_name,
+      model_run_loc = I('4_model_for_PGDL/tmp'),
+      model_output_file = I('output/stream_temp.out.nsegment'),
+      model_fabric_file = I('GIS/Segments_subset.shp'),
+      sntemp_vars = sntemp_output_vars)
     depends: uncal_sntemp_run
   4_model_for_PGDL/out/sntemp_output.feather:
     command: gd_get('4_model_for_PGDL/out/sntemp_output.feather.ind')
