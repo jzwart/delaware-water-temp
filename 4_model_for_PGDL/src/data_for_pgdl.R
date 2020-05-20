@@ -16,12 +16,17 @@
 # feather::write_feather(x = stream_temp, path = 'data_for_Xiaowei/model_estimated_temperature.feather')
 
 data_for_pgdl = function(ind_file,
-                         model_output_file = '4_model_for_PGDL/tmp/output/stream_temp.out.nsegment',
-                         model_fabric_file = '4_model_for_PGDL/tmp/GIS/Segments_subset.shp',
+                         model_run_loc,
+                         model_output_file,
+                         model_fabric_file,
+                         sntemp_vars,
                          gd_config = 'lib/cfg/gd_config.yml'){
 
-  stream_temp_intermediates = get_sntemp_intermediates(model_output_file = model_output_file,
-                                                       model_fabric_file = model_fabric_file)
+  stream_temp_intermediates = get_sntemp_intermediates(model_output_file = file.path(model_run_loc,
+                                                                                     model_output_file),
+                                                       model_fabric_file = file.path(model_run_loc,
+                                                                                     model_fabric_file),
+                                                       sntemp_vars = sntemp_vars[[1]])
 
   inches_to_m = 0.0254
   cfs_to_m3sec = 1/3.28084^3
@@ -42,7 +47,7 @@ data_for_pgdl = function(ind_file,
     spread(key = 'parameter', value = 'parameter_value')
 
   # get static variables
-  hru_mapping = read.table('4_model_for_PGDL/tmp/input/myparam.param', skip = 4, stringsAsFactors = F)
+  hru_mapping = read.table(file.path(model_run_loc, 'input/myparam.param'), skip = 4, stringsAsFactors = F)
 
   seg_length = hru_mapping[(grep('seg_length',hru_mapping[,1])+5):(grep('seg_length',hru_mapping[,1])+460),] # seg_length, units are in m
   seg_length = tibble(model_idx = as.character(seq(1,456)), seg_length = as.numeric(seg_length)) # in meters

@@ -7,12 +7,12 @@ packages:
   - sf
 
 sources:
-  - 7_viz/src/
+  - 7_viz/src/compare_rgcn.R
 
 targets:
   7_viz:
     depends:
-      - 7_viz/out/fig_out.png
+      - 7_viz/out/fig_rgcn_temp_compare.png.ind
 
   7_viz/out/fig_rgcn_temp_compare.png.ind:
     command: compare_rgcn_temp(

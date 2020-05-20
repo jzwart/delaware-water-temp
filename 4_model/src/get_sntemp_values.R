@@ -39,7 +39,9 @@ get_sntemp_temperature = function(model_output_file, model_fabric_file){
   return(model_output)
 }
 
-get_sntemp_intermediates = function(model_output_file, model_fabric_file){
+get_sntemp_intermediates = function(model_output_file,
+                                    model_fabric_file,
+                                    sntemp_vars){
 
   ### This was given error with updated model output and reading in the data
   # error was:
@@ -50,11 +52,12 @@ get_sntemp_intermediates = function(model_output_file, model_fabric_file){
   #    dplyr::slice(-1) # first row indicates column type
 
   # using fread to solve error documented above ^
+  to_skip = length(sntemp_vars) + 6 # how many lines to skip when reading in (based on how many vars are output)
   model_output = data.table::fread(file = model_output_file,
-                                   skip = 24, header = F)
+                                   skip = to_skip, header = F)
   # head(model_output)
 
-  cols = readr::read_delim(file = model_output_file, delim = '\t', n_max = 2, skip = 24)
+  cols = readr::read_delim(file = model_output_file, delim = '\t', n_max = 2, skip = to_skip)
 
   colnames(model_output) = colnames(cols)
   rm(cols)
@@ -66,7 +69,8 @@ get_sntemp_intermediates = function(model_output_file, model_fabric_file){
 
   model_fabric = sf::read_sf(model_fabric_file)
 
-  seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx))
+  seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
+                   model_idx = as.character(model_fabric$model_idx))
 
   model_output = model_output %>% as_tibble() %>%
     mutate(timestamp = as.Date(timestamp),
