@@ -1,7 +1,9 @@
 
 
 
-
+library(tidyverse)
+source('4_model_calibrate/src/get_subbasins.R')
+source('4_model_calibrate/src/get_subbasin_obs.R')
 
 data_list = readRDS('4_model_calibrate/out/drb_subbasins.rds')
 
@@ -25,82 +27,144 @@ for(cur in names(data_list)){
   obs_per_basin$obs_test[obs_per_basin$subbasin_outlet == cur] = sum(cur_obs$date >= as.Date('2004-10-02'))
 }
 
-data = left_join(data, obs_per_basin, by = 'subbasin_outlet')
+all_obs = readRDS('3_observations/in/obs_temp_full.rds') %>%
+  group_by(seg_id_nat) %>%
+  summarise(n_obs_seg = n()) %>%
+  ungroup()
+
+data = left_join(data, obs_per_basin, by = 'subbasin_outlet') %>%
+  mutate(seg_id_nat = as.character(seg_id_nat)) %>%
+  left_join(all_obs, by = 'seg_id_nat')
 
 # pull out subbasin outlets
 outlets = dplyr::filter(data, seg_id_nat == subbasin_outlet)
 
-n_params_cal = 4
+# n_params_cal = 2
+#
+# data = data %>%
+#   group_by(subbasin_outlet) %>%
+#   mutate(n_segs = n(),
+#          obs_train_per_param = round(obs_train / (n_segs * n_params_cal))) %>%
+#   ungroup()
+#
+# data$obs_train_cat = cut(data$obs_train, breaks = c(0,50, 100,500, 1000, 5000, 10000000))
+#
+# data_low_obs = dplyr::filter(data, obs_train < 100)
+#
+#
+# library(ggplot2)
+#
+# cols = rainbow(n = length(unique(data$subbasin_outlet)))
+# windows()
+# ggplot() +
+#   geom_sf(data = data, aes(group = subbasin_outlet, color = subbasin_outlet)) +
+#   scale_color_discrete() +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = data, aes(group = subbasin_outlet, color = obs_train)) +
+#   scale_color_viridis_c() +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = data, aes(group = subbasin_outlet, color = log10(obs_train))) +
+#   scale_color_viridis_c() +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
+#
+#
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = data, color = 'grey80') +
+#   geom_sf(data = data_low_obs, aes(group = subbasin_outlet, color = obs_train)) +
+#   scale_color_viridis_c() +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry[outlets$subbasin_outlet %in% data_low_obs$subbasin_outlet], color = 'black', lwd = 1.4)
+#
+#
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = data, aes(group = subbasin_outlet, color = obs_train_cat)) +
+#   scale_color_discrete() +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
+#
+#
+# data_low_obs = dplyr::filter(data, obs_train_per_param < 10)
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = data, color = 'grey80') +
+#   geom_sf(data = data_low_obs, aes(group = subbasin_outlet, color = obs_train_per_param)) +
+#   scale_color_viridis_c(direction = -1) +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry[outlets$subbasin_outlet %in% data_low_obs$subbasin_outlet], color = 'black', lwd = 1.4)
 
-data = data %>%
-  group_by(subbasin_outlet) %>%
-  mutate(n_segs = n(),
-         obs_train_per_param = round(obs_train / (n_segs * n_params_cal))) %>%
-  ungroup()
 
-data$obs_train_cat = cut(data$obs_train, breaks = c(0,50, 100,500, 1000, 5000, 10000000))
+options = feather::read_feather('4_model_for_PGDL/out/subbasin_options.feather')
+data = left_join(select(data, seg_id_nat, geometry) %>% mutate(seg_id_nat = as.character(seg_id_nat)), options )
 
-data_low_obs = dplyr::filter(data, obs_train < 100)
-
-
-library(ggplot2)
-
-cols = rainbow(n = length(unique(data$subbasin_outlet)))
 windows()
 ggplot() +
-  geom_sf(data = data, aes(group = subbasin_outlet, color = subbasin_outlet)) +
-  scale_color_discrete() +
-  theme_minimal() +
-  geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
-
-windows()
-ggplot() +
-  geom_sf(data = data, aes(group = subbasin_outlet, color = obs_train)) +
-  scale_color_viridis_c() +
-  theme_minimal() +
-  geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
-
-windows()
-ggplot() +
-  geom_sf(data = data, aes(group = subbasin_outlet, color = log10(obs_train))) +
-  scale_color_viridis_c() +
-  theme_minimal() +
-  geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
-
-
-
-windows()
-ggplot() +
-  geom_sf(data = data, color = 'grey80') +
-  geom_sf(data = data_low_obs, aes(group = subbasin_outlet, color = obs_train)) +
-  scale_color_viridis_c() +
-  theme_minimal() +
-  geom_sf(data = outlets$geometry[outlets$subbasin_outlet %in% data_low_obs$subbasin_outlet], color = 'black', lwd = 1.4)
-
-
-
-windows()
-ggplot() +
-  geom_sf(data = data, aes(group = subbasin_outlet, color = obs_train_cat)) +
-  scale_color_discrete() +
-  theme_minimal() +
-  geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
-
-
-data_low_obs = dplyr::filter(data, obs_train_per_param < 10)
-
-windows()
-ggplot() +
-  geom_sf(data = data, color = 'grey80') +
-  geom_sf(data = data_low_obs, aes(group = subbasin_outlet, color = obs_train_per_param)) +
+  geom_sf(data = data, aes(color = subbasin_uncal_sntemp_rmse)) +
   scale_color_viridis_c(direction = -1) +
   theme_minimal() +
-  geom_sf(data = outlets$geometry[outlets$subbasin_outlet %in% data_low_obs$subbasin_outlet], color = 'black', lwd = 1.4)
+  geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
+
+windows()
+ggplot() +
+  geom_sf(data = data, aes(color = subbasin_obs_train_per_seg)) +
+  scale_color_viridis_c(direction = -1) +
+  theme_minimal() +
+  geom_sf(data = outlets$geometry, color = 'black', lwd = 1.4)
 
 
+# suggested subbasins by outlet seg_id_nat
+# original: 4182
+# additional: 1718, 1592, 1563
+
+subbasins  = dplyr::filter(data, subbasin_outlet %in% c('4182','1718','1592','1563'))
+
+windows()
+ggplot() +
+  geom_sf(data = data, color = 'grey80') +
+  geom_sf(data = subbasins, aes(color = subbasin_uncal_sntemp_rmse), size = 2) +
+  scale_color_viridis_c(direction = -1) +
+  theme_minimal()
 
 
-
-
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = data, color = 'grey80') +
+#   geom_sf(data = dplyr::filter(data, subbasin_outlet == '4182'), color = 'blue') +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry[outlets$subbasin_outlet == '4182'], color = 'black', lwd = 1.4)
+#
+#
+#
+# cur  = dplyr::filter(data, subbasin_outlet == '4182')
+#
+# cur$n_segs
+#
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = dplyr::filter(data, subbasin_outlet == '4182'), color = 'blue') +
+#   geom_sf(data = dplyr::filter(data, seg_id_nat == '2007'), color = 'red', size =2) +
+#   theme_minimal() +
+#   geom_sf(data = outlets$geometry[outlets$subbasin_outlet == '4182'], color = 'black', lwd = 1.4)
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = dplyr::filter(data, subbasin_outlet == '4182'), aes(color = n_obs_seg), size = 2) +
+#   theme_minimal() +
+#   scale_color_viridis_c(direction = -1)
 
 

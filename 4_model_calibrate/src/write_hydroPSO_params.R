@@ -12,7 +12,11 @@ write_hydroPSO_params = function(params,
                                  dec_places = 0){
 
   par_number = seq(1, nrow(params))
+  # hack for par_number
+  # par_number = ifelse(params$param_name == 'ss_tau', 1, 2)
   par_name = paste(params$param_name, params$model_idx, sep = '_')
+  # par_name = params$param_name
+
   file_name = rep(param_file_name, nrow(params))
   row_number = rep(NA, nrow(params))
 

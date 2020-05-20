@@ -8,6 +8,7 @@ packages:
 
 sources:
   - 6_model_output/src/get_segment_output.R
+  - 6_model_output/src/compile_rgcn_output.R
 
 targets:
   6_model_output:
@@ -254,5 +255,17 @@ targets:
   6_model_output/out/SNTemp_sw_rad_station_location_DPRC_39.75_-75.61.rds:
     command: gd_get('6_model_output/out/SNTemp_sw_rad_station_location_DPRC_39.75_-75.61.rds.ind')
 
+
+##### compiling model output from Xiaowei 2020-05-18 - combining into one long data frame ########
+
+  6_model_output/out/rgcn_temp_compiled.feather.ind:
+    command: compile_rgcn_temp_output(
+      ind_file = target_name,
+      output_dir = '6_model_output/in/Xiaowei_output_20200518')
+
+  6_model_output/out/rgcn_flow_compiled.feather.ind:
+    command: compile_rgcn_flow_output(
+      ind_file = target_name,
+      output_dir = '6_model_output/in/Xiaowei_output_20200518')
 
 

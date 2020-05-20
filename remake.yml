@@ -11,6 +11,7 @@ include:
   - 4_model_calibrate.yml
   - 4_model_for_PGDL.yml
   - 6_model_output.yml
+  - 7_viz.yml
   - 8_forecast_metadata.yml
 
 targets:
@@ -26,5 +27,6 @@ targets:
       - 4_model_calibrate
       - 4_model_for_PGDL
       - 6_model_output
+      - 7_viz
       - 8_forecast_metadata
 

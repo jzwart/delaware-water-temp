@@ -15,6 +15,10 @@ sources:
   - 4_model/src/set_sntemp_output.R
   - 4_model_for_PGDL/src/data_for_Xiaowei.R
   - 4_model_for_PGDL/src/training_test_data.R
+  - 4_model_for_PGDL/src/get_segment_driver.R
+  - 4_model_calibrate/src/get_subbasins.R
+  - 4_model_calibrate/src/get_subbasin_obs.R
+  - 4_model_for_PGDL/src/subbasins_options.R
 
 targets:
   4_model_for_PGDL:
@@ -24,33 +28,70 @@ targets:
 ##########################################
 # uncalibrated SNTemp run for input to PGDL
 ##########################################
+  uncal_settings:
+    command: read_yaml('4_model_for_PGDL/cfg/uncal_settings.yml')
+
   sntemp_output_vars:
-    command: da_settings[I('sntemp_output')]
+    command: uncal_settings[I('sntemp_output')]
 
   set_sntemp_output_vars:
     command: set_sntemp_output(output_names = sntemp_output_vars)
 
+  uncal_start:
+    command: uncal_settings[I('start')]
+
+  uncal_stop:
+    command: uncal_settings[I('stop')]
+
   uncal_sntemp_run:
     command: run_sntemp(
-      start = start,
-      stop = stop,
+      start = uncal_start,
+      stop = uncal_stop,
       spinup = I('F'),
       restart = I('F'),
-      model_run_loc = I('4_model/tmp'))
+      model_run_loc = I('4_model_for_PGDL/tmp'))
     depends: set_sntemp_output_vars
 
-  4_model_for_PGDL/out/sntemp_input_output.feather.ind:
-    command: data_for_pgdl(ind_file = target_name)
-    depends: uncal_sntemp_run
-  4_model_for_PGDL/out/sntemp_input_output.feather:
-    command: gd_get('4_model_for_PGDL/out/sntemp_input_output.feather.ind')
+# input only contains tmin, tmax, prcp
+  4_model_for_PGDL/out/sntemp_input.feather.ind:
+    command: get_segment_drivers(
+      ind_file = target_name,
+      model_run_loc = I('4_model_for_PGDL/tmp'),
+      param_file = I('input/myparam.param'),
+      start = uncal_start,
+      stop = uncal_stop)
+  4_model_for_PGDL/out/sntemp_input.feather:
+    command: gd_get('4_model_for_PGDL/out/sntemp_input.feather.ind')
 
-  4_model_for_PGDL/out/sntemp_input_output_subset.feather.ind:
+  4_model_for_PGDL/out/sntemp_input_subset.feather.ind:
     command: data_subset_for_pgdl(
       ind_file = target_name,
-      full_data_file = '4_model_for_PGDL/out/sntemp_input_output.feather')
-  4_model_for_PGDL/out/sntemp_input_output_subset.feather:
-    command: gd_get('4_model_for_PGDL/out/sntemp_input_output_subset.feather.ind')
+      full_data_file = '4_model_for_PGDL/out/sntemp_input.feather')
+  4_model_for_PGDL/out/sntemp_input_subset.feather:
+    command: gd_get('4_model_for_PGDL/out/sntemp_input_subset.feather.ind')
+
+# includes output in 4_model_for_PGDL/cfg/uncal_settings.yml
+  4_model_for_PGDL/out/sntemp_output.feather.ind:
+    command: data_for_pgdl(ind_file = target_name)
+    depends: uncal_sntemp_run
+  4_model_for_PGDL/out/sntemp_output.feather:
+    command: gd_get('4_model_for_PGDL/out/sntemp_output.feather.ind')
+
+  4_model_for_PGDL/out/sntemp_output_subset.feather.ind:
+    command: data_subset_for_pgdl(
+      ind_file = target_name,
+      full_data_file = '4_model_for_PGDL/out/sntemp_output.feather')
+  4_model_for_PGDL/out/sntemp_output_subset.feather:
+    command: gd_get('4_model_for_PGDL/out/sntemp_output_subset.feather.ind')
+
+
+  4_model_for_PGDL/out/subbasin_options.feather.ind:
+    command: subbasin_options(
+      ind_file = target_name,
+      subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
+      uncal_sntemp_pred_file = '4_model_for_PGDL/out/sntemp_output.feather',
+      obs_file = '3_observations/in/obs_temp_full.rds')
+
 
 # -- creating synthetic training datasets --
 #     file naming == site_realOrSynthetic_train_percentSegmentsObserved_temporalResolution(days)_obsType.feather

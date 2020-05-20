@@ -13,11 +13,11 @@ Y_no_assim = dd$Y
 
 #lordsville site is seg_id_nat == 1573; model_idx = 224
 obs[,1,1]
-site = 224
+site = 79
 windows()
 plot(Y[site,,1] ~ d$dates, type = 'l',ylim =  range(c(Y[site,,], obs[site,1,], Y_no_assim[site,,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = '', lty=0)
 for(i in 1:n_en){
-  # lines(Y_no_assim[site,,i] ~ d$dates, col = 'grey')
+  lines(Y_no_assim[site,1:71,i] ~ d$dates, col = 'grey')
   lines(Y[site,,i] ~ d$dates)
 }
 points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
