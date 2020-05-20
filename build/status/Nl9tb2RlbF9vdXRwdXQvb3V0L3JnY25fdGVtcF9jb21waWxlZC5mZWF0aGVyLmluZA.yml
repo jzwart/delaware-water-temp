@@ -1,0 +1,12 @@
+version: 0.3.0
+name: 6_model_output/out/rgcn_temp_compiled.feather.ind
+type: file
+hash: fd859f7d94067b49d079a60afdff6d3f
+time: 2020-05-19 17:15:13 UTC
+depends:
+  6_model_output/in/Xiaowei_output_20200518: .na.character
+fixed: 45047adfbe5424cd1101965fdcaba943
+code:
+  functions:
+    compile_rgcn_temp_output: 174154e81b42c6f15f64974f88e70192
+

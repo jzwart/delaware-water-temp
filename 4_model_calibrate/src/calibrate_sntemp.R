@@ -1,4 +1,4 @@
-
+# using original PRMS executable for running since it is faster and we don't need to update states
 
 #' wrapper function for calibrating SNTemp
 #'
@@ -43,8 +43,8 @@ calibrate_sntemp = function(ind_file,
   library(hydroPSO) # need to use modified version of this package on https://github.com/jzwart/hydroPSO
   library(hydroGOF)
   library(hydroTSM)
-  start = '2014-05-01'
-  stop = '2015-10-10'
+  start = '1980-01-05'
+  stop = '2004-10-01'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
@@ -104,8 +104,8 @@ calibrate_sntemp = function(ind_file,
   run_sntemp(start = (start-1),
              stop = (start-1),
              spinup = T,
-             restart = F,
-             var_save_file = 'prms_ic.txt',
+             restart = F, spinup_days = 2,
+             var_save_file = 'prms_ic.out',
              model_run_loc = model_run_loc)
 
   # need to calibrate for upstream segments of DRB before moving downstream
@@ -163,8 +163,8 @@ calibrate_sntemp = function(ind_file,
 
     set_sntemp_restart(restart = T,
                        control_file = 'delaware.control',
-                       var_init_file = 'prms_ic.txt',
-                       var_save_file = 'ic_out_dont_use.txt',
+                       var_init_file = 'prms_ic.out',
+                       var_save_file = 'ic_out_dont_use.out',
                        model_run_loc = model_run_loc)
 
 
@@ -197,7 +197,7 @@ calibrate_sntemp = function(ind_file,
       model.FUN.args=model.FUN.args,
       method="spso2011",
       control = list(
-        maxit = 30, npart = 50
+        maxit = 100, npart = 40
       )) ###END MAIN hydroPSO ALGORITHM
     setwd(orig_wd)
 

@@ -1,0 +1,31 @@
+target_default: 7_viz
+
+packages:
+  - yaml
+  - dplyr
+  - tidyr
+  - sf
+
+sources:
+  - 7_viz/src/
+
+targets:
+  7_viz:
+    depends:
+      - 7_viz/out/fig_out.png
+
+  7_viz/out/fig_rgcn_temp_compare.png.ind:
+    command: compare_rgcn_temp(
+      ind_file = target_name,
+      model_output_file = '6_model_output/out/rgcn_temp_compiled.feather',
+      obs_file = '3_observations/in/obs_temp_full.csv',
+      uncal_sntemp_file = '4_model_for_PGDL/out/sntemp_output.feather',
+      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+
+  7_viz/out/fig_rgcn_flow_compare.png.ind:
+    command: compare_rgcn_flow(
+      ind_file = target_name,
+      model_output_file = '6_model_output/out/rgcn_flow_compiled.feather',
+      obs_file = '3_observations/in/obs_flow_full.csv',
+      uncal_sntemp_file = '4_model_for_PGDL/out/sntemp_output.feather',
+      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
