@@ -56,7 +56,21 @@ targets:
       subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml')
 
 
-
+# setting up remote calibration
+  drivers_yeti_path:
+    command: settings[[I(c('drivers_yeti_path'))]]
+  drivers_time:
+    command: settings[[I(c('drivers_time'))]]
+  glm_inputs_yeti_path:
+    command: settings[[I(c('glm_inputs_yeti_path'))]]
+  glm_sim_yeti_path:
+    command: settings[[I(c('glm_sim_yeti_path'))]]
+  glm_preds_yeti_path:
+    command: settings[[I(c('glm_preds_yeti_path'))]]
+  glm_summary_yeti_path:
+    command: settings[[I(c('glm_summary_yeti_path'))]]
+  depth_interval:
+    command: settings[[I(c('depth_interval'))]]
 
 
 

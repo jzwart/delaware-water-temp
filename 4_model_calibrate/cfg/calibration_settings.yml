@@ -20,4 +20,11 @@ sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'se
 'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow', 'seginc_potet', 'seginc_sroff', 'seginc_ssflow',
 'seginc_swrad', 'seg_humid', 'seg_shade', 'seg_ccov', 'seg_width']
 
+# file paths on Yeti
+drivers_yeti_path: '/cxfs/projects/usgs/water/iidd/data-sci/lake-temp/driver-data'
+glm_inputs_yeti_path: '/cxfs/projects/usgs/water/iidd/data-sci/lake-temp/glm-inputs'
+glm_sim_yeti_path: '/cxfs/projects/usgs/water/iidd/data-sci/lake-temp/glm-pred-jaz/.sim'
+glm_preds_yeti_path: '/cxfs/projects/usgs/water/iidd/data-sci/lake-temp/glm-preds-jaz/glm-output'
+glm_summary_yeti_path: '/cxfs/projects/usgs/water/iidd/data-sci/lake-temp/glm-preds-jaz/glm-summary'
+
 

@@ -240,6 +240,17 @@ compare_rgcn_flow = function(ind_file,
     theme_minimal()+
     ggtitle('Observations Train / Segment')
 
+  ggplot() +
+    geom_sf(data = model_rmse, color= 'grey80', size =2 , ) +
+    scale_color_viridis_c(direction = -1) +
+    geom_sf_label(data = model_rmse, aes(label = seg_id_nat)) +
+    theme_minimal()
+
+  ggplot() +
+    geom_sf(data = model_rmse, color= 'grey80' ) +
+    geom_sf(data = dplyr::filter(model_rmse, mean_flow >0), aes(color = mean_flow), size = 2) +
+    scale_color_viridis_c(direction = -1) +
+    theme_minimal()
 
   ggplot(model_rmse, aes(x = n_obs_train, y = rmse, color = model, group = model)) +
     geom_point(size = 4) +
