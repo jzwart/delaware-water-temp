@@ -2,6 +2,7 @@
 library(tidyverse)
 library(igraph)
 source('4_model/src/get_upstream_downstream_segs.R')
+source('4_model/src/get_sntemp_values.R')
 
 
 old_drivers = get_segment_drivers_return(
@@ -15,13 +16,22 @@ new_drivers = get_segment_drivers_return(
   model_run_loc = I('2_2_model_drivers/tmp'),
   param_file = I('input/myparam.param'),
   start = '2015-01-01',
-  stop = '2020-01-01')
+  stop = '2020-01-01',
+  driver = 'new')
+
+# From Rich McDonald: "I just checked, and the gridmet driver hru id is saved in the netcdf file ouput as hruid so you should be able to read that and incorporate it. They are ordered in the nectcdf file from 5308 - 7252. There is a total of 764 hrus. This is based on the shapefile that I was given for the Delaware."
+# JAZ: I modified the function to reorder the
+
 
 
 compare = left_join(old_drivers,
                     new_drivers,
                     by = c('seg_id_nat', 'model_idx','date'),
                     suffix = c('_old','_new'))
+
+
+nhm_id = get_sntemp_params(param_names = 'nhm_id', model_run_loc = '4_model_for_PGDL/tmp')
+
 
 windows()
 ggplot(compare, aes(x = seg_tmin_air_old, y = seg_tmin_air_new)) +
@@ -51,7 +61,18 @@ seg_1 = dplyr::filter(seg, date < as.Date('2017-01-01')) %>%
 
 seg_1
 
-summ =
+map = sf::read_sf('4_model_for_PGDL/tmp/GIS/Segments_subset.shp') %>%
+  select(seg_id_nat, geometry) %>% mutate(seg_id_nat = as.character(seg_id_nat)) %>%
+  left_join(dplyr::filter(compare,
+                          date %in% seq.Date(from = as.Date('2015-06-01'),
+                                             to = as.Date('2015-06-12'),
+                                             by = 'day')))
+
+
+ggplot() +
+  geom_sf(data = map, aes(color = seg_tmax_air_old - seg_tmax_air_new), size = 2) +
+  theme_minimal()+
+  scale_color_gradient2() + facet_wrap(~date)
 
 # calculating area-weighted average of hru for each segment
 get_segment_drivers_return = function(model_run_loc = '4_model_for_PGDL/tmp',
@@ -61,6 +82,7 @@ get_segment_drivers_return = function(model_run_loc = '4_model_for_PGDL/tmp',
                                       model_fabric_file = 'GIS/Segments_subset.shp',
                                       n_hru = 765,
                                       n_segments = 456,
+                                      driver,
                                       gd_config = 'lib/cfg/gd_config.yml'){
 
   model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
@@ -87,6 +109,16 @@ get_segment_drivers_return = function(model_run_loc = '4_model_for_PGDL/tmp',
   tmin = read.table(file.path(model_run_loc,'input/tmin.cbh'), skip = 3, sep = ' ')
   tmax = read.table(file.path(model_run_loc,'input/tmax.cbh'), skip = 3, sep = ' ')
   prcp = read.table(file.path(model_run_loc,'input/prcp.cbh'), skip = 3, sep = ' ')
+
+  if(driver == 'new'){
+    driver_order = sf::read_sf(file.path(model_run_loc, 'GIS/HRU_subset.shp'))
+    colnames(tmin) = c('date1','date2','date3','date4','date5','date6',driver_order$model_idx)
+    tmin = tmin %>% select('date1','date2','date3','date4','date5','date6',as.character(seq(1:765)))
+    colnames(tmax) = c('date1','date2','date3','date4','date5','date6',driver_order$model_idx)
+    tmax = tmax %>% select('date1','date2','date3','date4','date5','date6',as.character(seq(1:765)))
+    colnames(prcp) = c('date1','date2','date3','date4','date5','date6',driver_order$model_idx)
+    prcp = prcp %>% select('date1','date2','date3','date4','date5','date6',as.character(seq(1:765)))
+  }
 
   dates = as.Date(paste(tmin[,1],tmin[,2],tmin[,3]), format = '%Y %m %d')
 

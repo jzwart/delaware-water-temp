@@ -187,7 +187,8 @@ compare_rgcn_flow = function(ind_file,
     group_by(seg_id_nat, model) %>%
     summarise(rmse = rmse(stream_flow_m3_s, discharge_cms),
               n_obs_test = sum(!is.na(discharge_cms)),
-              mean_flow = mean(discharge_cms, na.rm = T)) %>%
+              mean_flow = mean(discharge_cms, na.rm = T),
+              cv_rmse = rmse/mean_flow) %>%
     ungroup() %>%
     left_join(train_obs, by = 'seg_id_nat') %>%
     mutate(n_obs_train = ifelse(is.na(n_obs_train), 0, n_obs_train))

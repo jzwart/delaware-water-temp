@@ -65,6 +65,6 @@ targets:
     command: server_put(
       local_dir = I('4_model_calibrate'),
       server_dir = remote_cal_path,
-      server = I('denali'))
+      server = I('caldera-dtn')) # caldera-dtn is the data transfer node
 
 

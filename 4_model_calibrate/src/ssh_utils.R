@@ -43,7 +43,8 @@ server_files <- function(ind_file,
 get_local_files <- function(local_dir){
 
   files_to_transfer = list.files(local_dir,
-                                 recursive = T)
+                                 # recursive = T,
+                                 include.dirs = T)
   return(files_to_transfer)
 }
 

@@ -37,3 +37,25 @@ server_put(local_dir = 'C:/Users/jzwart/Documents',
 # I added .Renviron to root of project dir with R_LIBS=...
 # I created Rlib folder in root dir
 # I installed packages by opening up R session and using install.packages
+
+
+######## for installing R packages, follow this: https://hpcportal.cr.usgs.gov/hpc-user-docs/Guides_and_Tutorials/Denali_Guides_and_Tutorials/how-to/Running_R_and_Installing_R_packages/Installing_rgdal_R_package.html
+
+# steps
+# login to denali
+#
+# module switch PrgEnv-cray/6.0.5 PrgEnv-gnu
+#
+# module load cray-R/3.6.1 gdal/3.0.4 proj/6.2.1
+#
+# module show proj/6.2.1
+#
+# srun -A iidd -t 3:00:00 -N 1 -n 1 -c 40 --pty bash -i
+#
+# wget https://cran.r-project.org/src/contrib/rgdal_1.4-8.tar.gz # or any other tar ball from CRAN
+#
+# R CMD INSTALL rgdal_1.4-8.tar.gz --configure-args="-with-proj-include=/home/software/denali/arc/apps/proj/6.2.1/GNU/8.3.0/include --with-proj-lib=/home/software/denali/arc/apps/proj/6.2.1/GNU/8.3.0/lib"
+#
+# rm rgdal_1.4-8.tar.gz
+#
+
