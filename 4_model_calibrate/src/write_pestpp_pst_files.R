@@ -14,8 +14,12 @@ write_pestpp_pst_files = function(params,
   colnames(output)[2:ncol(output)] = model_idxs
   dates = strftime(strptime(output$Date, format = '%Y-%m-%d'), '%Y%m%d') # date vector for
 
-  # output[1:5,1:5]
   cur_model_idxs = unique(params$model_idx)
+
+  obs$obs_name = paste('wtemp',
+                       obs$model_idx,
+                       strftime(strptime(obs$date, format = '%Y-%m-%d'), '%Y%m%d'),
+                       sep = '_')
 
   #######################################################
   # format for minimalist .pst file :
@@ -66,33 +70,83 @@ write_pestpp_pst_files = function(params,
   # WFFAC  WFTOL [IREGADJ]
   ####################################################
 
+  # Jake went through the PEST++ manual on section 4.4 and decided which variables to set in the
+  #  control data. We could make these variables an input to provide flexibility to function
 
+  first_line = 'pcf'
 
+  control_data = paste('* control data',
+                       'restart estimation',
+                       sprintf('%s %s %s %s %s',
+                               nrow(params),
+                               length(dates) * length(cur_model_idxs),
+                               length(unique(params$param_name)),
+                               '0',
+                               '1'),
+                       '1 1 single point',
+                       '10.0 -2.0 0.3 0.01 10',
+                       '10.0 10.0 0.001',
+                       '0.1',
+                       '50 0.005 4 4 0.005 4',
+                       '0 0 0',
+                       sep = '\n')
 
-  first_line = sprintf('pif %s', delim)
-  second_line = sapply(seq_along(model_idxs), function(i) {
-    cur = as.character(model_idxs[i])
-    if(cur %in% cur_model_idxs){
-      out = sprintf('%s%s%s ', delim, cur, delim)
-    }else{
-      out = ''
-    }
-    return(out)
-  }) %>% paste(., collapse = '')
-  data_lines = sapply(seq_along(dates), function(j){
+  single_val_decomp = paste('* single value decomposition',
+                            sep = '\n')
+
+  param_groups = '* parameter groups'
+
+  param_data = paste()
+
+  obs_groups = paste('* observation groups',
+                     'wtemp',
+                     sep = '\n')
+
+  obs_data = sapply(seq_along(dates), function(j){
     cur_date = dates[j]
-    sapply(seq_along(model_idxs), function(i){
-      cur = as.character(model_idxs[i])
-      if(cur %in% cur_model_idxs){
-        out = sprintf('%swtemp_%s_%s%s ', secondary_delim, cur, cur_date, secondary_delim)
-      }else{
-        out = sprintf('%s,%s ', delim, delim)
+    sapply(seq_along(cur_model_idxs), function(i){
+      cur = paste('wtemp',
+                  as.character(cur_model_idxs[i]),
+                  cur_date,
+                  sep = '_')
+      if(cur %in% obs$obs_name){ # if obs matches predictions, use weight of 1.0
+        out = sprintf('%s %s %s %s', cur, obs$temp_C[obs$obs_name == cur], '1.0', 'wtemp')
+      }else{ # no observation available so giving 0 weight
+        out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'wtemp')
       }
       return(out)
-    }) %>% paste(., collapse = '') %>% paste0(sprintf('l1 %s,%s ', delim, delim), .)
-  }) %>% paste(., collapse = '\n')
+    }) %>% paste(., collapse = '\n')
+  }) %>% paste(., collapse = '\n') %>% paste('* observation data', ., sep = '\n')
 
-  pif_out = paste(first_line, second_line, data_lines, sep = '\n')
+  model_cmd_line = paste('* model command line',
+                         'delaware.bat',
+                         sep = '\n')
+
+  model_inout = paste('* model inputoutput',
+                      sep = '\n')
+
+  model_out = paste('* model output',
+                    sep = '\n')
+
+  prior_inf = paste('* prior information',
+                    sep = '\n')
+
+  reg = paste('* regularization',
+              sep = '\n')
+
+
+  pst_out = paste(first_line,
+                  control_data,
+                  param_groups,
+                  param_data,
+                  obs_groups,
+                  obs_data,
+                  model_cmd_line,
+                  model_inout,
+                  model_out,
+                  prior_inf,
+                  reg,
+                  sep = '\n')
 
   writeLines(pif_out, file.path(model_run_loc, file_out))
 }
