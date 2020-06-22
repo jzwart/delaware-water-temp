@@ -37,14 +37,15 @@ calibrate_sntemp = function(ind_file,
   source('4_model_calibrate/src/get_subbasins.R')
   source('4_model/src/get_upstream_downstream_segs.R')
   source('4_model_calibrate/src/get_calibration_order.R')
-  source('4_model_calibrate/src/write_hydroPSO_params.R')
+  source('4_model_calibrate/src/write_pestpp_tpl_files.R')
+  source('4_model_calibrate/src/write_pestpp_ins_files.R')
   library(tidyverse)
   library(igraph)
   library(hydroPSO) # need to use modified version of this package on https://github.com/jzwart/hydroPSO
   library(hydroGOF)
   library(hydroTSM)
-  start = '2004-10-02'
-  stop = '2016-09-30'
+  start = '1980-10-01'
+  stop = '2004-09-30'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
@@ -145,111 +146,53 @@ calibrate_sntemp = function(ind_file,
       pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
       arrange(factor(param_name, levels = param_names), as.numeric(model_idx))
 
-
-    # write parameter files needed for running hydroPSO
-    write_hydroPSO_params(params = cur_params_to_cal,
-                          param_ranges = param_ranges,
-                          model_run_loc = model_run_loc,
-                          param_file_name = 'input/myparam.param',
-                          param_file_out = 'PSO.in/ParamFiles.txt',
-                          param_range_file_out = 'PSO.in/ParamRanges.txt',
-                          col_start = 1, col_end = 3, dec_places = 0)
-
-    # make sure to update simulation dates and restart files before running hydroPSO
-    set_sntemp_start_stop(start = start,
-                          stop = stop,
-                          model_run_loc = model_run_loc,
-                          control_file = 'delaware.control')
-
-    set_sntemp_restart(restart = T,
-                       control_file = 'delaware.control',
-                       var_init_file = 'prms_ic.out',
-                       var_save_file = 'ic_out_dont_use.out',
-                       model_run_loc = model_run_loc)
+    # write template files needed for running PEST++
+    write_pestpp_tpl_files(params = cur_params_to_cal,
+                           model_run_loc = model_run_loc,
+                           param_file_name = 'input/myparam.param',
+                           param_file_out = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
+                           delim = '%')
 
 
-    ###Goodness-of-fit, either customised or pre-defined from hydroGOF
-    gof.FUN <- "sntemp_rmse"
-    gof.FUN.args <- list()
+    # make sure to update simulation dates and restart files before running PEST++
+    # set_sntemp_start_stop(start = start,
+    #                       stop = stop,
+    #                       model_run_loc = model_run_loc,
+    #                       control_file = 'delaware.control')
+    #
+    # set_sntemp_restart(restart = T,
+    #                    control_file = 'delaware.control',
+    #                    var_init_file = 'prms_ic.out',
+    #                    var_save_file = 'ic_out_dont_use.out',
+    #                    model_run_loc = model_run_loc)
 
-    ###MAIN model function
-    model.FUN <- "hydromod"
-    model.FUN.args <- list(
-      param.files = "PSO.in/ParamFiles.txt",
-      exe.fname = "delaware.bat",
-      out.FUN = 'sntemp_preds',
-      out.FUN.args = list(model_run_loc = '.',
-                          file_out_name = 'cur_preds.rds',
-                          obs = cur_obs),
-      ###Function assessing the simulated equivalents against the observations
-      gof.FUN=gof.FUN,
-      gof.FUN.args=gof.FUN.args,
-      obs = obs_vec) ###END model.FUN.args
-
-    ###MAIN PSO ALGORITHM
-    ###For hydroPSO fine-tuning parameters, see Zambrano-Bigiarini and Rojas,2012
-    #set.seed(1111)
-    orig_wd = getwd()
-    setwd(model_run_loc)
-    hydroPSO(verbose = T,
-      fn="hydromod",
-      model.FUN = model.FUN,
-      model.FUN.args=model.FUN.args,
-      method="spso2011",
-      control = list(
-        maxit = 1000, npart = 40
-      )) ###END MAIN hydroPSO ALGORITHM
-    setwd(orig_wd)
-
-    ####################################################################
-
-    best_params = read.table('4_model_calibrate/tmp/PSO.out/BestParamPerIter.txt', header=T) %>%
-      select(3:ncol(.)) %>% slice(nrow(.)) %>%
-      pivot_longer(cols = contains('tau'),names_to = 'param', values_to = 'param_val') %>%
-      mutate(model_idx = NA)
-
-    for(i in 1:length(best_params$param)){
-      best_params$model_idx[i] = strsplit(best_params$param[i], 'tau_')[[1]][2]
-    }
-    best_params
-
-    new_params = init_params
-
-    for(i in 1:length(best_params$param)){
-      idx = as.numeric(best_params$model_idx[i])
-      if(grepl('gw',best_params$param[i])){
-        idx = idx + 456
-      }
-      new_params[idx] = best_params$param_val[i]
-    }
-
-    update_sntemp_params(param_names = param_names,
-                         updated_params = init_params,
-                         model_run_loc = model_run_loc,
-                         param_file = 'input/myparam.param')
-
-
-    set_sntemp_start_stop(start = start,
-                          stop = stop,
-                          model_run_loc = model_run_loc,
-                          control_file = 'delaware.control')
-
-    # optionally run SNTemp with calibrated params to see how well we're doing
+    # run sntemp once to produce output for .ins template
     run_sntemp(start = start,
                stop = stop,
-               spinup = T,
+               spinup = F,
                restart = T,
                var_init_file = 'prms_ic.out',
-               var_save_file = 'prms_ic.out',
+               var_save_file = 'ic_out_dont_use.out',
                model_run_loc = model_run_loc)
 
-    preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-                                   model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
+    # write instruction files needed for running PEST++
+    write_pestpp_ins_files(params = cur_params_to_cal,
+                           model_run_loc = model_run_loc,
+                           model_output_file = 'output/seg_tave_water.csv',
+                           file_out = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet),
+                           delim = '@',
+                           secondary_delim = '!')
 
-    compare = left_join(preds, select(cur_obs, model_idx, date, temp_C),
-                        by = c('model_idx', 'date'))
+    # write PEST++ control file
+    write_pestpp_pst_files(params = cur_params_to_cal,
+                           model_run_loc = model_run_loc,
+                           model_output_file = 'output/seg_tave_water.csv',
+                           obs = cur_obs,
+                           file_out = sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet),
+                           delim = '@',
+                           secondary_delim = '!')
 
-    rmse(compare$temp_C, compare$water_temp, na.rm = T)
+
 
   }
 
