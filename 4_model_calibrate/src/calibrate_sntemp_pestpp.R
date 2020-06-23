@@ -39,6 +39,7 @@ calibrate_sntemp = function(ind_file,
   source('4_model_calibrate/src/get_calibration_order.R')
   source('4_model_calibrate/src/write_pestpp_tpl_files.R')
   source('4_model_calibrate/src/write_pestpp_ins_files.R')
+  source('4_model_calibrate/src/write_pestpp_pst_files.R')
   library(tidyverse)
   library(igraph)
   library(hydroPSO) # need to use modified version of this package on https://github.com/jzwart/hydroPSO
@@ -51,6 +52,7 @@ calibrate_sntemp = function(ind_file,
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
   model_run_loc = I('4_model_calibrate/tmp')
   orig_model_loc = I('20191002_Delaware_streamtemp')
+  pestpp_exe_loc = I('pest++_bin')
   subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
   subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
   param_ranges = as_tibble(yaml::read_yaml('4_model_calibrate/cfg/calibration_settings.yml')$param_ranges)
@@ -62,6 +64,9 @@ calibrate_sntemp = function(ind_file,
   # print('Copying original model files to model working directory...')
   # files_to_transfer = list.files(orig_model_loc)
   # file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
+  # copy over pest++ executables
+  files_to_transfer = list.files(pestpp_exe_loc)
+  file.copy(from = file.path(pestpp_exe_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
 
   # use this to organize the parameters being calibrated
   model_fabric = sf::read_sf(model_fabric_file)
@@ -132,7 +137,7 @@ calibrate_sntemp = function(ind_file,
                             date <= as.Date(stop)) %>%
       arrange(as.numeric(model_idx), date)
 
-    obs_vec = cur_obs$temp_C # vector of temp observations for hydroPSO
+    # obs_vec = cur_obs$temp_C # vector of temp observations for hydroPSO
 
     # current parameters (after calibrating subbasin if further along than first subbasin)
     cur_params = get_sntemp_params(param_names = param_names,
@@ -153,18 +158,6 @@ calibrate_sntemp = function(ind_file,
                            param_file_out = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
                            delim = '%')
 
-
-    # make sure to update simulation dates and restart files before running PEST++
-    # set_sntemp_start_stop(start = start,
-    #                       stop = stop,
-    #                       model_run_loc = model_run_loc,
-    #                       control_file = 'delaware.control')
-    #
-    # set_sntemp_restart(restart = T,
-    #                    control_file = 'delaware.control',
-    #                    var_init_file = 'prms_ic.out',
-    #                    var_save_file = 'ic_out_dont_use.out',
-    #                    model_run_loc = model_run_loc)
 
     # run sntemp once to produce output for .ins template
     run_sntemp(start = start,
@@ -191,148 +184,22 @@ calibrate_sntemp = function(ind_file,
                            model_output_file = 'output/seg_tave_water.csv',
                            obs = cur_obs,
                            file_out = sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet),
-                           delim = '@',
-                           secondary_delim = '!')
+                           param_transform = 'log',
+                           param_ranges = param_ranges,
+                           param_file_name = 'input/myparam.param',
+                           tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
+                           ins_file_name = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet))
 
+    current.wd = getwd() # getting current project root wd to reset after running pest++
 
+    setwd(file.path(current.wd, model_run_loc)) # set wd to where model run location is
+    # to run pest++ in serial, pest++ pest_ctl_file.pst
+    shell(sprintf('pest++ %s', sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet))) # run pest++
+
+    setwd(current.wd) # set wd back to root of project
 
   }
 
 }
-
-
-
-
-# returns preds of sntemp
-sntemp_preds = function(model_run_loc, file_out_name, obs){
-
-  preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-                                 model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
-
-  compare = left_join(preds, select(obs, model_idx, date, temp_C),
-                      by = c('model_idx', 'date')) %>%
-    arrange(as.numeric(model_idx), date) %>%
-    dplyr::filter(!is.na(temp_C))
-
-  print(rmse(compare$temp_C, compare$water_temp, na.rm = T))
-  saveRDS(compare, file.path(model_run_loc, file_out_name))
-
-  preds_vec = compare$water_temp
-
-  return(preds_vec)
-}
-
-# returns nll of predictions / observations for sntemp
-sntemp_lik = function(sim, obs){
-
-  return(nll(obs, sim))
-}
-
-# returns rmse of predictions / observations for sntemp
-sntemp_rmse = function(sim, obs){
-
-  return(rmse(obs, sim))
-}
-
-# returns negative log likelihood
-nll = function(obs, pred){
-  if (any(is.na(obs))){
-    NA_obs <- which(is.na(obs))
-    res <- obs[-NA_obs] - pred[-NA_obs]
-  } else{
-    res <- obs - pred
-  }
-
-  nRes <- length(res)
-  SSE <- sum(res^2)
-  sigma2 <- SSE/nRes
-  NLL <- 0.5*((SSE/sigma2) + nRes*log(2*pi*sigma2))
-
-  return(NLL)
-}
-
-
-rmse = function (actual, predicted, na.rm = T)
-{
-  return(sqrt(mse(actual, predicted, na.rm)))
-}
-
-mse = function (actual, predicted, na.rm = T)
-{
-  return(mean(se(actual, predicted), na.rm = na.rm))
-}
-
-se = function (actual, predicted)
-{
-  return((actual - predicted)^2)
-}
-
-
-
-## old functions for optim()
-# combine_cal_uncal_params = function(cal_params, all_params, param_names){
-#   updated_cal_params = all_params %>%
-#     pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
-#     arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
-#     dplyr::filter(calibrate) %>%
-#     mutate(param_value = as.numeric(cal_params))
-#
-#   out = all_params %>%
-#     pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
-#     arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
-#     left_join(updated_cal_params, by = c('seg_id_nat','model_idx','calibrate', 'param_name'), suffix = c('','_cal')) %>%
-#     mutate(param_value = ifelse(calibrate, as.character(param_value_cal), param_value)) %>%
-#     pull(param_value)
-#
-#   return(out)
-# }
-#
-#
-#
-# cal_sntemp_run = function(param.values,
-#                           start,
-#                           stop,
-#                           model_run_loc,
-#                           spinup = F,
-#                           restart = F,
-#                           var_init_file,
-#                           var_save_file,
-#                           obs,
-#                           model_idxs_to_cal,
-#                           all_params,
-#                           param_names){
-#   # debugging
-#   print(param.values)
-#   print(model_idxs_to_cal)
-#   #
-#
-#   updated_params = combine_cal_uncal_params(cal_params = pararm.values,
-#                                             all_params = all_params,
-#                                             param_names = param_names)
-#
-#   update_sntemp_params(param_names = param_names,
-#                        updated_params = updated_params,
-#                        model_run_loc = model_run_loc)
-#
-#   run_sntemp(start = start,
-#              stop = stop,
-#              spinup = spinup,
-#              restart = restart,
-#              model_run_loc = model_run_loc,
-#              var_init_file = var_init_file,
-#              var_save_file = var_save_file)
-#
-#   preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
-#                                  model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
-#
-#   compare = left_join(preds, select(obs, model_idx, date, temp_C),
-#                       by = c('model_idx', 'date'))
-#
-#   # plot(compare$water_temp ~ compare$temp_C,
-#   #      ylim = c(0, max(compare$temp_C, na.rm = T)), ylab = 'pred', xlab = 'obs')
-#
-#   return(nll(compare$temp_C, compare$water_temp)) #optimize on NLL for water temp
-#   # return(rmse(compare$temp_C, compare$water_temp, na.rm = T)) #optimize on water temp RMSE
-# }
 
 

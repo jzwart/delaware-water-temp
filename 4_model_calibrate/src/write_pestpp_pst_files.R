@@ -1,13 +1,16 @@
 
 
-# function for writing template files for pestpp
+# function for writing control files for pestpp
 write_pestpp_pst_files = function(params,
                                   model_run_loc,
                                   model_output_file,
                                   obs,
                                   file_out,
-                                  delim,
-                                  secondary_delim){
+                                  param_transform = 'log', # log transformation of parameters
+                                  param_ranges,
+                                  tpl_file_name,
+                                  param_file_name,
+                                  ins_file_name){
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
@@ -95,13 +98,23 @@ write_pestpp_pst_files = function(params,
   #single_val_decomp = paste('* single value decomposition',
   #                          sep = '\n')
 
-
   param_groups = paste('* parameter groups',
                        'ss_tau relative 0.01 0.01 switch 2.0 parabolic',
                        'gw_tau relative 0.01 0.01 switch 2.0 parabolic',
                        sep = '\n')
 
-  param_data = paste()
+  param_data = paste('* parameter data',
+                     sapply(seq_along(params$model_idx), function(i){
+                       out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
+                                     params$param_name[i], # parameter name
+                                     params$model_idx[i], # parameter name
+                                     param_transform, # transformation of parameter
+                                     params$param_value[i],  # initial parameter value
+                                     param_ranges$min[param_ranges$param == params$param_name[i]], # lower bound of parameter
+                                     param_ranges$max[param_ranges$param == params$param_name[i]], # upper bound of parameter
+                                     params$param_name[i]) # parameter group
+                     }) %>% paste(., collapse = '\n'),
+                     sep = '\n')
 
   obs_groups = paste('* observation groups',
                      'wtemp',
@@ -128,9 +141,11 @@ write_pestpp_pst_files = function(params,
                          sep = '\n')
 
   model_inout = paste('* model inputoutput',
+                      sprintf('%s %s', tpl_file_name, param_file_name),
                       sep = '\n')
 
   model_out = paste('* model output',
+                    sprintf('%s %s', ins_file_name, model_output_file),
                     sep = '\n')
 
   prior_inf = paste('* prior information',
@@ -138,6 +153,9 @@ write_pestpp_pst_files = function(params,
 
   reg = paste('* regularization',
               sep = '\n')
+
+  control_vars = paste('',
+                       sep = '\n')
 
 
   pst_out = paste(first_line,
@@ -151,9 +169,10 @@ write_pestpp_pst_files = function(params,
                   model_out,
                   prior_inf,
                   reg,
+                  control_vars,
                   sep = '\n')
 
-  writeLines(pif_out, file.path(model_run_loc, file_out))
+  writeLines(pst_out, file.path(model_run_loc, file_out))
 }
 
 
