@@ -91,10 +91,15 @@ write_pestpp_pst_files = function(params,
                        '0 0 0',
                        sep = '\n')
 
-  single_val_decomp = paste('* single value decomposition',
-                            sep = '\n')
+  # single value decomposition is not needed in control file unless you want to override default
+  #single_val_decomp = paste('* single value decomposition',
+  #                          sep = '\n')
 
-  param_groups = '* parameter groups'
+
+  param_groups = paste('* parameter groups',
+                       'ss_tau relative 0.01 0.01 switch 2.0 parabolic',
+                       'gw_tau relative 0.01 0.01 switch 2.0 parabolic',
+                       sep = '\n')
 
   param_data = paste()
 
