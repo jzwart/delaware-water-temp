@@ -99,8 +99,8 @@ write_pestpp_pst_files = function(params,
   #                          sep = '\n')
 
   param_groups = paste('* parameter groups',
-                       'ss_tau relative 0.01 0.01 switch 2.0 parabolic',
-                       'gw_tau relative 0.01 0.01 switch 2.0 parabolic',
+                       'ss_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                       'gw_tau absolute 1.0 0.01 switch 2.0 parabolic',
                        sep = '\n')
 
   param_data = paste('* parameter data',
@@ -137,16 +137,17 @@ write_pestpp_pst_files = function(params,
   }) %>% paste(., collapse = '\n') %>% paste('* observation data', ., sep = '\n')
 
   model_cmd_line = paste('* model command line',
-                         'delaware.bat',
+                         '"C:/Program Files/R/R-4.0.0/bin/Rscript.exe" ../src/pestpp_model_call.R',
                          sep = '\n')
 
-  model_inout = paste('* model inputoutput',
+  model_inout = paste('* model input/output',
                       sprintf('%s %s', tpl_file_name, param_file_name),
+                      sprintf('%s %s', ins_file_name, model_output_file),
                       sep = '\n')
 
-  model_out = paste('* model output',
-                    sprintf('%s %s', ins_file_name, model_output_file),
-                    sep = '\n')
+  # model_out = paste('* model output',
+  #                   sprintf('%s %s', ins_file_name, model_output_file),
+  #                   sep = '\n')
 
   prior_inf = paste('* prior information',
                     sep = '\n')
@@ -166,7 +167,7 @@ write_pestpp_pst_files = function(params,
                   obs_data,
                   model_cmd_line,
                   model_inout,
-                  model_out,
+                  # model_out,
                   prior_inf,
                   reg,
                   control_vars,

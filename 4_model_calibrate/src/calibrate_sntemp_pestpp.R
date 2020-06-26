@@ -42,9 +42,6 @@ calibrate_sntemp = function(ind_file,
   source('4_model_calibrate/src/write_pestpp_pst_files.R')
   library(tidyverse)
   library(igraph)
-  library(hydroPSO) # need to use modified version of this package on https://github.com/jzwart/hydroPSO
-  library(hydroGOF)
-  library(hydroTSM)
   start = '1980-10-01'
   stop = '2004-09-30'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
@@ -52,7 +49,7 @@ calibrate_sntemp = function(ind_file,
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
   model_run_loc = I('4_model_calibrate/tmp')
   orig_model_loc = I('20191002_Delaware_streamtemp')
-  pestpp_exe_loc = I('pest++_bin')
+  pestpp_exe_loc = I('pestpp/bin/win')
   subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
   subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
   param_ranges = as_tibble(yaml::read_yaml('4_model_calibrate/cfg/calibration_settings.yml')$param_ranges)
@@ -60,10 +57,10 @@ calibrate_sntemp = function(ind_file,
 
 
   # copy over original run files to temporary file location
-  # dir.create(model_run_loc, showWarnings = F)
-  # print('Copying original model files to model working directory...')
-  # files_to_transfer = list.files(orig_model_loc)
-  # file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
+  dir.create(model_run_loc, showWarnings = F)
+  print('Copying original model files to model working directory...')
+  files_to_transfer = list.files(orig_model_loc)
+  file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
   # copy over pest++ executables
   files_to_transfer = list.files(pestpp_exe_loc)
   file.copy(from = file.path(pestpp_exe_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
@@ -176,8 +173,6 @@ calibrate_sntemp = function(ind_file,
                            delim = '@',
                            secondary_delim = '!')
 
-
-
     # write PEST++ control file
     write_pestpp_pst_files(params = cur_params_to_cal,
                            model_run_loc = model_run_loc,
@@ -190,11 +185,16 @@ calibrate_sntemp = function(ind_file,
                            tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
                            ins_file_name = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet))
 
+    set_sntemp_start_stop(start = start,
+                          stop = stop,
+                          model_run_loc = model_run_loc,
+                          control_file = 'delaware.control')
+
     current.wd = getwd() # getting current project root wd to reset after running pest++
 
     setwd(file.path(current.wd, model_run_loc)) # set wd to where model run location is
     # to run pest++ in serial, pest++ pest_ctl_file.pst
-    shell(sprintf('pest++ %s', sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet))) # run pest++
+    shell(sprintf('pestpp-glm %s', sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet))) # run pest++
 
     setwd(current.wd) # set wd back to root of project
 

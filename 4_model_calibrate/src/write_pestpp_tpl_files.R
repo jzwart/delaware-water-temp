@@ -23,7 +23,7 @@ write_pestpp_tpl_files = function(params,
     row_number[i] = cur_param_loc
   }
   params$row_number = row_number
-  params$tpl = sprintf('%s%s          %s', delim, paste(params$param_name, params$model_idx, sep = '_'), delim)
+  params$tpl = sprintf('%s%s  %s', delim, paste(params$param_name, params$model_idx, sep = '_'), delim)
 
   params_out[params$row_number] = params$tpl
 
