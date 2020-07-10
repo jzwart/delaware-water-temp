@@ -59,3 +59,30 @@ server_put(local_dir = 'C:/Users/jzwart/Documents',
 # rm rgdal_1.4-8.tar.gz
 #
 
+
+######################### for running PRMS on Denali #######################
+# I compiled prms on denali using:
+
+# > module load gcc/8.3.0
+### moving all PRMS files to Denali
+### navigating to prms root dir and making sure there is a bin directory at ../bin
+# > make
+### navigate to bin directory where prms was put
+# > chmod +x prms
+### now we should be able to execute prms with:
+# > ./prms
+
+### If copying files from Windows machine to Denali, you need to convert delaware.control, myparams.param, and seg_tave_water.csv files to unix using the dos2unix command
+# > dos2unix input/myparams.param
+
+### From Steve Markstrom on 2020-07-10 re: PRMS-SNTemp model on Denali:
+# "the best version of PRMS on denali that runs stream temp
+# is located at /caldera/projects/usgs/water/wbeep/NHM/gf_v11/gridmet/prms_5.1.0/prms/prms/prms
+# This is PRMS version 5.1.0 and has been compiled on denali using GCC 8.3.0"
+
+
+
+
+
+
+

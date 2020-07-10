@@ -42,7 +42,7 @@ calibrate_sntemp = function(ind_file,
   source('4_model_calibrate/src/write_pestpp_pst_files.R')
   library(tidyverse)
   library(igraph)
-  start = '1980-10-01'
+  start = '2000-10-01'
   stop = '2004-09-30'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
@@ -107,7 +107,7 @@ calibrate_sntemp = function(ind_file,
   run_sntemp(start = (start-1),
              stop = (start-1),
              spinup = T,
-             restart = F, spinup_days = 2,
+             restart = F, #spinup_days = 2,
              var_save_file = 'prms_ic.out',
              model_run_loc = model_run_loc)
 
@@ -194,12 +194,84 @@ calibrate_sntemp = function(ind_file,
 
     setwd(file.path(current.wd, model_run_loc)) # set wd to where model run location is
     # to run pest++ in serial, pest++ pest_ctl_file.pst
-    shell(sprintf('pestpp-glm %s', sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet))) # run pest++
+    shell(sprintf('pestpp-ies %s', sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet))) # run pest++; this is running pestpp 4.3.17
 
     setwd(current.wd) # set wd back to root of project
+
+    #######################################
+    # best pars to compare RMSE
+    best_params = data.table::fread('4_model_calibrate/tmp/pestpp/subbasin_4182.8.par.csv') %>%
+      select(2:ncol(.)) %>% slice(nrow(.)) %>% # taking mean val of params
+      pivot_longer(cols = contains('tau'),names_to = 'param', values_to = 'param_val') %>%
+      mutate(model_idx = NA)
+
+    for(i in 1:length(best_params$param)){
+      best_params$model_idx[i] = strsplit(best_params$param[i], 'tau_')[[1]][2]
+    }
+    best_params
+
+    new_params = init_params
+
+    for(i in 1:length(best_params$param)){
+      idx = as.numeric(best_params$model_idx[i])
+      if(grepl('gw',best_params$param[i])){
+        idx = idx + 456
+      }
+      new_params[idx] = round(best_params$param_val[i], digits = 0)
+    }
+
+    update_sntemp_params(param_names = param_names,
+                         updated_params = init_params,
+                         model_run_loc = model_run_loc,
+                         param_file = 'input/myparam.param')
+
+
+    set_sntemp_start_stop(start = start,
+                          stop = stop,
+                          model_run_loc = model_run_loc,
+                          control_file = 'delaware.control')
+
+    # optionally run SNTemp with calibrated params to see how well we're doing
+    run_sntemp(start = start,
+               stop = stop,
+               spinup = T,
+               restart = T,
+               var_init_file = 'prms_ic.out',
+               var_save_file = 'prms_ic.out',
+               model_run_loc = model_run_loc)
+
+    preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                                   model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp'))
+
+    compare = left_join(preds, select(cur_obs, model_idx, date, temp_C),
+                        by = c('model_idx', 'date')) %>%
+      dplyr::filter(model_idx %in% cur_model_idxs)
+
+    rmse(compare$temp_C, compare$water_temp, na.rm = T)
+
+
+
 
   }
 
 }
 
+
+
+
+
+rmse = function (actual, predicted, na.rm = T)
+{
+  return(sqrt(mse(actual, predicted, na.rm)))
+}
+
+mse = function (actual, predicted, na.rm = T)
+{
+  return(mean(se(actual, predicted), na.rm = na.rm))
+}
+
+se = function (actual, predicted)
+{
+  return((actual - predicted)^2)
+}
 
