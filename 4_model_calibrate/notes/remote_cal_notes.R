@@ -82,6 +82,11 @@ server_put(local_dir = 'C:/Users/jzwart/Documents',
 
 
 
+################# Parameters to calibrate ###################################
+# jh_coef = high sensativity based on some work done by Markstrom in the Skunk river
+#  this parameter is a per HRU x month basis. In the parameter file (myparam.param), jh_coef
+#  is organized in order of model_idx HRU and then month - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 764_Dec, 765_Dec
+
 
 
 

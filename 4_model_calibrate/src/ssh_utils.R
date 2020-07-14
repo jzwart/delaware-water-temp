@@ -69,14 +69,19 @@ server_put <- function(local_dir,
 
 server_get <- function(local_dir,
                        server_dir,
-                       files,
+                       files = NULL,
                        server){
   user <- Sys.info()[['user']]
   session <- ssh::ssh_connect(sprintf('%s@%s.cr.usgs.gov', user, server))
+  on.exit(ssh::ssh_disconnect(session = session))
+
+  if(is.null(files)){
+    files = list_server_files(server_dir = server_dir,
+                              server = server)
+  }
 
   file_paths = sprintf('%s/%s', server_dir, files)
 
   ssh::scp_download(session = session, files = file_paths, to = local_dir)
 
-  ssh::ssh_disconnect(session = session)
 }

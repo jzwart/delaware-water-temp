@@ -103,6 +103,8 @@ calibrate_sntemp = function(ind_file,
                        model_run_loc = model_run_loc,
                        param_file = 'input/myparam.param')
 
+
+
   # run sntemp once with spinup to create a starting point for the model
   run_sntemp(start = (start-1),
              stop = (start-1),
@@ -200,7 +202,7 @@ calibrate_sntemp = function(ind_file,
 
     #######################################
     # best pars to compare RMSE
-    best_params = data.table::fread('4_model_calibrate/tmp/pestpp/subbasin_4182.8.par.csv') %>%
+    best_params = data.table::fread('4_model_calibrate/tmp/pestpp/subbasin_4182.6.par.csv') %>%
       select(2:ncol(.)) %>% slice(nrow(.)) %>% # taking mean val of params
       pivot_longer(cols = contains('tau'),names_to = 'param', values_to = 'param_val') %>%
       mutate(model_idx = NA)
@@ -221,7 +223,7 @@ calibrate_sntemp = function(ind_file,
     }
 
     update_sntemp_params(param_names = param_names,
-                         updated_params = init_params,
+                         updated_params = new_params,
                          model_run_loc = model_run_loc,
                          param_file = 'input/myparam.param')
 
@@ -232,8 +234,8 @@ calibrate_sntemp = function(ind_file,
                           control_file = 'delaware.control')
 
     # optionally run SNTemp with calibrated params to see how well we're doing
-    run_sntemp(start = start,
-               stop = stop,
+    run_sntemp(start = '2004-10-01',
+               stop = '2016-09-30',
                spinup = T,
                restart = T,
                var_init_file = 'prms_ic.out',

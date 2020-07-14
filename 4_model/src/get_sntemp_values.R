@@ -177,3 +177,40 @@ get_sntemp_params = function(param_names,
 }
 
 
+# function for retrieving jh_coef from param file
+get_jh_coef = function(model_run_loc,
+                       model_fabric_file = 'GIS/Segments_subset.shp',
+                       model_hrus_file = 'GIS/HRU_subset.shp',
+                       param_file = 'input/myparam.param',
+                       n_hrus = 765,
+                       n_months = 12){
+
+  params = readLines(file.path(model_run_loc, param_file))
+
+  model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
+
+  model_hrus = sf::read_sf(file.path(model_run_loc, model_hrus_file))
+
+  # order by model_idx
+  hru_ids = tibble(hru_id_nat = as.character(model_hrus$hru_id_nat), model_idx = as.character(model_hrus$model_idx)) %>%
+    arrange(as.numeric(model_idx))
+
+  months = as.character(seq(1, n_months))
+
+  out = expand_grid(model_idx = hru_ids$model_idx, month = months) %>%
+    left_join(hru_ids, by = 'model_idx') %>%
+    arrange(as.numeric(month), as.numeric(model_idx)) %>%
+    select(hru_id_nat, model_idx, month)
+
+  param_loc_start = which(params == 'jh_coef') + 6
+  param_loc_end = param_loc_start + n_hrus * n_months - 1
+
+  # jh_coef is a per HRU x month basis. In the parameter file (myparam.param), jh_coef
+  #  is organized in order of model_idx HRU and then month - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 764_Dec, 765_Dec
+  cur_param_vals = params[param_loc_start:param_loc_end]
+
+  out = mutate(out, jh_coef = cur_param_vals)
+
+  return(out)
+}
+

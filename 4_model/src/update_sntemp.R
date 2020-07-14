@@ -18,6 +18,24 @@ update_sntemp_params = function(param_names, updated_params,
   writeLines(params, file.path(model_run_loc, param_file))
 }
 
+#' update parameters
+#'
+update_jh_coef = function(updated_params,
+                          model_run_loc = '4_model/tmp',
+                          param_file = 'input/myparam.param',
+                          n_hrus = 765,
+                          n_months = 12){
+
+  params = readLines(file.path(model_run_loc, param_file))
+
+  param_loc_start = which(params == 'jh_coef') + 6
+  param_loc_end = param_loc_start + n_hrus * n_months - 1
+
+  params[param_loc_start:param_loc_end] = as.character(round(as.numeric(updated_params[((i-1)*n_segments+1):(i*n_segments)]), digits = 0))
+
+  writeLines(params, file.path(model_run_loc, param_file))
+}
+
 
 #' update states
 #'
