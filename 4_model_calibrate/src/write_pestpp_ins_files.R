@@ -8,13 +8,16 @@ write_pestpp_ins_files = function(params,
                                   delim,
                                   secondary_delim){
 
+  seg_params = params$seg_params
+  seg_month_params = params$seg_month_params
+
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
   colnames(output)[2:ncol(output)] = model_idxs
   dates = strftime(strptime(output$Date, format = '%Y-%m-%d'), '%Y%m%d') # date vector for
 
   # output[1:5,1:5]
-  cur_model_idxs = unique(params$model_idx)
+  cur_model_idxs = unique(seg_params$model_idx)
 
   # format for .ins file based on modeled temperature output:
   #

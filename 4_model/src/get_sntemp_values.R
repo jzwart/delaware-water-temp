@@ -214,3 +214,38 @@ get_jh_coef = function(model_run_loc,
   return(out)
 }
 
+
+
+# function for retrieving jh_coef from param file
+get_lat_temp_adj = function(model_run_loc,
+                            model_fabric_file = 'GIS/Segments_subset.shp',
+                            param_file = 'input/myparam.param',
+                            n_segments = 456,
+                            n_months = 12){
+
+  params = readLines(file.path(model_run_loc, param_file))
+
+  model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
+
+  # order by model_idx
+  seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
+    arrange(as.numeric(model_idx))
+
+  months = as.character(seq(1, n_months))
+
+  out = expand_grid(model_idx = seg_ids$model_idx, month = months) %>%
+    left_join(seg_ids, by = 'model_idx') %>%
+    arrange(as.numeric(month), as.numeric(model_idx)) %>%
+    select(seg_id_nat, model_idx, month)
+
+  param_loc_start = which(params == 'lat_temp_adj') + 6
+  param_loc_end = param_loc_start + n_segments * n_months - 1
+
+  # lat_temp_adj is a per segment x month basis. In the parameter file (myparam.param), lat_temp_adj
+  #  is organized in order of segment model_idx and then month - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 455_Dec, 456_Dec
+  cur_param_vals = params[param_loc_start:param_loc_end]
+
+  out = mutate(out, lat_temp_adj = cur_param_vals)
+
+  return(out)
+}

@@ -103,7 +103,15 @@ calibrate_sntemp = function(ind_file,
                        model_run_loc = model_run_loc,
                        param_file = 'input/myparam.param')
 
+  # jh_coef_init = get_jh_coef(model_run_loc = orig_model_loc)
+  #
+  # update_jh_coef(updated_params = jh_coef_init$jh_coef,
+  #                model_run_loc = model_run_loc)
 
+  lat_temp_adj_init = get_lat_temp_adj(model_run_loc = orig_model_loc)
+
+  update_lat_temp_adj(updated_params = lat_temp_adj_init$lat_temp_adj,
+                      model_run_loc = model_run_loc)
 
   # run sntemp once with spinup to create a starting point for the model
   run_sntemp(start = (start-1),
@@ -146,9 +154,19 @@ calibrate_sntemp = function(ind_file,
     # pull out parameters for current subbasin
     cur_params = cur_params %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
 
+    cur_lat_temp_adj = get_lat_temp_adj(model_run_loc = model_run_loc)
+
+    cur_lat_temp_adj = cur_lat_temp_adj %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
+
     cur_params_to_cal = dplyr::filter(cur_params, calibrate == T) %>%
       pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
       arrange(factor(param_name, levels = param_names), as.numeric(model_idx))
+
+    cur_lat_temp_adj_to_cal = dplyr::filter(cur_lat_temp_adj, calibrate == T) %>%
+      pivot_longer(cols = 'lat_temp_adj', names_to = 'param_name', values_to = 'param_value') %>%
+      arrange(as.numeric(month), as.numeric(model_idx))
+
+    cur_params_to_cal = list(seg_params = cur_params_to_cal, seg_month_params = cur_lat_temp_adj_to_cal)
 
     # write template files needed for running PEST++
     write_pestpp_tpl_files(params = cur_params_to_cal,
