@@ -220,24 +220,36 @@ calibrate_sntemp = function(ind_file,
 
     #######################################
     # best pars to compare RMSE
-    best_params = data.table::fread('4_model_calibrate/tmp/pestpp/subbasin_4182.6.par.csv') %>%
+    best_params = data.table::fread('4_model_calibrate/tmp/pestpp/subbasin_4182.9.par.csv') %>%
       select(2:ncol(.)) %>% slice(nrow(.)) %>% # taking mean val of params
-      pivot_longer(cols = contains('tau'),names_to = 'param', values_to = 'param_val') %>%
-      mutate(model_idx = NA)
+      pivot_longer(cols = contains(c('tau','lat')),names_to = 'param', values_to = 'param_val') %>%
+      mutate(model_idx = NA, month = NA)
 
     for(i in 1:length(best_params$param)){
-      best_params$model_idx[i] = strsplit(best_params$param[i], 'tau_')[[1]][2]
+      if(grepl('tau', best_params$param[i])){
+        best_params$model_idx[i] = strsplit(best_params$param[i], 'tau_')[[1]][2]
+      }else if(grepl('lat', best_params$param[i])){
+        best_params$model_idx[i] = strsplit(strsplit(best_params$param[i], 'adj_')[[1]][2], '_')[[1]][1]
+        best_params$month[i] = strsplit(strsplit(best_params$param[i], 'adj_')[[1]][2], '_')[[1]][2]
+
+      }
     }
     best_params
 
     new_params = init_params
+    new_lat_adj_params = lat_temp_adj_init$lat_temp_adj
 
     for(i in 1:length(best_params$param)){
       idx = as.numeric(best_params$model_idx[i])
-      if(grepl('gw',best_params$param[i])){
-        idx = idx + 456
+      if(grepl('tau', best_params$param[i])){
+        if(grepl('gw',best_params$param[i])){
+          idx = idx + 456
+        }
+        new_params[idx] = as.character(round(best_params$param_val[i], digits = 0))
+      }else if(grepl('lat', best_params$param[i])){
+        month = as.numeric(best_params$month[i])
+        new_lat_adj_params[idx + (idx * (month - 1))] = as.character(round(as.numeric(best_params$param_val[i]), digits = 3))
       }
-      new_params[idx] = round(best_params$param_val[i], digits = 0)
     }
 
     update_sntemp_params(param_names = param_names,
@@ -245,6 +257,8 @@ calibrate_sntemp = function(ind_file,
                          model_run_loc = model_run_loc,
                          param_file = 'input/myparam.param')
 
+    update_lat_temp_adj(updated_params = new_lat_adj_params,
+                        model_run_loc = model_run_loc)
 
     set_sntemp_start_stop(start = start,
                           stop = stop,
@@ -252,8 +266,8 @@ calibrate_sntemp = function(ind_file,
                           control_file = 'delaware.control')
 
     # optionally run SNTemp with calibrated params to see how well we're doing
-    run_sntemp(start = '2004-10-01',
-               stop = '2016-09-30',
+    run_sntemp(start = start,
+               stop = stop,
                spinup = T,
                restart = T,
                var_init_file = 'prms_ic.out',
