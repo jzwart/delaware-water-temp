@@ -52,7 +52,7 @@ calibrate_sntemp = function(ind_file,
   pestpp_exe_loc = I('pestpp/bin/win')
   subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
   subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
-  param_ranges = as_tibble(yaml::read_yaml('4_model_calibrate/cfg/calibration_settings.yml')$param_ranges)
+  param_groups = as_tibble(yaml::read_yaml('4_model_calibrate/cfg/calibration_settings.yml')$param_groups)
  #######################################################################
 
 
@@ -194,17 +194,16 @@ calibrate_sntemp = function(ind_file,
                          secondary_delim = '!')
 
   # write PEST++ sen control file
-  write_pestpp_sen_pst_files(params = cur_params_to_cal,
-                             model_run_loc = model_run_loc,
-                             model_output_file = 'output/seg_tave_water.csv',
-                             obs = cur_obs,
-                             file_out = sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet),
-                             param_transform = 'log',
-                             param_ranges = param_ranges,
-                             param_file_name = 'input/myparam.param',
-                             tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
-                             ins_file_name = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet),
-                             tie_by_group = T) # tying parameters together by group (e.g. gw_tau)
+  write_pestpp_pst_files(params = cur_params_to_cal,
+                         model_run_loc = model_run_loc,
+                         model_output_file = 'output/seg_tave_water.csv',
+                         obs = cur_obs,
+                         file_out = sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet),
+                         param_groups = param_groups,
+                         param_file_name = 'input/myparam.param',
+                         tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
+                         ins_file_name = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet),
+                         tie_by_group = T) # tying parameters together by group (e.g. gw_tau)
 
   set_sntemp_start_stop(start = start,
                         stop = stop,

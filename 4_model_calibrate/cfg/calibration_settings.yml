@@ -5,11 +5,16 @@ stop: '2014-07-10'
 
 params_to_cal: ['ss_tau', 'gw_tau', 'vce'] # parameters we want to calibrate
 
-param_ranges:
+param_groups:
   param:
   - ss_tau
   - gw_tau
   - vce
+  - voe # need to add these down to vdemx ; 2020-08-12
+  - vhe
+  - alte
+  - albedo
+  - vdemx
   - lat_temp_adj
   min:
   - 1.0
@@ -21,6 +26,42 @@ param_ranges:
   - 150.0
   - 15.0
   - 10
+  partrans:
+  - log
+  - log
+  - none
+  - none
+  inctyp:
+  - absolute
+  - absolute
+  - absolute
+  - relative
+  derinc:
+  - 1.0
+  - 1.0
+  - 1.0
+  - 0.01
+  derinclb:
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.0
+  forcen:
+  - switch
+  - switch
+  - switch
+  - switch
+  derincmul:
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  dermthd:
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+
 
 sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw', 'seg_tave_sroff', 'seg_tave_ss',
 'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow', 'seginc_potet', 'seginc_sroff', 'seginc_ssflow',

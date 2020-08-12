@@ -5,6 +5,7 @@ packages:
 
 sources:
   - 2_3_model_parameters/src/get_init_sntemp_params.R
+  - 2_3_model_parameters/src/add_default_sntemp_params.R
 
 targets:
   2_3_model_parameters:
@@ -29,11 +30,17 @@ targets:
     command: read_yaml('4_model_calibrate/cfg/calibration_settings.yml')
 
   param_names_calibration:
-    command: calibration_settings[I('params_to_cal')]
+    command: calibration_settings[[I('params_to_cal')]]
+
+  add_default_params:
+    command: add_default_sntemp_params(
+      param_names = param_names_calibration,
+      model_run_loc = I('20191002_Delaware_streamtemp'))
 
   2_3_model_parameters/out/calibration_params_init.rds.ind:
     command: get_init_sntemp_params(
       ind_file = target_name,
-      param_names = param_names_calibration)
+      param_names = param_names_calibration,
+      model_run_loc = I('20191002_Delaware_streamtemp'))
   2_3_model_parameters/out/calibration_params_init.rds:
     command: gd_get('2_3_model_parameters/out/calibration_params_init.rds.ind')
