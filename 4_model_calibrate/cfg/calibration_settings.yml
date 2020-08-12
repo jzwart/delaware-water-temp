@@ -3,20 +3,23 @@
 start: '2014-05-01'
 stop: '2014-07-10'
 
-params_to_cal: ['ss_tau', 'gw_tau'] # parameters we want to calibrate
+params_to_cal: ['ss_tau', 'gw_tau', 'vce'] # parameters we want to calibrate
 
 param_ranges:
   param:
   - ss_tau
   - gw_tau
+  - vce
   - lat_temp_adj
   min:
   - 1.0
   - 10.0
+  - 0.0
   - -10
   max:
   - 50.0
   - 150.0
+  - 15.0
   - 10
 
 sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw', 'seg_tave_sroff', 'seg_tave_ss',

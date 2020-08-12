@@ -1,13 +1,13 @@
 
-
+# this is only for segment based parameters (i.e. one parameter per segment )
 get_init_sntemp_params = function(ind_file,
                                   param_names,
                                   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
-                                  param_file = 'delaware.control.param',
+                                  param_file = 'input/myparam.param',
                                   n_segments = 456,
                                   gd_config = 'lib/cfg/gd_config.yml'){
 
-  params = readLines(file.path('20191002_Delaware_streamtemp/control', param_file))
+  params = readLines(file.path('20191002_Delaware_streamtemp', param_file))
 
   model_fabric = sf::read_sf(model_fabric_file)
 
