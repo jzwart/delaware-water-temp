@@ -8,8 +8,12 @@ write_pestpp_ins_files = function(params,
                                   delim,
                                   secondary_delim){
 
-  seg_params = params$seg_params
-  seg_month_params = params$seg_month_params
+  if(!is.null(params$seg_params)){
+    seg_params = params$seg_params
+  }else{seg_params = NULL}
+  if(!is.null(params$seg_month_params)){
+    seg_month_params = params$seg_month_params
+  }else{seg_month_params = NULL}
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)

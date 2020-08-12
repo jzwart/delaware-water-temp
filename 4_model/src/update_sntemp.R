@@ -1,7 +1,8 @@
 
 #' update parameters
 #'
-update_sntemp_params = function(param_names, updated_params,
+update_sntemp_params = function(param_names,
+                                updated_params,
                                 model_run_loc = '4_model/tmp',
                                 param_file = 'input/myparam.param',
                                 n_segments = 456){

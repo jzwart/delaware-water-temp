@@ -1,4 +1,6 @@
 
+# combine these functions into one and make the control variables an input from yaml file
+
 
 # function for writing control files for pestpp
 write_pestpp_pst_files = function(params,
@@ -12,8 +14,12 @@ write_pestpp_pst_files = function(params,
                                   param_file_name,
                                   ins_file_name){
 
-  seg_params = params$seg_params
-  seg_month_params = params$seg_month_params
+  if(!is.null(params$seg_params)){
+    seg_params = params$seg_params
+  }else{seg_params = NULL}
+  if(!is.null(params$seg_month_params)){
+    seg_month_params = params$seg_month_params
+  }else{seg_month_params = NULL}
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
@@ -81,12 +87,25 @@ write_pestpp_pst_files = function(params,
 
   first_line = 'pcf'
 
+  if(!is.null(seg_params)){
+    if(!is.null(seg_month_params)){
+      npar = nrow(seg_params) + nrow(seg_month_params) # if there are both param types, count them all
+      npargp = length(unique(c(seg_params$param_name, seg_month_params$param_name)))
+    }else{
+      npar = nrow(seg_params) # if only seg_params
+      npargp = length(unique(seg_params$param_name))
+    }
+  }else if(!is.null(seg_month_params)){
+    npar = nrow(seg_month_params) # if only seg_params
+    npargp = length(unique(seg_month_params$param_name))
+  }
+
   control_data = paste('* control data',
                        'restart estimation',
                        sprintf('%s %s %s %s %s',
-                               nrow(seg_params) + nrow(seg_month_params),
+                               npar,
                                length(dates) * length(cur_model_idxs),
-                               length(unique(c(seg_params$param_name, seg_month_params$param_name))),
+                               npargp,
                                '0',
                                '1'),
                        '1 1 single point',
@@ -101,35 +120,57 @@ write_pestpp_pst_files = function(params,
   #single_val_decomp = paste('* single value decomposition',
   #                          sep = '\n')
 
-  param_groups = paste('* parameter groups',
-                       'ss_tau absolute 1.0 0.01 switch 2.0 parabolic',
-                       'gw_tau absolute 1.0 0.01 switch 2.0 parabolic',
-                       'lat_temp_adj relative 0.01 0.0 switch 2.0 parabolic',
-                       sep = '\n')
+  # change this to be input from yaml file (similar to range of values )
+  if(!is.null(seg_params) & !is.null(seg_month_params)){
+    param_groups = paste('* parameter groups',
+                         'ss_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         'gw_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         'lat_temp_adj relative 0.01 0.0 switch 2.0 parabolic',
+                         sep = '\n')
 
-  param_data = paste('* parameter data',
-                     sapply(seq_along(seg_params$model_idx), function(i){
-                       out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
-                                     seg_params$param_name[i], # parameter name
-                                     seg_params$model_idx[i], # parameter name
-                                     param_transform, # transformation of parameter
-                                     seg_params$param_value[i],  # initial parameter value
-                                     param_ranges$min[param_ranges$param == seg_params$param_name[i]], # lower bound of parameter
-                                     param_ranges$max[param_ranges$param == seg_params$param_name[i]], # upper bound of parameter
-                                     seg_params$param_name[i]) # parameter group
-                     }) %>% paste(., collapse = '\n'),
-                     sapply(seq_along(seg_month_params$model_idx), function(i){
-                       out = sprintf('%s_%s_%s %s relative %s %s %s %s 1.0 0.0 1',
-                                     seg_month_params$param_name[i], # parameter name
-                                     seg_month_params$model_idx[i], # model idx
-                                     seg_month_params$month[i], # month
-                                     'none', # transformation of parameter
-                                     seg_month_params$param_value[i],  # initial parameter value
-                                     param_ranges$min[param_ranges$param == seg_month_params$param_name[i]], # lower bound of parameter
-                                     param_ranges$max[param_ranges$param == seg_month_params$param_name[i]], # upper bound of parameter
-                                     seg_month_params$param_name[i]) # parameter group
-                     }) %>% paste(., collapse = '\n'),
-                     sep = '\n')
+    param_data = paste('* parameter data',
+                       sapply(seq_along(seg_params$model_idx), function(i){
+                         out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
+                                       seg_params$param_name[i], # parameter name
+                                       seg_params$model_idx[i], # parameter name
+                                       param_transform, # transformation of parameter
+                                       seg_params$param_value[i],  # initial parameter value
+                                       param_ranges$min[param_ranges$param == seg_params$param_name[i]], # lower bound of parameter
+                                       param_ranges$max[param_ranges$param == seg_params$param_name[i]], # upper bound of parameter
+                                       seg_params$param_name[i]) # parameter group
+                       }) %>% paste(., collapse = '\n'),
+                       sapply(seq_along(seg_month_params$model_idx), function(i){
+                         out = sprintf('%s_%s_%s %s relative %s %s %s %s 1.0 0.0 1',
+                                       seg_month_params$param_name[i], # parameter name
+                                       seg_month_params$model_idx[i], # model idx
+                                       seg_month_params$month[i], # month
+                                       'none', # transformation of parameter
+                                       seg_month_params$param_value[i],  # initial parameter value
+                                       param_ranges$min[param_ranges$param == seg_month_params$param_name[i]], # lower bound of parameter
+                                       param_ranges$max[param_ranges$param == seg_month_params$param_name[i]], # upper bound of parameter
+                                       seg_month_params$param_name[i]) # parameter group
+                       }) %>% paste(., collapse = '\n'),
+                       sep = '\n')
+  }else{
+    param_groups = paste('* parameter groups',
+                         'ss_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         'gw_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         sep = '\n')
+
+    param_data = paste('* parameter data',
+                       sapply(seq_along(seg_params$model_idx), function(i){
+                         out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
+                                       seg_params$param_name[i], # parameter name
+                                       seg_params$model_idx[i], # parameter name
+                                       param_transform, # transformation of parameter
+                                       seg_params$param_value[i],  # initial parameter value
+                                       param_ranges$min[param_ranges$param == seg_params$param_name[i]], # lower bound of parameter
+                                       param_ranges$max[param_ranges$param == seg_params$param_name[i]], # upper bound of parameter
+                                       seg_params$param_name[i]) # parameter group
+                       }) %>% paste(., collapse = '\n'),
+                       sep = '\n')
+  }
+
 
   obs_groups = paste('* observation groups',
                      'wtemp',
@@ -206,8 +247,12 @@ write_pestpp_sen_pst_files = function(params,
                                       ins_file_name,
                                       tie_by_group = F){
 
-  seg_params = params$seg_params
-  seg_month_params = params$seg_month_params
+  if(!is.null(params$seg_params)){
+    seg_params = params$seg_params
+  }else{seg_params = NULL}
+  if(!is.null(params$seg_month_params)){
+    seg_month_params = params$seg_month_params
+  }else{seg_month_params = NULL}
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
@@ -275,12 +320,25 @@ write_pestpp_sen_pst_files = function(params,
 
   first_line = 'pcf'
 
+  if(!is.null(seg_params)){
+    if(!is.null(seg_month_params)){
+      npar = nrow(seg_params) + nrow(seg_month_params) # if there are both param types, count them all
+      npargp = length(unique(c(seg_params$param_name, seg_month_params$param_name)))
+    }else{
+      npar = nrow(seg_params) # if only seg_params
+      npargp = length(unique(seg_params$param_name))
+    }
+  }else if(!is.null(seg_month_params)){
+    npar = nrow(seg_month_params) # if only seg_params
+    npargp = length(unique(seg_month_params$param_name))
+  }
+
   control_data = paste('* control data',
                        'restart estimation',
                        sprintf('%s %s %s %s %s',
-                               nrow(seg_params) + nrow(seg_month_params),
+                               npar,
                                length(dates) * length(cur_model_idxs),
-                               length(unique(c(seg_params$param_name, seg_month_params$param_name))),
+                               npargp,
                                '0',
                                '1'),
                        '1 1 single point',
@@ -295,35 +353,57 @@ write_pestpp_sen_pst_files = function(params,
   #single_val_decomp = paste('* single value decomposition',
   #                          sep = '\n')
 
-  param_groups = paste('* parameter groups',
-                       'ss_tau absolute 1.0 0.01 switch 2.0 parabolic',
-                       'gw_tau absolute 1.0 0.01 switch 2.0 parabolic',
-                       'lat_temp_adj relative 0.01 0.0 switch 2.0 parabolic',
-                       sep = '\n')
+  # change this to be input from yaml file (similar to range of values )
+  if(!is.null(seg_params) & !is.null(seg_month_params)){
+    param_groups = paste('* parameter groups',
+                         'ss_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         'gw_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         'lat_temp_adj relative 0.01 0.0 switch 2.0 parabolic',
+                         sep = '\n')
 
-  param_data = paste('* parameter data',
-                     sapply(seq_along(seg_params$model_idx), function(i){
-                       out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
-                                     seg_params$param_name[i], # parameter name
-                                     seg_params$model_idx[i], # parameter name
-                                     param_transform, # transformation of parameter
-                                     seg_params$param_value[i],  # initial parameter value
-                                     param_ranges$min[param_ranges$param == seg_params$param_name[i]], # lower bound of parameter
-                                     param_ranges$max[param_ranges$param == seg_params$param_name[i]], # upper bound of parameter
-                                     seg_params$param_name[i]) # parameter group
-                     }) %>% paste(., collapse = '\n'),
-                     sapply(seq_along(seg_month_params$model_idx), function(i){
-                       out = sprintf('%s_%s_%s %s relative %s %s %s %s 1.0 0.0 1',
-                                     seg_month_params$param_name[i], # parameter name
-                                     seg_month_params$model_idx[i], # model idx
-                                     seg_month_params$month[i], # month
-                                     'none', # transformation of parameter
-                                     seg_month_params$param_value[i],  # initial parameter value
-                                     param_ranges$min[param_ranges$param == seg_month_params$param_name[i]], # lower bound of parameter
-                                     param_ranges$max[param_ranges$param == seg_month_params$param_name[i]], # upper bound of parameter
-                                     seg_month_params$param_name[i]) # parameter group
-                     }) %>% paste(., collapse = '\n'),
-                     sep = '\n')
+    param_data = paste('* parameter data',
+                       sapply(seq_along(seg_params$model_idx), function(i){
+                         out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
+                                       seg_params$param_name[i], # parameter name
+                                       seg_params$model_idx[i], # parameter name
+                                       param_transform, # transformation of parameter
+                                       seg_params$param_value[i],  # initial parameter value
+                                       param_ranges$min[param_ranges$param == seg_params$param_name[i]], # lower bound of parameter
+                                       param_ranges$max[param_ranges$param == seg_params$param_name[i]], # upper bound of parameter
+                                       seg_params$param_name[i]) # parameter group
+                       }) %>% paste(., collapse = '\n'),
+                       sapply(seq_along(seg_month_params$model_idx), function(i){
+                         out = sprintf('%s_%s_%s %s relative %s %s %s %s 1.0 0.0 1',
+                                       seg_month_params$param_name[i], # parameter name
+                                       seg_month_params$model_idx[i], # model idx
+                                       seg_month_params$month[i], # month
+                                       'none', # transformation of parameter
+                                       seg_month_params$param_value[i],  # initial parameter value
+                                       param_ranges$min[param_ranges$param == seg_month_params$param_name[i]], # lower bound of parameter
+                                       param_ranges$max[param_ranges$param == seg_month_params$param_name[i]], # upper bound of parameter
+                                       seg_month_params$param_name[i]) # parameter group
+                       }) %>% paste(., collapse = '\n'),
+                       sep = '\n')
+  }else{
+    param_groups = paste('* parameter groups',
+                         'ss_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         'gw_tau absolute 1.0 0.01 switch 2.0 parabolic',
+                         sep = '\n')
+
+    param_data = paste('* parameter data',
+                       sapply(seq_along(seg_params$model_idx), function(i){
+                         out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
+                                       seg_params$param_name[i], # parameter name
+                                       seg_params$model_idx[i], # parameter name
+                                       param_transform, # transformation of parameter
+                                       seg_params$param_value[i],  # initial parameter value
+                                       param_ranges$min[param_ranges$param == seg_params$param_name[i]], # lower bound of parameter
+                                       param_ranges$max[param_ranges$param == seg_params$param_name[i]], # upper bound of parameter
+                                       seg_params$param_name[i]) # parameter group
+                       }) %>% paste(., collapse = '\n'),
+                       sep = '\n')
+  }
+
 
   obs_groups = paste('* observation groups',
                      'wtemp',
