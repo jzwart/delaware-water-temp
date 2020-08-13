@@ -82,10 +82,10 @@ calibrate_sntemp = function(ind_file,
     left_join(model_locations, by = 'seg_id_nat')
 
   # get initial parameters
-  init_params_df = readRDS(init_param_file) %>% arrange(as.numeric(model_idx))
+  init_params_list = readRDS(init_param_file) #%>% arrange(as.numeric(model_idx))
   # n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
 
-  param_names = colnames(init_params_df)[3:ncol(init_params_df)]
+  param_names = names(init_params_list)
 
   # read in the subbasins and calibration order
   subbasins = readRDS(subbasin_file)
@@ -93,13 +93,13 @@ calibrate_sntemp = function(ind_file,
   cal_order = get_calibration_order(subbasin_outlet_file = subbasin_outlet_file)
 
   # setting params to initial conditions before calibrating
-  init_params = init_params_df %>%
-    pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
-    arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
-    pull(param_value)
+  # init_params = init_params_df %>%
+  #   pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
+  #   arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
+  #   pull(param_value)
 
   update_sntemp_params(param_names = param_names,
-                       updated_params = init_params,
+                       updated_params = init_params_list,
                        model_run_loc = model_run_loc,
                        param_file = 'input/myparam.param')
 
@@ -108,10 +108,10 @@ calibrate_sntemp = function(ind_file,
   # update_jh_coef(updated_params = jh_coef_init$jh_coef,
   #                model_run_loc = model_run_loc)
 
-  lat_temp_adj_init = get_lat_temp_adj(model_run_loc = orig_model_loc)
-
-  update_lat_temp_adj(updated_params = lat_temp_adj_init$lat_temp_adj,
-                      model_run_loc = model_run_loc)
+  # lat_temp_adj_init = get_lat_temp_adj(model_run_loc = orig_model_loc)
+  #
+  # update_lat_temp_adj(updated_params = lat_temp_adj_init$lat_temp_adj,
+  #                     model_run_loc = model_run_loc)
 
   # run sntemp once with spinup to create a starting point for the model
   run_sntemp(start = (start-1),
@@ -150,6 +150,7 @@ calibrate_sntemp = function(ind_file,
                                  model_run_loc = model_run_loc,
                                  param_file = 'input/myparam.param')
 
+  ##################I'm here ##############################
   # pull out parameters for current subbasin
   cur_params = cur_params %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
 

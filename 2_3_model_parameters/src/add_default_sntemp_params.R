@@ -4,64 +4,36 @@
 add_default_sntemp_params = function(param_names,
                                      model_run_loc,
                                      param_file = 'input/myparam.param',
-                                     param_default_file = 'control/delaware.control.par_name',
-                                     n_segments = 456,
-                                     n_hru = 756,
-                                     n_months = 12){
+                                     param_default_file = 'control/delaware.control.par_name'){
 
   params = readLines(file.path(model_run_loc, param_file))
 
-  param_default = readLines(file.path(model_run_loc, param_default_file))
-
+  out = c()
   for(i in 1:length(param_names)){
     if(length(which(params == param_names[i])) == 0){ # checking if parameter not currently in param_file
       print(sprintf('%s was not in the parameter input file; adding default %s values to %s',
                     param_names[i], param_names[i], file.path(model_run_loc, param_file)))
       # if it isn't, then add append it to the the param_file with default values
-      param_default_loc = grep(param_names[i], param_default)
-
-      ndim = param_default[param_default_loc + 4] %>% sub('.*: ', '', .)
-      dim = param_default[param_default_loc + 5] %>% sub('.*: ', '', .)
-      if(as.numeric(ndim) > 1){
-        # I think there are only 2 dims max in PRMS-SNTemp, let's assume that for now
-        first_dim = sub(' -.*', '', dim)
-        second_dim = sub('.*, ', '', dim) %>% sub(' -.*', '', .)
-        dim = paste(first_dim, second_dim, sep = '\n')
-      }else{ # if only one dim, then extract everything to the left of '-'
-        dim = sub(' -.*', '', dim)
-      }
-      size = param_default[param_default_loc + 6] %>% sub('.*: ', '', .)
-      type = param_default[param_default_loc + 7] %>% sub('.*: ', '', .)
-      if(type == 'float'){
-        type = '2'
-      }else if(type == 'long'){
-        type = '1'
-      }
-      default = param_default[param_default_loc + 12] %>% sub('.*: ', '', .)
-
-      vals = rep(default, as.numeric(size))
+      defaults = get_default_param_vals(param_name = param_names[i],
+                                        model_run_loc = model_run_loc,
+                                        param_default_file = param_default_file)
 
       cur_default = paste('####',
-                          param_names[i],
-                          ndim,
-                          dim,
-                          size,
-                          type,
-                          paste(vals, collapse = '\n'),
+                          defaults$param_name,
+                          defaults$ndim,
+                          defaults$dim,
+                          defaults$size,
+                          defaults$type,
+                          paste(defaults$vals, collapse = '\n'),
                           sep = '\n')
+      out = c(out, cur_default)
     }else{
       print(sprintf('%s is already in the parameter input file; leaving %s parameters as is',
                     param_names[i], param_names[i]))
     }
   }
 
-  if(exists('cur_default')){
-    params_out = c(params,
-                   cur_default)
-  }else{
-    # all parameters in param_names
-    params_out = params
-  }
+  params_out = c(params, out)
 
   writeLines(params_out, file.path(model_run_loc, param_file))
 }
@@ -81,3 +53,40 @@ add_default_sntemp_params = function(param_names,
 # Min       : 0.010000
 # Default   : 1.000000
 
+get_default_param_vals = function(param_name,
+                                  model_run_loc,
+                                  param_default_file){
+
+  param_default = readLines(file.path(model_run_loc, param_default_file))
+
+  param_default_loc = grep(paste('Name.*:.*', param_name), param_default)
+
+  ndim = param_default[param_default_loc + 4] %>% sub('.*: ', '', .)
+  dim = param_default[param_default_loc + 5] %>% sub('.*: ', '', .)
+  if(as.numeric(ndim) > 1){
+    # I think there are only 2 dims max in PRMS-SNTemp, let's assume that for now
+    first_dim = sub(' -.*', '', dim)
+    second_dim = sub('.*, ', '', dim) %>% sub(' -.*', '', .)
+    dim = paste(first_dim, second_dim, sep = '\n')
+  }else{ # if only one dim, then extract everything to the left of '-'
+    dim = sub(' -.*', '', dim)
+  }
+  size = param_default[param_default_loc + 6] %>% sub('.*: ', '', .)
+  type = param_default[param_default_loc + 7] %>% sub('.*: ', '', .)
+  if(type == 'float'){
+    type = '2'
+  }else if(type == 'long'){
+    type = '1'
+  }
+  default = param_default[param_default_loc + 12] %>% sub('.*: ', '', .)
+
+  vals = rep(default, as.numeric(size))
+
+  out = list(param_name = param_name,
+             ndim = ndim,
+             dim = dim,
+             size = size,
+             type = type,
+             vals = vals)
+  return(out)
+}

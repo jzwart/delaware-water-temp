@@ -2,18 +2,39 @@
 #' update parameters
 #'
 update_sntemp_params = function(param_names,
-                                updated_params,
+                                updated_params, # list of parameters
                                 model_run_loc = '4_model/tmp',
                                 param_file = 'input/myparam.param',
+                                param_default_file = 'control/delaware.control.par_name',
                                 n_segments = 456){
 
   params = readLines(file.path(model_run_loc, param_file))
 
-  for(i in 1:length(param_names)){
-    param_loc_start = grep(param_names[i], params) + 5
-    param_loc_end = param_loc_start + n_segments - 1
+  for(i in seq_along(param_names)){
+    # add in default param in not in param file
+    if(length(which(params == param_names[i])) == 0){
+      add_default_sntemp_params(param_names = param_names[i],
+                                model_run_loc = model_run_loc,
+                                param_file = param_file,
+                                param_default_file = param_default_file)
+      params = readLines(file.path(model_run_loc, param_file))
+    }
 
-    params[param_loc_start:param_loc_end] = as.character(round(as.numeric(updated_params[((i-1)*n_segments+1):(i*n_segments)]), digits = 0))
+    defaults = get_default_param_vals(param_name = param_names[i],
+                                      model_run_loc = model_run_loc,
+                                      param_default_file = param_default_file)
+
+
+    param_loc_start = which(params == param_names[i]) + 4 + as.numeric(defaults$ndim)
+    param_loc_end = param_loc_start + as.numeric(defaults$size) - 1
+
+    cur_vals = updated_params[[param_names[i]]]
+
+    if(defaults$type == '1'){ # long
+      params[param_loc_start:param_loc_end] = as.character(round(as.numeric(cur_vals), digits = 0))
+    }else if(defaults$type == '2'){ # float
+      params[param_loc_start:param_loc_end] = as.character(round(as.numeric(cur_vals), digits = 6))
+    }
   }
 
   writeLines(params, file.path(model_run_loc, param_file))

@@ -5,6 +5,7 @@ get_init_sntemp_params = function(ind_file,
                                   model_run_loc,
                                   model_fabric_file = 'GIS/Segments_subset.shp',
                                   param_file = 'input/myparam.param',
+                                  param_default_file = 'control/delaware.control.par_name',
                                   n_segments = 456,
                                   gd_config = 'lib/cfg/gd_config.yml'){
 
@@ -16,20 +17,24 @@ get_init_sntemp_params = function(ind_file,
   seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
     arrange(as.numeric(model_idx))
 
-  out = seg_ids
+  out = vector(mode = 'list', length = length(param_names))
 
   if(length(param_names) == 0){
     out = out
   }else{
-    for(i in 1:length(param_names)){
-      param_loc_start = grep(param_names[i], params) + 5
-      param_loc_end = param_loc_start + n_segments - 1
+    for(i in seq_along(param_names)){
+
+      defaults = get_default_param_vals(param_name = param_names[i],
+                                        model_run_loc = model_run_loc,
+                                        param_default_file = param_default_file)
+
+      param_loc_start = which(params == param_names[i]) + 4 + as.numeric(defaults$ndim)
+      param_loc_end = param_loc_start + as.numeric(defaults$size) - 1
 
       cur_param_vals = params[param_loc_start:param_loc_end]
 
-      out = out %>%
-        mutate(temp_name = cur_param_vals) %>%
-        rename(!!noquote(param_names[i]) := temp_name)
+      out[[i]] = cur_param_vals
+      names(out)[i] = param_names[i]
     }
   }
 
