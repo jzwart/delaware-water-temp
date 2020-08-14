@@ -143,28 +143,10 @@ calibrate_sntemp = function(ind_file,
                           date <= as.Date(stop)) %>%
     arrange(as.numeric(model_idx), date)
 
-  # obs_vec = cur_obs$temp_C # vector of temp observations for hydroPSO
-
-  # current parameters (after calibrating subbasin if further along than first subbasin)
-  cur_params = get_sntemp_params(param_names = param_names,
-                                 model_run_loc = model_run_loc,
-                                 param_file = 'input/myparam.param')
-
-  ##################I'm here ##############################
-  # pull out parameters for current subbasin
-  cur_params = cur_params %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
-
-  cur_lat_temp_adj = get_lat_temp_adj(model_run_loc = model_run_loc)
-
-  cur_lat_temp_adj = cur_lat_temp_adj %>% mutate(calibrate = ifelse(model_idx %in% cur_model_idxs, T, F))
-
-  seg_params = dplyr::filter(cur_params, calibrate == T) %>%
-    pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
-    arrange(factor(param_name, levels = param_names), as.numeric(model_idx))
-
-  seg_month_params = dplyr::filter(cur_lat_temp_adj, calibrate == T) %>%
-    pivot_longer(cols = 'lat_temp_adj', names_to = 'param_name', values_to = 'param_value') %>%
-    arrange(as.numeric(month), as.numeric(model_idx))
+  # pull out parameters for current subbasin based on segment model_idx
+  cur_params_to_cal = get_params_by_segment(param_names = param_names,
+                                            model_run_loc = model_run_loc,
+                                            seg_model_idxs = cur_model_idxs)
 
   # creating list of different types of parameters: 1) segment based parameters, 2) segment x month based parameters,
   cur_params_to_cal = list(seg_params = seg_params,
