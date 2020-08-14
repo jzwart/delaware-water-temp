@@ -219,7 +219,8 @@ get_params_by_segment = function(param_names,
                                         seg_model_idx = hru_model_idxs$seg_model_idxs,
                                         vals = params[[param_names[i]]][as.numeric(hru_model_idxs$hru_model_idxs)])
     }else if(cur_defaults$dim == 'nmonths'){
-      params[[param_names[i]]] = tibble(dim = 'nmonths' , vals = params[[param_names[i]]])
+      params[[param_names[i]]] = tibble(dim = rep('nmonths', as.numeric(cur_defaults$size)),
+                                                  vals = params[[param_names[i]]])
     }else if(cur_defaults$ndim == '2'){
       if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
         # per segment x month basis is organized in order of segment model_idx and then month

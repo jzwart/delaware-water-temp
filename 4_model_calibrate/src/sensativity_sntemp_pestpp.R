@@ -148,10 +148,6 @@ calibrate_sntemp = function(ind_file,
                                             model_run_loc = model_run_loc,
                                             seg_model_idxs = cur_model_idxs)
 
-  # creating list of different types of parameters: 1) segment based parameters, 2) segment x month based parameters,
-  cur_params_to_cal = list(seg_params = seg_params,
-                           seg_month_params = NULL)
-
   # write template files needed for running PEST++ sen
   write_pestpp_tpl_files(params = cur_params_to_cal,
                          model_run_loc = model_run_loc,
@@ -170,6 +166,7 @@ calibrate_sntemp = function(ind_file,
 
   # write instruction files needed for running PEST++
   write_pestpp_ins_files(params = cur_params_to_cal,
+                         seg_model_idxs = cur_model_idxs,
                          model_run_loc = model_run_loc,
                          model_output_file = 'output/seg_tave_water.csv',
                          file_out = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet),
@@ -178,6 +175,7 @@ calibrate_sntemp = function(ind_file,
 
   # write PEST++ sen control file
   write_pestpp_pst_files(params = cur_params_to_cal,
+                         seg_model_idxs = cur_model_idxs,
                          model_run_loc = model_run_loc,
                          model_output_file = 'output/seg_tave_water.csv',
                          obs = cur_obs,

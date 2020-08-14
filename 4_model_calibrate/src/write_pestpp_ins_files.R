@@ -2,18 +2,12 @@
 
 # function for writing template files for pestpp
 write_pestpp_ins_files = function(params,
+                                  seg_model_idxs,
                                   model_run_loc,
                                   model_output_file,
                                   file_out,
                                   delim,
                                   secondary_delim){
-
-  if(!is.null(params$seg_params)){
-    seg_params = params$seg_params
-  }else{seg_params = NULL}
-  if(!is.null(params$seg_month_params)){
-    seg_month_params = params$seg_month_params
-  }else{seg_month_params = NULL}
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
@@ -21,7 +15,7 @@ write_pestpp_ins_files = function(params,
   dates = strftime(strptime(output$Date, format = '%Y-%m-%d'), '%Y%m%d') # date vector for
 
   # output[1:5,1:5]
-  cur_model_idxs = unique(seg_params$model_idx)
+  cur_model_idxs = as.character(sort(as.numeric(seg_model_idxs)))
 
   # format for .ins file based on modeled temperature output:
   #

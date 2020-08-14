@@ -2,6 +2,7 @@
 
 # function for writing control files for pestpp
 write_pestpp_pst_files = function(params,
+                                  seg_model_idxs,
                                   model_run_loc,
                                   model_output_file,
                                   obs,
@@ -12,21 +13,21 @@ write_pestpp_pst_files = function(params,
                                   ins_file_name,
                                   tie_by_group = F){
 
-  if(!is.null(params$seg_params)){
-    seg_params = params$seg_params
-    seg_param_names = unique(seg_params$param_name)
-  }else{seg_params = NULL}
-  if(!is.null(params$seg_month_params)){
-    seg_month_params = params$seg_month_params
-    seg_month_param_names = unique(seg_month_param_names$param_name)
-  }else{seg_month_params = NULL}
+  # if(!is.null(params$seg_params)){
+  #   seg_params = params$seg_params
+  #   seg_param_names = unique(seg_params$param_name)
+  # }else{seg_params = NULL}
+  # if(!is.null(params$seg_month_params)){
+  #   seg_month_params = params$seg_month_params
+  #   seg_month_param_names = unique(seg_month_param_names$param_name)
+  # }else{seg_month_params = NULL}
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
   colnames(output)[2:ncol(output)] = model_idxs
   dates = strftime(strptime(output$Date, format = '%Y-%m-%d'), '%Y%m%d') # date vector for
 
-  cur_model_idxs = unique(seg_params$model_idx)
+  cur_model_idxs = as.character(sort(as.numeric(seg_model_idxs)))
 
   obs$obs_name = paste('wtemp',
                        obs$model_idx,
@@ -87,17 +88,11 @@ write_pestpp_pst_files = function(params,
 
   first_line = 'pcf'
 
-  if(!is.null(seg_params)){
-    if(!is.null(seg_month_params)){
-      npar = nrow(seg_params) + nrow(seg_month_params) # if there are both param types, count them all
-      npargp = length(unique(c(seg_params$param_name, seg_month_params$param_name)))
-    }else{
-      npar = nrow(seg_params) # if only seg_params
-      npargp = length(unique(seg_params$param_name))
-    }
-  }else if(!is.null(seg_month_params)){
-    npar = nrow(seg_month_params) # if only seg_params
-    npargp = length(unique(seg_month_params$param_name))
+  param_names = names(params)
+  npargp = length(param_names) # number of parameter groups
+  npar = 0  # number of parameters to be calibrated
+  for(i in seq_along(param_names)){
+    npar = npar + nrow(params[[param_names[i]]])
   }
 
   control_data = paste('* control data',
@@ -120,6 +115,7 @@ write_pestpp_pst_files = function(params,
   #single_val_decomp = paste('* single value decomposition',
   #                          sep = '\n')
 
+  #######################I'm HERE ##################################
   # change this to be input from yaml file (similar to range of values )
   if(!is.null(seg_params) & !is.null(seg_month_params)){
     param_groups_out = paste('* parameter groups',
