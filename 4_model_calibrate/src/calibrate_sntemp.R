@@ -43,8 +43,8 @@ calibrate_sntemp = function(ind_file,
   library(hydroPSO) # need to use modified version of this package on https://github.com/jzwart/hydroPSO
   library(hydroGOF)
   library(hydroTSM)
-  start = '1980-01-05'
-  stop = '2004-10-01'
+  start = '2004-10-02'
+  stop = '2016-09-30'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
@@ -197,20 +197,50 @@ calibrate_sntemp = function(ind_file,
       model.FUN.args=model.FUN.args,
       method="spso2011",
       control = list(
-        maxit = 100, npart = 40
+        maxit = 1000, npart = 40
       )) ###END MAIN hydroPSO ALGORITHM
     setwd(orig_wd)
 
     ####################################################################
 
+    best_params = read.table('4_model_calibrate/tmp/PSO.out/BestParamPerIter.txt', header=T) %>%
+      select(3:ncol(.)) %>% slice(nrow(.)) %>%
+      pivot_longer(cols = contains('tau'),names_to = 'param', values_to = 'param_val') %>%
+      mutate(model_idx = NA)
+
+    for(i in 1:length(best_params$param)){
+      best_params$model_idx[i] = strsplit(best_params$param[i], 'tau_')[[1]][2]
+    }
+    best_params
+
+    new_params = init_params
+
+    for(i in 1:length(best_params$param)){
+      idx = as.numeric(best_params$model_idx[i])
+      if(grepl('gw',best_params$param[i])){
+        idx = idx + 456
+      }
+      new_params[idx] = best_params$param_val[i]
+    }
+
+    update_sntemp_params(param_names = param_names,
+                         updated_params = init_params,
+                         model_run_loc = model_run_loc,
+                         param_file = 'input/myparam.param')
+
+
+    set_sntemp_start_stop(start = start,
+                          stop = stop,
+                          model_run_loc = model_run_loc,
+                          control_file = 'delaware.control')
 
     # optionally run SNTemp with calibrated params to see how well we're doing
     run_sntemp(start = start,
                stop = stop,
-               spinup = F,
+               spinup = T,
                restart = T,
-               var_init_file = 'prms_ic.txt',
-               var_save_file = 'ic_out_dont_use.txt',
+               var_init_file = 'prms_ic.out',
+               var_save_file = 'prms_ic.out',
                model_run_loc = model_run_loc)
 
     preds = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),

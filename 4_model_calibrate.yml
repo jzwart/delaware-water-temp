@@ -17,6 +17,7 @@ sources:
   - 4_model_calibrate/src/get_subbasins.R
   - 4_model/src/get_upstream_downstream_segs.R
   - 4_model_calibrate/src/get_calibration_order.R
+  - 4_model_calibrate/src/ssh_utils.R
 
 
 targets:
@@ -56,8 +57,14 @@ targets:
       subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml')
 
 
+# setting up remote calibration
+  remote_cal_path:
+    command: calibration_settings[[I(c('remote_cal_path'))]]
 
-
-
+  transfer_cal_files:
+    command: server_put(
+      local_dir = I('4_model_calibrate'),
+      server_dir = remote_cal_path,
+      server = I('caldera-dtn')) # caldera-dtn is the data transfer node
 
 

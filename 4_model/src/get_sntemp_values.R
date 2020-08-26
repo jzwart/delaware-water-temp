@@ -146,6 +146,7 @@ get_sntemp_params = function(param_names,
                              model_run_loc,
                              model_fabric_file = 'GIS/Segments_subset.shp',
                              param_file = 'input/myparam.param',
+                             param_default_file = 'control/delaware.control.par_name',
                              n_segments = 456){
 
   params = readLines(file.path(model_run_loc, param_file))
@@ -156,20 +157,24 @@ get_sntemp_params = function(param_names,
   seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
     arrange(as.numeric(model_idx))
 
-  out = seg_ids
+  out = vector(mode = 'list', length = length(param_names))
 
   if(length(param_names) == 0){
     out = out
   }else{
-    for(i in 1:length(param_names)){
-      param_loc_start = grep(param_names[i], params) + 5
-      param_loc_end = param_loc_start + n_segments - 1
+    for(i in seq_along(param_names)){
+
+      defaults = get_default_param_vals(param_name = param_names[i],
+                                        model_run_loc = model_run_loc,
+                                        param_default_file = param_default_file)
+
+      param_loc_start = which(params == param_names[i]) + 4 + as.numeric(defaults$ndim)
+      param_loc_end = param_loc_start + as.numeric(defaults$size) - 1
 
       cur_param_vals = params[param_loc_start:param_loc_end]
 
-      out = out %>%
-        mutate(temp_name = cur_param_vals) %>%
-        rename(!!noquote(param_names[i]) := temp_name)
+      out[[i]] = cur_param_vals
+      names(out)[i] = param_names[i]
     }
   }
 
@@ -177,3 +182,140 @@ get_sntemp_params = function(param_names,
 }
 
 
+#pulling out parameters based on segment id's (based on model index);
+get_params_by_segment = function(param_names,
+                                 model_run_loc,
+                                 seg_model_idxs, # segment model idxs to calibrate
+                                 model_fabric_file = 'GIS/Segments_subset.shp',
+                                 param_file = 'input/myparam.param',
+                                 param_default_file = 'control/delaware.control.par_name',
+                                 n_segments = 456,
+                                 n_hrus = 765){
+
+  params = get_sntemp_params(param_names = param_names,
+                             model_run_loc = model_run_loc,
+                             model_fabric_file = model_fabric_file,
+                             param_file = param_file,
+                             param_default_file = param_default_file)
+
+  seg_model_idxs = sort(as.numeric(seg_model_idxs))
+  hru_model_idxs = get_segment_hrus(seg_model_idxs = as.character(seg_model_idxs),
+                                    model_run_loc = model_run_loc)  # getting hru_model_idxs based on seg_id
+
+  for(i in seq_along(param_names)){
+    cur_defaults = get_default_param_vals(param_name = param_names[i],
+                                          model_run_loc = model_run_loc,
+                                          param_default_file = param_default_file)
+    # figure out dimensions, and pull out parameters associated with segments
+    if(cur_defaults$dim == 'one'){
+      params[[param_names[i]]] = tibble(dim = 'one' , vals = params[[param_names[i]]])
+    }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nsegment'){ # a stream segment-based parameter
+      # it will be ordered by segment model_idx (e.g. 1, 2, ..., nsegments)
+      params[[param_names[i]]] = tibble(seg_model_idx = as.character(seg_model_idxs),
+                                        vals = params[[param_names[i]]][seg_model_idxs])
+    }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nhru'){
+      # it will be ordered by hru model_idx (e.g. 1, 2, ..., nhru)
+      params[[param_names[i]]] = tibble(hru_model_idx = hru_model_idxs$hru_model_idxs,
+                                        seg_model_idx = hru_model_idxs$seg_model_idxs,
+                                        vals = params[[param_names[i]]][as.numeric(hru_model_idxs$hru_model_idxs)])
+    }else if(cur_defaults$dim == 'nmonths'){
+      params[[param_names[i]]] = tibble(dim = rep('nmonths', as.numeric(cur_defaults$size)),
+                                                  vals = params[[param_names[i]]])
+    }else if(cur_defaults$ndim == '2'){
+      if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
+        # per segment x month basis is organized in order of segment model_idx and then month
+        #   - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 455_Dec, 456_Dec
+        idxs = rep(seq(1,n_segments), 12)
+        params[[param_names[i]]] = tibble(seg_model_idx = rep(as.character(seg_model_idxs), 12),
+                                          month = rep(as.character(seq(1,12)), each = length(seg_model_idxs)),
+                                          vals = params[[param_names[i]]][which(as.character(idxs) %in% as.character(seg_model_idxs))])
+      }else if(grepl('nhru', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
+        # per hru x month basis is organized in order of hru model_idx and then month
+        #   - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 755_Dec, 756_Dec
+        idxs = rep(seq(1,n_hrus), 12)
+        params[[param_names[i]]] = tibble(hru_model_idx = rep(hru_model_idxs$hru_model_idxs, 12),
+                                          seg_model_idx = rep(hru_model_idxs$seg_model_idxs, 12),
+                                          month = rep(as.character(seq(1,12)), each = length(hru_model_idxs$hru_model_idxs)),
+                                          vals = params[[param_names[i]]][which(as.character(idxs) %in% as.character(hru_model_idxs$hru_model_idxs))])
+      }
+    }
+  }
+
+  return(params)
+}
+
+
+
+
+# function for retrieving jh_coef from param file
+get_jh_coef = function(model_run_loc,
+                       model_fabric_file = 'GIS/Segments_subset.shp',
+                       model_hrus_file = 'GIS/HRU_subset.shp',
+                       param_file = 'input/myparam.param',
+                       n_hrus = 765,
+                       n_months = 12){
+
+  params = readLines(file.path(model_run_loc, param_file))
+
+  model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
+
+  model_hrus = sf::read_sf(file.path(model_run_loc, model_hrus_file))
+
+  # order by model_idx
+  hru_ids = tibble(hru_id_nat = as.character(model_hrus$hru_id_nat), model_idx = as.character(model_hrus$model_idx)) %>%
+    arrange(as.numeric(model_idx))
+
+  months = as.character(seq(1, n_months))
+
+  out = expand_grid(model_idx = hru_ids$model_idx, month = months) %>%
+    left_join(hru_ids, by = 'model_idx') %>%
+    arrange(as.numeric(month), as.numeric(model_idx)) %>%
+    select(hru_id_nat, model_idx, month)
+
+  param_loc_start = which(params == 'jh_coef') + 6
+  param_loc_end = param_loc_start + n_hrus * n_months - 1
+
+  # jh_coef is a per HRU x month basis. In the parameter file (myparam.param), jh_coef
+  #  is organized in order of model_idx HRU and then month - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 764_Dec, 765_Dec
+  cur_param_vals = params[param_loc_start:param_loc_end]
+
+  out = mutate(out, jh_coef = cur_param_vals)
+
+  return(out)
+}
+
+
+
+# function for retrieving jh_coef from param file
+get_lat_temp_adj = function(model_run_loc,
+                            model_fabric_file = 'GIS/Segments_subset.shp',
+                            param_file = 'input/myparam.param',
+                            n_segments = 456,
+                            n_months = 12){
+
+  params = readLines(file.path(model_run_loc, param_file))
+
+  model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
+
+  # order by model_idx
+  seg_ids = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat), model_idx = as.character(model_fabric$model_idx)) %>%
+    arrange(as.numeric(model_idx))
+
+  months = as.character(seq(1, n_months))
+
+  out = expand_grid(model_idx = seg_ids$model_idx, month = months) %>%
+    left_join(seg_ids, by = 'model_idx') %>%
+    arrange(as.numeric(month), as.numeric(model_idx)) %>%
+    select(seg_id_nat, model_idx, month)
+
+  param_loc_start = which(params == 'lat_temp_adj') + 6
+  param_loc_end = param_loc_start + n_segments * n_months - 1
+
+  # lat_temp_adj is a per segment x month basis. In the parameter file (myparam.param), lat_temp_adj
+  #  is organized in order of segment model_idx and then month - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 455_Dec, 456_Dec
+  cur_param_vals = params[param_loc_start:param_loc_end]
+
+  out = mutate(out, lat_temp_adj = cur_param_vals)
+
+  return(out)
+}

@@ -3,21 +3,125 @@
 start: '2014-05-01'
 stop: '2014-07-10'
 
-params_to_cal: ['ss_tau', 'gw_tau'] # parameters we want to calibrate
+params_to_cal: ['ss_tau', 'gw_tau', 'vce', 'albedo', 'vdemx', 'vhe'] # parameters we want to calibrate
 
-param_ranges:
+param_groups:
   param:
   - ss_tau
   - gw_tau
+  - vce
+  - voe
+  - vhe
+  - alte
+  - albedo
+  - vdemx
+  - lat_temp_adj
   min:
   - 1.0
   - 10.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - -10.0
   max:
   - 50.0
   - 150.0
+  - 15.0
+  - 100.0
+  - 30.0
+  - 1.570796
+  - 1.0
+  - 1.0
+  - 10.0
+  partrans:
+  - log
+  - log
+  - none
+  - none
+  - none
+  - none
+  - none
+  - none
+  - none
+  inctyp:
+  - absolute
+  - absolute
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
+  parchglim:
+  - factor
+  - factor
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
+  derinc:
+  - 1.0
+  - 1.0
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+  derinclb:
+  - 0.01
+  - 0.01
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  forcen:
+  - switch
+  - switch
+  - switch
+  - switch
+  - switch
+  - switch
+  - switch
+  - switch
+  - switch
+  derincmul:
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  dermthd:
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+
 
 sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw', 'seg_tave_sroff', 'seg_tave_ss',
 'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow', 'seginc_potet', 'seginc_sroff', 'seginc_ssflow',
 'seginc_swrad', 'seg_humid', 'seg_shade', 'seg_ccov', 'seg_width']
 
+# file paths on denali
+remote_cal_path: '/caldera/projects/usgs/water/iidd/datasci/delaware-water-temp/4_model_calibrate'
 
