@@ -10,17 +10,9 @@ write_pestpp_pst_files = function(params,
                                   param_groups,
                                   tpl_file_name,
                                   param_file_name,
+                                  param_default_file = 'control/delaware.control.par_name',
                                   ins_file_name,
                                   tie_by_group = F){
-
-  # if(!is.null(params$seg_params)){
-  #   seg_params = params$seg_params
-  #   seg_param_names = unique(seg_params$param_name)
-  # }else{seg_params = NULL}
-  # if(!is.null(params$seg_month_params)){
-  #   seg_month_params = params$seg_month_params
-  #   seg_month_param_names = unique(seg_month_param_names$param_name)
-  # }else{seg_month_params = NULL}
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
@@ -29,6 +21,7 @@ write_pestpp_pst_files = function(params,
 
   cur_model_idxs = as.character(sort(as.numeric(seg_model_idxs)))
 
+  #### NEED TO UPDATE THIS IF ADDING STREAMFLOW ####
   obs$obs_name = paste('wtemp',
                        obs$model_idx,
                        strftime(strptime(obs$date, format = '%Y-%m-%d'), '%Y%m%d'),
@@ -86,11 +79,11 @@ write_pestpp_pst_files = function(params,
   # Jake went through the PEST++ manual on section 4.4 and decided which variables to set in the
   #  control data. We could make these variables an input to provide flexibility to function
 
-  first_line = 'pcf'
+  first_line = 'pcf' # pretty sure this will always stay the same
 
   param_names = names(params)
   npargp = length(param_names) # number of parameter groups
-  npar = 0  # number of parameters to be calibrated
+  npar = 0  # for counting the number of parameters to be calibrated
   for(i in seq_along(param_names)){
     npar = npar + nrow(params[[param_names[i]]])
   }
@@ -115,84 +108,99 @@ write_pestpp_pst_files = function(params,
   #single_val_decomp = paste('* single value decomposition',
   #                          sep = '\n')
 
-  #######################I'm HERE ##################################
   # change this to be input from yaml file (similar to range of values )
-  if(!is.null(seg_params) & !is.null(seg_month_params)){
+  if(!is.null(params)){
     param_groups_out = paste('* parameter groups',
-                             sapply(seq_along(seg_param_names), function(i){
+                             sapply(seq_along(param_names), function(i){
                                out = sprintf('%s %s %s %s %s %s %s',
-                                             seg_param_names[i],
-                                             param_groups$inctyp[param_groups$param == seg_param_names[i]],
-                                             param_groups$derinc[param_groups$param == seg_param_names[i]],
-                                             param_groups$derinclb[param_groups$param == seg_param_names[i]],
-                                             param_groups$forcen[param_groups$param == seg_param_names[i]],
-                                             param_groups$derincmul[param_groups$param == seg_param_names[i]],
-                                             param_groups$dermthd[param_groups$param == seg_param_names[i]])
-                             }) %>% paste(., collapse = '\n'),
-                             sapply(seq_along(seg_month_param_names), function(i){
-                               out = sprintf('%s %s %s %s %s %s %s',
-                                             seg_month_param_names[i],
-                                             param_groups$inctyp[param_groups$param == seg_month_param_names[i]],
-                                             param_groups$derinc[param_groups$param == seg_month_param_names[i]],
-                                             param_groups$derinclb[param_groups$param == seg_month_param_names[i]],
-                                             param_groups$forcen[param_groups$param == seg_month_param_names[i]],
-                                             param_groups$derincmul[param_groups$param == seg_month_param_names[i]],
-                                             param_groups$dermthd[param_groups$param == seg_month_param_names[i]])
+                                             param_names[i],
+                                             param_groups$inctyp[param_groups$param == param_names[i]],
+                                             param_groups$derinc[param_groups$param == param_names[i]],
+                                             param_groups$derinclb[param_groups$param == param_names[i]],
+                                             param_groups$forcen[param_groups$param == param_names[i]],
+                                             param_groups$derincmul[param_groups$param == param_names[i]],
+                                             param_groups$dermthd[param_groups$param == param_names[i]])
                              }) %>% paste(., collapse = '\n'),
                              sep = '\n')
 
     param_data = paste('* parameter data',
-                       sapply(seq_along(seg_params$model_idx), function(i){
-                         out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
-                                       seg_params$param_name[i], # parameter name
-                                       seg_params$model_idx[i], # parameter name
-                                       param_groups$partrans[param_groups$param == seg_params$param_name[i]], # transformation of parameter
-                                       seg_params$param_value[i],  # initial parameter value
-                                       param_groups$min[param_groups$param == seg_params$param_name[i]], # lower bound of parameter
-                                       param_groups$max[param_groups$param == seg_params$param_name[i]], # upper bound of parameter
-                                       seg_params$param_name[i]) # parameter group
-                       }) %>% paste(., collapse = '\n'),
-                       sapply(seq_along(seg_month_params$model_idx), function(i){
-                         out = sprintf('%s_%s_%s %s relative %s %s %s %s 1.0 0.0 1',
-                                       seg_month_params$param_name[i], # parameter name
-                                       seg_month_params$model_idx[i], # model idx
-                                       seg_month_params$month[i], # month
-                                       param_groups$partrans[param_groups$param == seg_month_params$param_name[i]], # transformation of parameter
-                                       seg_month_params$param_value[i],  # initial parameter value
-                                       param_groups$min[param_groups$param == seg_month_params$param_name[i]], # lower bound of parameter
-                                       param_groups$max[param_groups$param == seg_month_params$param_name[i]], # upper bound of parameter
-                                       seg_month_params$param_name[i]) # parameter group
-                       }) %>% paste(., collapse = '\n'),
-                       sep = '\n')
-  }else{
-    param_groups_out = paste('* parameter groups',
-                         sapply(seq_along(seg_param_names), function(i){
-                           out = sprintf('%s %s %s %s %s %s %s',
-                                         seg_param_names[i],
-                                         param_groups$inctyp[param_groups$param == seg_param_names[i]],
-                                         param_groups$derinc[param_groups$param == seg_param_names[i]],
-                                         param_groups$derinclb[param_groups$param == seg_param_names[i]],
-                                         param_groups$forcen[param_groups$param == seg_param_names[i]],
-                                         param_groups$derincmul[param_groups$param == seg_param_names[i]],
-                                         param_groups$dermthd[param_groups$param == seg_param_names[i]])
-                         }) %>% paste(., collapse = '\n'),
-                         sep = '\n')
+                       sapply(seq_along(param_names), function(i){
+                         cur_defaults = get_default_param_vals(param_name = param_names[i],
+                                                               model_run_loc = model_run_loc,
+                                                               param_default_file = param_default_file)
+                         cur_params = params[[param_names[i]]]
 
-    param_data = paste('* parameter data',
-                       sapply(seq_along(seg_params$model_idx), function(i){
-                         out = sprintf('%s_%s %s factor %s %s %s %s 1.0 0.0 1',
-                                       seg_params$param_name[i], # parameter name
-                                       seg_params$model_idx[i], # parameter name
-                                       param_groups$partrans[param_groups$param == seg_params$param_name[i]], # transformation of parameter
-                                       seg_params$param_value[i],  # initial parameter value
-                                       param_groups$min[param_groups$param == seg_params$param_name[i]], # lower bound of parameter
-                                       param_groups$max[param_groups$param == seg_params$param_name[i]], # upper bound of parameter
-                                       seg_params$param_name[i]) # parameter group
+                         if(cur_defaults$dim == 'one'){
+                           param_name_out = param_names[i]
+                           out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                         param_name_out, # parameter name
+                                         param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                         param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                         cur_params$vals,  # initial parameter value
+                                         param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                         param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                         param_names[i]) # parameter group
+                         }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nsegment'){ # a stream segment-based parameter
+                           out = sapply(seq_len(nrow(cur_params)), function(j){
+                             param_name_out = paste(param_names[i], cur_params$seg_model_idx[j], sep = '_')
+                             cur_out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                               param_name_out, # parameter name
+                                               param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                               param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                               cur_params$vals[j],  # initial parameter value
+                                               param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                               param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                               param_names[i]) # parameter group
+                           }) %>% paste(., collapse = '\n')
+                         }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nhru'){
+                           out = sapply(seq_len(nrow(cur_params)), function(j){
+                             param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
+                             cur_out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                               param_name_out, # parameter name
+                                               param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                               param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                               cur_params$vals[j],  # initial parameter value
+                                               param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                               param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                               param_names[i]) # parameter group
+                           }) %>% paste(., collapse = '\n')
+                         }else if(cur_defaults$ndim == '2'){
+                           if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
+                             # per segment x month basis is organized in order of segment model_idx and then month
+                             #   - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 455_Dec, 456_Dec
+                             out = sapply(seq_len(nrow(cur_params)), function(j){
+                               param_name_out = paste(param_names[i], cur_params$seg_model_idx[j], cur_params$month[j], sep = '_')
+                               cur_out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                                 param_name_out, # parameter name
+                                                 param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                                 param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                                 cur_params$vals[j],  # initial parameter value
+                                                 param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                                 param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                                 param_names[i]) # parameter group
+                             }) %>% paste(., collapse = '\n')
+                           }else if(grepl('nhru', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
+                             # per hru x month basis is organized in order of hru model_idx and then month
+                             #   - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 755_Dec, 756_Dec
+                             out = sapply(seq_len(nrow(cur_params)), function(j){
+                               param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], cur_params$month[j], sep = '_')
+                               cur_out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                                 param_name_out, # parameter name
+                                                 param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                                 param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                                 cur_params$vals[j],  # initial parameter value
+                                                 param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                                 param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                                 param_names[i]) # parameter group
+                             }) %>% paste(., collapse = '\n')
+                           }
+                         }
                        }) %>% paste(., collapse = '\n'),
                        sep = '\n')
   }
 
 
+  # add in flow if calibrating with flow
   obs_groups = paste('* observation groups',
                      'wtemp',
                      sep = '\n')

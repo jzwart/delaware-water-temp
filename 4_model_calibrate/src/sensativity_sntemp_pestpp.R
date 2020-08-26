@@ -40,10 +40,12 @@ calibrate_sntemp = function(ind_file,
   source('4_model_calibrate/src/write_pestpp_tpl_files.R')
   source('4_model_calibrate/src/write_pestpp_ins_files.R')
   source('4_model_calibrate/src/write_pestpp_pst_files.R')
+  source('2_3_model_parameters/src/add_default_sntemp_params.R')
+  source('2_1_model_fabric/src/get_segment_hrus.R')
   library(tidyverse)
   library(igraph)
   start = '2000-10-01'
-  stop = '2004-09-30'
+  stop = '2005-09-30'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
@@ -184,7 +186,7 @@ calibrate_sntemp = function(ind_file,
                          param_file_name = 'input/myparam.param',
                          tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
                          ins_file_name = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet),
-                         tie_by_group = T) # tying parameters together by group (e.g. gw_tau)
+                         tie_by_group = F) # tying parameters together by group (e.g. gw_tau)
 
   set_sntemp_start_stop(start = start,
                         stop = stop,

@@ -41,6 +41,7 @@ targets:
     command: get_init_sntemp_params(
       ind_file = target_name,
       param_names = param_names_calibration,
-      model_run_loc = I('20191002_Delaware_streamtemp'))
+      model_run_loc = I('20191002_Delaware_streamtemp'),
+      ensure_not_lower_bound = I('T'))
   2_3_model_parameters/out/calibration_params_init.rds:
     command: gd_get('2_3_model_parameters/out/calibration_params_init.rds.ind')

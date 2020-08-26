@@ -36,6 +36,7 @@ write_pestpp_ins_files = function(params,
     }
     return(out)
   }) %>% paste(., collapse = '')
+  second_line = 'l1' # testing to see if this works better than previous line
   data_lines = sapply(seq_along(dates), function(j){
     cur_date = dates[j]
     sapply(seq_along(model_idxs), function(i){

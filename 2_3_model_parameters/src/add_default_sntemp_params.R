@@ -78,6 +78,8 @@ get_default_param_vals = function(param_name,
   }else if(type == 'long'){
     type = '1'
   }
+  max = param_default[param_default_loc + 10] %>% sub('.*: ', '', .)
+  min = param_default[param_default_loc + 11] %>% sub('.*: ', '', .)
   default = param_default[param_default_loc + 12] %>% sub('.*: ', '', .)
 
   vals = rep(default, as.numeric(size))
@@ -87,6 +89,8 @@ get_default_param_vals = function(param_name,
              dim = dim,
              size = size,
              type = type,
+             max = max,
+             min = min,
              vals = vals)
   return(out)
 }
