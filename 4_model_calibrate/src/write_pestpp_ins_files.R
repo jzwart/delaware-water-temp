@@ -36,15 +36,22 @@ write_pestpp_ins_files = function(params,
     }
     return(out)
   }) %>% paste(., collapse = '')
-  second_line = 'l1' # testing to see if this works better than previous line
   data_lines = sapply(seq_along(dates), function(j){
     cur_date = dates[j]
     sapply(seq_along(model_idxs), function(i){
       cur = as.character(model_idxs[i])
-      if(cur %in% cur_model_idxs){
-        out = sprintf('%swtemp_%s_%s%s ', secondary_delim, cur, cur_date, secondary_delim)
+      if(cur == as.character(model_idxs[length(model_idxs)])){ # can't have trailing commas in row
+        if(cur %in% cur_model_idxs){
+          out = sprintf('%swtemp_%s_%s%s ', secondary_delim, cur, cur_date, secondary_delim)
+        }else{
+          out = ''
+        }
       }else{
-        out = sprintf('%s,%s ', delim, delim)
+        if(cur %in% cur_model_idxs){
+          out = sprintf('%swtemp_%s_%s%s %s,%s ', secondary_delim, cur, cur_date, secondary_delim, delim, delim)
+        }else{
+          out = sprintf('%s,%s ', delim, delim)
+        }
       }
       return(out)
     }) %>% paste(., collapse = '') %>% paste0(sprintf('l1 %s,%s ', delim, delim), .)

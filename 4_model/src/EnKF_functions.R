@@ -288,11 +288,58 @@ EnKF = function(ind_file,
                 assimilate_obs = TRUE,
                 gd_config = 'lib/cfg/gd_config.yml'){
 
+
+  ############## for debugging purposes ###########
+  source('4_model/src/EnKF_functions.R')
+  source('4_model/src/get_sntemp_values.R')
+  source('4_model/src/run_sntemp.R')
+  source('4_model/src/update_sntemp.R')
+  source('4_model/src/set_sntemp_output.R')
+  source('4_model_calibrate/src/calibrate_sntemp.R')
+  source('4_model_calibrate/src/get_subbasins.R')
+  source('4_model/src/get_upstream_downstream_segs.R')
+  source('4_model_calibrate/src/get_calibration_order.R')
+  source('4_model_calibrate/src/write_pestpp_tpl_files.R')
+  source('4_model_calibrate/src/write_pestpp_ins_files.R')
+  source('4_model_calibrate/src/write_pestpp_pst_files.R')
+  source('2_3_model_parameters/src/add_default_sntemp_params.R')
+  source('2_1_model_fabric/src/get_segment_hrus.R')
+  library(tidyverse)
+  library(igraph)
+  start = '2014-05-01'
+  stop = '2014-07-30'
+  model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
+  obs_file = '3_observations/in/obs_temp_full.rds'
+  model_run_loc = I('4_model/tmp')
+  orig_model_loc = I('20191002_Delaware_streamtemp')
+  subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
+  subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
+  param_groups = as_tibble(yaml::read_yaml('4_model/cfg/da_settings.yml')$param_groups)
+  n_en = 20
+  start = I('2014-05-01')
+  stop = I('2014-07-10')
+  time_step = 'days'
+  init_param_file = '2_3_model_parameters/out/init_params.rds'
+  state_names = yaml::read_yaml('4_model/cfg/da_settings.yml')$states_to_update
+  obs_cv = I(0.1)
+  param_cv = I(0.2)
+  init_cond_cv = I(0.1)
+  #######################################################################
+
   # copy over original run files to temporary file location
   dir.create(model_run_loc, showWarnings = F)
   print('Copying original model files to model working directory...')
   files_to_transfer = list.files(orig_model_loc)
   file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
+
+  # spinning up model for running DA
+  model_spinup(
+    n_en = n_en,
+    start = start,
+    stop = stop,
+    time_step = I('days'),
+    model_run_loc = I('4_model/tmp'),
+    spinup_days = I(730))
 
   # use this to organize the matrices
   model_fabric = sf::read_sf(model_fabric_file)
@@ -309,26 +356,29 @@ EnKF = function(ind_file,
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = time_step)
   n_step = length(dates)
 
-  state_names = state_names$states_to_update
-  n_states_est = length(state_names) * nrow(model_locations)
+  n_states_est = length(state_names) * nrow(model_locations)  # making this segment based for now, would need to change if updating HRUs
   n_states_obs = nrow(model_locations) # only assimilating temperature obs
   state_sd = rep(obs_cv * 5, n_states_est)  # UPDATE THIS #########
 
   # get observation matrix
   obs_df = readRDS(obs_file)
 
-  # get initial parameters; arrange by model_idx
-  init_params_df = readRDS(init_param_file) %>% arrange(as.numeric(model_idx))
-  n_params_est = (ncol(init_params_df) - 2) * nrow(init_params_df) # columns 1 & 2 are model locations
+  # get initial parameters; already arranged by model_idx within each param list
+  init_params_list = readRDS(init_param_file)
+
+  n_params_est = length(names(init_params_list))
 
   if(n_params_est > 0){
-    param_names = colnames(init_params_df)[3:ncol(init_params_df)]
+    param_names = names(init_params_list)
 
-    param_sd = mutate_at(init_params_df, 3:ncol(init_params_df), as.numeric) %>%
-      gather(key = 'param', value = 'param_sd', -seg_id_nat, -model_idx) %>%
-      mutate(param_sd = ifelse(param_sd < 2, 2, param_sd),
-             param_sd = param_sd * param_cv) %>%
-      pull(param_sd)
+    param_sd = vector(mode = 'list', length = length(param_names))
+    for(i in seq_along(param_names)){
+      cur_param_vals = init_params_list[[param_names[i]]]
+      cur_param_sd = param_groups$sd[param_groups$param == param_names[i]]
+
+      param_sd[[i]] = rep(cur_param_sd, length(cur_param_vals))
+      names(param_sd)[i] = param_names[i]
+    }
   }else{
     param_names = NULL
     param_sd = NULL

@@ -1,12 +1,13 @@
 version: 0.3.0
 name: 2_3_model_parameters/out/init_params.rds.ind
 type: file
-hash: 3899f225c87fdefc1bd92e85af5ab41c
-time: 2020-05-10 22:17:38 UTC
+hash: ac4ab8faaac5d6c00a1df622d73aebda
+time: 2020-08-27 14:35:26 UTC
 depends:
-  param_names: 0578f31fcca79ed609ea4171e4d506fe
-fixed: 7357a7940f45cf822a10a74857f73438
+  param_names: eb55611ccbc897f624ee79c939f831da
+fixed: b67d72d96c8384f6303927ad38a0e7dd
 code:
   functions:
-    get_init_sntemp_params: 28c8e16d34aea25da651d3a42b18119c
+    get_default_param_vals: ea36034609903192515443f728f45ae0
+    get_init_sntemp_params: 5b3ef8eaef44f547d1c0352814c980d5
 

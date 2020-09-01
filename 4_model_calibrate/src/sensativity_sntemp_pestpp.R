@@ -175,6 +175,10 @@ calibrate_sntemp = function(ind_file,
                          delim = '@',
                          secondary_delim = '!')
 
+  ## to check ins file run pyEMU with
+  #  i = pyemu.pst_utils.InstructionFIle("my.ins")
+  #  df = i.read_output_file("my.output")
+
   # write PEST++ sen control file
   write_pestpp_pst_files(params = cur_params_to_cal,
                          seg_model_idxs = cur_model_idxs,

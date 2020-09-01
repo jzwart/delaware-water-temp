@@ -12,6 +12,6 @@ targets:
       - state_names
 
   state_names:
-    command: da_settings[I('states_to_update')]
+    command: da_settings[[I('states_to_update')]]
 
 
