@@ -190,7 +190,8 @@ get_params_by_segment = function(param_names,
                                  param_file = 'input/myparam.param',
                                  param_default_file = 'control/delaware.control.par_name',
                                  n_segments = 456,
-                                 n_hrus = 765){
+                                 n_hrus = 765,
+                                 n_gwr = 765){
 
   params = get_sntemp_params(param_names = param_names,
                              model_run_loc = model_run_loc,
@@ -215,6 +216,11 @@ get_params_by_segment = function(param_names,
                                         vals = params[[param_names[i]]][seg_model_idxs])
     }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nhru'){
       # it will be ordered by hru model_idx (e.g. 1, 2, ..., nhru)
+      params[[param_names[i]]] = tibble(hru_model_idx = hru_model_idxs$hru_model_idxs,
+                                        seg_model_idx = hru_model_idxs$seg_model_idxs,
+                                        vals = params[[param_names[i]]][as.numeric(hru_model_idxs$hru_model_idxs)])
+    }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'ngw'){
+      # it will be ordered by hru model_idx (e.g. 1, 2, ..., nhru) which corresponds to gw reservoir
       params[[param_names[i]]] = tibble(hru_model_idx = hru_model_idxs$hru_model_idxs,
                                         seg_model_idx = hru_model_idxs$seg_model_idxs,
                                         vals = params[[param_names[i]]][as.numeric(hru_model_idxs$hru_model_idxs)])

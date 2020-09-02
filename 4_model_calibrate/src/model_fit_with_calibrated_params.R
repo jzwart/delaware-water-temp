@@ -74,7 +74,12 @@ for(i in seq_along(param_names)){
       cal_val = par_cal %>% slice(1:49) %>% pull(param_name_out) %>% mean() %>% round(digits = 6)
       cal_params_list[[param_names[i]]][as.numeric(cur_params$hru_model_idx[j])] = cal_val
     }
-  }else if(cur_defaults$ndim == '2'){
+  }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'ngw'){
+    for(j in seq_len(nrow(cur_params))){
+      param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
+      cal_val = par_cal %>% slice(1:49) %>% pull(param_name_out) %>% mean() %>% round(digits = 6)
+      cal_params_list[[param_names[i]]][as.numeric(cur_params$hru_model_idx[j])] = cal_val
+    }else if(cur_defaults$ndim == '2'){
     if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
       # per segment x month basis is organized in order of segment model_idx and then month
       #   - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 455_Dec, 456_Dec

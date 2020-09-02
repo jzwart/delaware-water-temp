@@ -3,7 +3,7 @@
 start: '2014-05-01'
 stop: '2014-07-10'
 
-params_to_cal: ['ss_tau', 'gw_tau', 'vce', 'albedo', 'vdemx', 'vhe', 'lat_temp_adj', 'jh_coef'] # parameters we want to calibrate
+params_to_cal: ['ss_tau', 'gw_tau', 'vce', 'albedo', 'vdemx', 'vhe', 'lat_temp_adj', 'jh_coef', 'soil_moist_max', 'gwflow_coef', 'smidx_coef'] # parameters we want to calibrate
 
 param_groups:
   param:
@@ -17,6 +17,9 @@ param_groups:
   - vdemx
   - lat_temp_adj
   - jh_coef
+  - soil_moist_max
+  - gwflow_coef
+  - smidx_coef
   min:
   - 1.0
   - 10.0
@@ -28,6 +31,9 @@ param_groups:
   - 0.0
   - -10.0
   - -0.50
+  - 0.000010
+  - 0.0
+  - 0.0
   max:
   - 50.0
   - 150.0
@@ -39,6 +45,9 @@ param_groups:
   - 1.0
   - 10.0
   - 1.50
+  - 20.0
+  - 0.5
+  - 1.0
   partrans:
   - log
   - log
@@ -50,9 +59,15 @@ param_groups:
   - none
   - none
   - none
+  - log
+  - none
+  - none
   inctyp:
   - absolute
   - absolute
+  - relative
+  - relative
+  - relative
   - relative
   - relative
   - relative
@@ -72,9 +87,15 @@ param_groups:
   - relative
   - relative
   - relative
+  - relative
+  - relative
+  - relative
   derinc:
   - 1.0
   - 1.0
+  - 0.01
+  - 0.01
+  - 0.01
   - 0.01
   - 0.01
   - 0.01
@@ -94,7 +115,13 @@ param_groups:
   - 0.0
   - 0.0
   - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
   forcen:
+  - switch
+  - switch
+  - switch
   - switch
   - switch
   - switch
@@ -116,7 +143,13 @@ param_groups:
   - 2.0
   - 2.0
   - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
   dermthd:
+  - parabolic
+  - parabolic
+  - parabolic
   - parabolic
   - parabolic
   - parabolic
