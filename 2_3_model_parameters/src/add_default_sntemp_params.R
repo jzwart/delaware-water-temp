@@ -59,7 +59,7 @@ get_default_param_vals = function(param_name,
 
   param_default = readLines(file.path(model_run_loc, param_default_file))
 
-  param_default_loc = grep(paste('Name.*:.*', param_name), param_default)
+  param_default_loc = grep(paste('Name.*:.*', param_name,'?$'), param_default)
 
   ndim = param_default[param_default_loc + 4] %>% sub('.*: ', '', .)
   dim = param_default[param_default_loc + 5] %>% sub('.*: ', '', .)

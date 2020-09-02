@@ -38,7 +38,12 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
 
   state_var = state_sd^2 #variance of temperature observations
 
-  param_var = param_sd^2
+  param_var = c()
+  if(length(names(param_sd)) > 0){
+    for(i in seq_along(names(param_sd))){
+      param_var = c(param_var, param_sd[[names(param_sd)[i]]]^2)
+    }
+  }
 
   if(n_params_obs > 0){
     all_var = c(state_var, param_var)
@@ -169,15 +174,18 @@ initialize_Y = function(Y, init_states, init_params,
     first_states = NULL
   }
 
+  param_sd_vec = c()
   if(n_params_est > 0){
-    param_names = colnames(init_params)[3:ncol(init_params)]
+    param_names = names(init_params) #colnames(init_params)[3:ncol(init_params)]
     first_params = c()
-    for(i in 1:length(param_names)){
-      cur_param = init_params %>%
-        arrange(as.numeric(model_idx)) %>% pull(2+i)
+    for(i in seq_along(param_names)){
+      cur_param = init_params[[param_names[i]]] #  %>%
+        # arrange(as.numeric(model_idx)) %>% pull(2+i)
       first_params = c(first_params, cur_param)
+      param_sd_vec = param_sd[[param_names[i]]]
     }
     first_params = as.numeric(first_params)
+    param_sd_vec = as.numeric(param_sd_vec)
 
   }else{
     first_params = NULL
@@ -185,17 +193,49 @@ initialize_Y = function(Y, init_states, init_params,
 
   Y[ , 1, ] = array(rnorm(n = n_en * (n_states_est + n_params_est),
                           mean = c(first_states, first_params),
-                          sd = c(state_sd, param_sd)),
+                          sd = c(state_sd, param_sd_vec)),
                     dim = c(c(n_states_est + n_params_est), n_en))
 
   return(Y)
 }
 
-get_updated_params = function(Y, param_names, n_states_est, n_params_est, cur_step, en){
+get_updated_params = function(Y, param_names, n_states_est, n_params_est, cur_step, en, model_run_loc, param_default_file){
 
   updated_params = Y[(n_states_est+1):(n_states_est+n_params_est), cur_step, en]
 
-  return(updated_params)
+  out = vector(mode = 'list', length = length(param_names))
+
+  if(length(param_names) == 0){
+    out = out
+  }else{
+    for(i in seq_along(param_names)){
+
+      defaults = get_default_param_vals(param_name = param_names[i],
+                                        model_run_loc = model_run_loc,
+                                        param_default_file = param_default_file)
+
+      param_loc_start = as.numeric(defaults$size) * (i-1) + 1
+      param_loc_end = param_loc_start + as.numeric(defaults$size) - 1
+
+      cur_param_vals = updated_params[param_loc_start:param_loc_end]
+
+      if(any(as.numeric(cur_param_vals) <= as.numeric(defaults$min))){
+        range = as.numeric(defaults$max) - as.numeric(defaults$min)
+        # add quarter of range from min
+        to_add = range *.05
+        cur_param_vals[as.numeric(cur_param_vals) <= as.numeric(defaults$min)] = as.character(as.numeric(cur_param_vals[as.numeric(cur_param_vals) <= as.numeric(defaults$min)]) + to_add)
+      }
+      if(defaults$type == '1'){
+        cur_param_vals = as.character(round(as.numeric(cur_param_vals), digits = 0))
+      }
+
+      out[[i]] = cur_param_vals
+      names(out)[i] = param_names[i]
+    }
+  }
+
+
+  return(out)
 }
 
 get_updated_states = function(Y, state_names, n_states_est, n_params_est, cur_step, en){
@@ -273,7 +313,7 @@ EnKF = function(ind_file,
                 obs_file = '3_observations/in/obs_temp_full.rds',
                 init_param_file = '2_3_model_parameters/out/init_params.rds',
                 model_run_loc = '4_model/tmp',
-                orig_model_loc = '20191002_Delaware_streamtemp',
+                orig_model_loc = '20200207_Delaware_streamtemp_state_adj', # this one has the modified prms.exe
                 state_names,
                 driver_file = NULL,
                 n_states_est = 456,
@@ -311,10 +351,11 @@ EnKF = function(ind_file,
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
   model_run_loc = I('4_model/tmp')
-  orig_model_loc = I('20191002_Delaware_streamtemp')
+  orig_model_loc = I('20200207_Delaware_streamtemp_state_adj')
   subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
   subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
   param_groups = as_tibble(yaml::read_yaml('4_model/cfg/da_settings.yml')$param_groups)
+  param_default_file = 'control/delaware.control.par_name'
   n_en = 20
   start = I('2014-05-01')
   stop = I('2014-07-10')
@@ -324,6 +365,7 @@ EnKF = function(ind_file,
   obs_cv = I(0.1)
   param_cv = I(0.2)
   init_cond_cv = I(0.1)
+  assimilate_obs = TRUE
   #######################################################################
 
   # copy over original run files to temporary file location
@@ -358,6 +400,7 @@ EnKF = function(ind_file,
 
   n_states_est = length(state_names) * nrow(model_locations)  # making this segment based for now, would need to change if updating HRUs
   n_states_obs = nrow(model_locations) # only assimilating temperature obs
+  n_params_obs = 0 # include this as input or dynamic
   state_sd = rep(obs_cv * 5, n_states_est)  # UPDATE THIS #########
 
   # get observation matrix
@@ -366,7 +409,7 @@ EnKF = function(ind_file,
   # get initial parameters; already arranged by model_idx within each param list
   init_params_list = readRDS(init_param_file)
 
-  n_params_est = length(names(init_params_list))
+  n_params_est = sum(unlist(lapply(init_params_list, length)))
 
   if(n_params_est > 0){
     param_names = names(init_params_list)
@@ -452,12 +495,15 @@ EnKF = function(ind_file,
   print('intializing Y vector...')
   Y = initialize_Y(Y = Y,
                    init_states = init_states_median,
-                   init_params = init_params_df,
+                   init_params = init_params_list,
                    n_states_est = n_states_est,
                    n_states_obs = n_states_obs,
                    n_params_est = n_params_est,
                    n_params_obs = n_params_obs,
-                   n_step = n_step, n_en = n_en, state_sd = state_sd, param_sd = param_sd)
+                   n_step = n_step,
+                   n_en = n_en,
+                   state_sd = state_sd,
+                   param_sd = param_sd)
 
 
   # start modeling
@@ -471,12 +517,16 @@ EnKF = function(ind_file,
                                               n_states_est = n_states_est,
                                               n_params_est = n_params_est,
                                               cur_step = t-1,
-                                              en = n)
-          if(any(updated_params<=0)){ # forcing positive for now but should come up with a better search solution
-            updated_params[updated_params<=0] = 1
-          }
+                                              en = n,
+                                              model_run_loc = model_run_loc,
+                                              param_default_file = param_default_file)
+          # added into the get_updated_params() function ;
+          # if(any(updated_params<=0)){ # forcing positive for now but should come up with a better search solution
+          #   updated_params[updated_params<=0] = 1
+          # }
           update_sntemp_params(param_names = param_names,
-                               updated_params = updated_params)
+                               updated_params = updated_params,
+                               model_run_loc = model_run_loc)
         }
 
         updated_states = get_updated_states(Y = Y,
@@ -517,7 +567,13 @@ EnKF = function(ind_file,
         predicted_states = gather_states(ic_out) # predicted states from model
 
         if(n_params_est > 0){
-          Y[ , t, n] = c(predicted_states, updated_params) # store in Y vector
+          updated_params_vec = c()
+          for(i in seq_along(param_names)){
+            updated_params_vec = c(updated_params_vec, updated_params[[param_names[i]]])
+          }
+          updated_params_vec = as.numeric(updated_params_vec)
+
+          Y[ , t, n] = c(predicted_states, updated_params_vec) # store in Y vector
         }else{
           Y[ , t, n] = predicted_states # only updating states, not params
         }

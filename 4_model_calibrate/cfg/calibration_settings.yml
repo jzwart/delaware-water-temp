@@ -3,7 +3,7 @@
 start: '2014-05-01'
 stop: '2014-07-10'
 
-params_to_cal: ['ss_tau', 'gw_tau', 'vce', 'albedo', 'vdemx', 'vhe'] # parameters we want to calibrate
+params_to_cal: ['ss_tau', 'gw_tau', 'vce', 'albedo', 'vdemx', 'vhe', 'lat_temp_adj', 'jh_coef'] # parameters we want to calibrate
 
 param_groups:
   param:
@@ -16,6 +16,7 @@ param_groups:
   - albedo
   - vdemx
   - lat_temp_adj
+  - jh_coef
   min:
   - 1.0
   - 10.0
@@ -26,6 +27,7 @@ param_groups:
   - 0.0
   - 0.0
   - -10.0
+  - -0.50
   max:
   - 50.0
   - 150.0
@@ -36,9 +38,11 @@ param_groups:
   - 1.0
   - 1.0
   - 10.0
+  - 1.50
   partrans:
   - log
   - log
+  - none
   - none
   - none
   - none
@@ -56,9 +60,11 @@ param_groups:
   - relative
   - relative
   - relative
+  - relative
   parchglim:
   - factor
   - factor
+  - relative
   - relative
   - relative
   - relative
@@ -76,6 +82,7 @@ param_groups:
   - 0.01
   - 0.01
   - 0.01
+  - 0.01
   derinclb:
   - 0.01
   - 0.01
@@ -86,7 +93,9 @@ param_groups:
   - 0.0
   - 0.0
   - 0.0
+  - 0.0
   forcen:
+  - switch
   - switch
   - switch
   - switch
@@ -106,7 +115,9 @@ param_groups:
   - 2.0
   - 2.0
   - 2.0
+  - 2.0
   dermthd:
+  - parabolic
   - parabolic
   - parabolic
   - parabolic
