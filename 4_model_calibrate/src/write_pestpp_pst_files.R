@@ -164,6 +164,18 @@ write_pestpp_pst_files = function(params,
                                                param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
                                                param_names[i]) # parameter group
                            }) %>% paste(., collapse = '\n')
+                         }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'ngw'){
+                           out = sapply(seq_len(nrow(cur_params)), function(j){
+                             param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
+                             cur_out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                               param_name_out, # parameter name
+                                               param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                               param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                               cur_params$vals[j],  # initial parameter value
+                                               param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                               param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                               param_names[i]) # parameter group
+                           }) %>% paste(., collapse = '\n')
                          }else if(cur_defaults$ndim == '2'){
                            if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
                              # per segment x month basis is organized in order of segment model_idx and then month

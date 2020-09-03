@@ -48,13 +48,13 @@ add_uncertainty_ribbons = function(data){
 }
 
 
-output = readRDS('4_model/out/model_out2.rds')
+output = readRDS('4_model/out/model_out_gwsum_only.rds')
 output_no_assim = readRDS('4_model/out/model_out_no_assim.rds')
 compare_to_no_assim = T
 
 dates = output$dates
 start = '2014-05-10'
-stop = '2014-07-09'
+stop = '2014-07-10'
 start_idx = which(dates == start)
 stop_idx = which(dates == stop)
 

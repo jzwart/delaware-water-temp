@@ -1,7 +1,8 @@
 
 library(dplyr)
+library(ggplot2)
 
-d = readRDS('4_model/out/model_out2.rds')
+d = readRDS('4_model/out/model_out_gwsum_only.rds')
 dd = readRDS('4_model/out/model_out_no_assim.rds')
 
 obs = d$obs
@@ -12,17 +13,21 @@ n_step = length(d$dates)
 Y_no_assim = dd$Y
 
 #lordsville site is seg_id_nat == 1573; model_idx = 224
-obs[,1,1]
-site = 79
-windows()
-plot(Y[site,,1] ~ d$dates, type = 'l',ylim =  range(c(Y[site,,], obs[site,1,], Y_no_assim[site,,]), na.rm = T), ylab = 'Stream Temp (C)', xlab = '', lty=0)
-for(i in 1:n_en){
-  lines(Y_no_assim[site,1:71,i] ~ d$dates, col = 'grey')
-  lines(Y[site,,i] ~ d$dates)
+for(j in cur_model_idxs){
+  obs[,1,1]
+  site = as.numeric(j)
+  windows()
+  plot(Y[site,,1] ~ d$dates, type = 'l',
+       ylab = 'Stream Temp (C)', xlab = '', lty=0,
+       ylim = c(0,30)) # range(c(Y[site,,], obs[site,1,], Y_no_assim[site,,]), na.rm = T),)
+  for(i in 1:n_en){
+    lines(Y_no_assim[site,1:71,i] ~ d$dates, col = 'grey')
+    lines(Y[site,,i] ~ d$dates)
+  }
+  points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
+  arrows(d$dates, obs[site,1,]+R[site,site,], d$dates, obs[site,1,]-R[site,site,],
+         angle = 90, length = .05, col = 'red', code = 3)
 }
-points(obs[site,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
-arrows(d$dates, obs[site,1,]+R[site,site,], d$dates, obs[site,1,]-R[site,site,],
-       angle = 90, length = .05, col = 'red', code = 3)
 
 params = 456*2 + site
 windows()
@@ -31,7 +36,7 @@ for(i in 1:n_en){
   lines(Y[params,,i])
 }
 
-gw_sum = Y[456*2 + site,,]
+gw_sum = Y[456*1 + site,,]
 gw_tau = Y[456*4 + site,,]
 seg_tave_gw = gw_sum / gw_tau
 ss_sum = Y[456*1 + site,,]
@@ -42,7 +47,8 @@ windows()
 plot(seg_tave_gw[,1]~d$dates)
 windows()
 plot(seg_tave_ss[,1]~d$dates)
-
+windows()
+plot(gw_sum[,9]~d$dates)
 
 windows()
 plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
@@ -163,7 +169,7 @@ ggplot(rmse_df, aes(x = da, y = rmse)) +
   ylab(expression(RMSE~(degrees~C)))
 
 
-loc = cbind(d$model_locations, uncert, uncert_no_assim, n_obs, temp_rmse, temp_rmse_no_assim)
+loc = cbind(d$model_locations, temp_rmse, temp_rmse_no_assim)
 
 model_fabric = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp') %>%
   mutate(seg_id_nat = as.character(seg_id_nat),

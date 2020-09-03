@@ -330,58 +330,58 @@ EnKF = function(ind_file,
 
 
   ############## for debugging purposes ###########
-  source('4_model/src/EnKF_functions.R')
-  source('4_model/src/get_sntemp_values.R')
-  source('4_model/src/run_sntemp.R')
-  source('4_model/src/update_sntemp.R')
-  source('4_model/src/set_sntemp_output.R')
-  source('4_model_calibrate/src/calibrate_sntemp.R')
-  source('4_model_calibrate/src/get_subbasins.R')
-  source('4_model/src/get_upstream_downstream_segs.R')
-  source('4_model_calibrate/src/get_calibration_order.R')
-  source('4_model_calibrate/src/write_pestpp_tpl_files.R')
-  source('4_model_calibrate/src/write_pestpp_ins_files.R')
-  source('4_model_calibrate/src/write_pestpp_pst_files.R')
-  source('2_3_model_parameters/src/add_default_sntemp_params.R')
-  source('2_1_model_fabric/src/get_segment_hrus.R')
-  library(tidyverse)
-  library(igraph)
-  start = '2014-05-01'
-  stop = '2014-07-30'
-  model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
-  obs_file = '3_observations/in/obs_temp_full.rds'
-  model_run_loc = I('4_model/tmp')
-  orig_model_loc = I('20200207_Delaware_streamtemp_state_adj')
-  subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
-  subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
-  param_groups = as_tibble(yaml::read_yaml('4_model/cfg/da_settings.yml')$param_groups)
-  param_default_file = 'control/delaware.control.par_name'
-  n_en = 20
-  start = I('2014-05-01')
-  stop = I('2014-07-10')
-  time_step = 'days'
-  init_param_file = '2_3_model_parameters/out/init_params.rds'
-  state_names = yaml::read_yaml('4_model/cfg/da_settings.yml')$states_to_update
-  obs_cv = I(0.1)
-  param_cv = I(0.2)
-  init_cond_cv = I(0.1)
-  assimilate_obs = TRUE
+  # source('4_model/src/EnKF_functions.R')
+  # source('4_model/src/get_sntemp_values.R')
+  # source('4_model/src/run_sntemp.R')
+  # source('4_model/src/update_sntemp.R')
+  # source('4_model/src/set_sntemp_output.R')
+  # source('4_model_calibrate/src/calibrate_sntemp.R')
+  # source('4_model_calibrate/src/get_subbasins.R')
+  # source('4_model/src/get_upstream_downstream_segs.R')
+  # source('4_model_calibrate/src/get_calibration_order.R')
+  # source('4_model_calibrate/src/write_pestpp_tpl_files.R')
+  # source('4_model_calibrate/src/write_pestpp_ins_files.R')
+  # source('4_model_calibrate/src/write_pestpp_pst_files.R')
+  # source('2_3_model_parameters/src/add_default_sntemp_params.R')
+  # source('2_1_model_fabric/src/get_segment_hrus.R')
+  # library(tidyverse)
+  # library(igraph)
+  # start = '2014-05-01'
+  # stop = '2014-07-30'
+  # model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
+  # obs_file = '3_observations/in/obs_temp_full.rds'
+  # model_run_loc = I('4_model/tmp')
+  # orig_model_loc = I('20200207_Delaware_streamtemp_state_adj')
+  # subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
+  # subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
+  # param_groups = as_tibble(yaml::read_yaml('4_model/cfg/da_settings.yml')$param_groups)
+  # param_default_file = 'control/delaware.control.par_name'
+  # n_en = 20
+  # start = I('2014-05-01')
+  # stop = I('2014-07-10')
+  # time_step = 'days'
+  # init_param_file = '2_3_model_parameters/out/init_params.rds'
+  # state_names = yaml::read_yaml('4_model/cfg/da_settings.yml')$states_to_update
+  # obs_cv = I(0.1)
+  # param_cv = I(0.2)
+  # init_cond_cv = I(0.1)
+  # assimilate_obs = TRUE
   #######################################################################
 
   # copy over original run files to temporary file location
-  dir.create(model_run_loc, showWarnings = F)
-  print('Copying original model files to model working directory...')
-  files_to_transfer = list.files(orig_model_loc)
-  file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
+  # dir.create(model_run_loc, showWarnings = F)
+  # print('Copying original model files to model working directory...')
+  # files_to_transfer = list.files(orig_model_loc)
+  # file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
 
   # spinning up model for running DA
-  model_spinup(
-    n_en = n_en,
-    start = start,
-    stop = stop,
-    time_step = I('days'),
-    model_run_loc = I('4_model/tmp'),
-    spinup_days = I(730))
+  # model_spinup(
+  #   n_en = n_en,
+  #   start = start,
+  #   stop = stop,
+  #   time_step = I('days'),
+  #   model_run_loc = I('4_model/tmp'),
+  #   spinup_days = I(730))
 
   # use this to organize the matrices
   model_fabric = sf::read_sf(model_fabric_file)
@@ -407,7 +407,7 @@ EnKF = function(ind_file,
   obs_df = readRDS(obs_file)
 
   # get initial parameters; already arranged by model_idx within each param list
-  init_params_list = readRDS(init_param_file)
+  init_params_list = NULL#readRDS(init_param_file)
 
   n_params_est = sum(unlist(lapply(init_params_list, length)))
 

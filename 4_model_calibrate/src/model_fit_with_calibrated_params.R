@@ -48,7 +48,8 @@ model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
 obs_df = readRDS(obs_file) %>%
   left_join(model_locations, by = 'seg_id_nat')
 
-best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.20.par.csv'
+best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.20.par.csv' # previous best with few params
+best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.10.par.csv'
 
 par_cal = data.table::fread(best_params_file) %>% as_tibble()
 
@@ -79,7 +80,8 @@ for(i in seq_along(param_names)){
       param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
       cal_val = par_cal %>% slice(1:49) %>% pull(param_name_out) %>% mean() %>% round(digits = 6)
       cal_params_list[[param_names[i]]][as.numeric(cur_params$hru_model_idx[j])] = cal_val
-    }else if(cur_defaults$ndim == '2'){
+    }
+  }else if(cur_defaults$ndim == '2'){
     if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
       # per segment x month basis is organized in order of segment model_idx and then month
       #   - e.g. 1_Jan, 2_Jan, ...., 1_Feb, 2_Feb, .... 455_Dec, 456_Dec

@@ -1,34 +1,36 @@
 version: 0.3.0
 name: 4_model/out/model_out_no_assim.rds.ind
 type: file
-hash: 66f9299d503b1c0584e1fe921b215d98
-time: 2020-02-28 15:19:06 UTC
+hash: bc89e919b126d8af5ca42850f48fa155
+time: 2020-09-03 11:34:38 UTC
 depends:
   n_en: f308c37bd36063b25492f703e00e51c0
   20191002_Delaware_streamtemp/GIS/Segments_subset.shp: a32e57460e1180876ee5174e03d0cfb1
   3_observations/in/obs_temp_full.rds: 434957a2c2b4608acaf3cf54a9a5a111
-  2_3_model_parameters/out/init_params.rds: 4b22c659c7f46e4b3c90c13a9a402d79
-  state_names: 940ef9767ae70de29f7c2c8a73135624
+  2_3_model_parameters/out/init_params.rds: 10743fddf75d1efc6ac87990ddd0474a
+  state_names: 8704a27e285c3c6633132604e7ba07d4
   lib/cfg/gd_config.yml: e3e90d646a3010a61773a10d44d4a2a1
-fixed: f43c6b0629c477ad9996b29fd804bef7
+fixed: 0de1c4359d4fe7ea2af7ae261d3fcd14
 code:
   functions:
-    EnKF: c72ead42ab56b201e89e615e33a403d2
+    add_default_sntemp_params: bb3d09807d1600ea5a57ea83a0142ce3
+    EnKF: 1c5752c9e027bf037ff1da865e99f34d
     gather_states: ad104a43ba32c534d4bfb1957929b63a
+    get_default_param_vals: b27da5f154bd68665ddfbb627768dd48
     get_model_dates: d84037dd2fb7cc19ddc822f6eb329e52
-    get_obs_error_matrix: 8667bbce0661a49cb0cda41251864f43
+    get_obs_error_matrix: 0eba15bbc4858b660f65e48425fbd437
     get_obs_id_matrix: f56f3e8a6a53995c676be509c5c26ca0
     get_obs_matrix: bebfdef088bcfcae1316d254f7b4f5e0
-    get_sntemp_initial_states: 1f41ed2aecdd8b72db2a91634b795339
+    get_sntemp_initial_states: 0e340c24d01a2d64fb5f9d4e455f54ce
     get_sntemp_temperature: 700fdbbb5356328021788637f51496e8
-    get_updated_params: b8b25bdaef0d4c46a07d17d752ce64a3
+    get_updated_params: 531a58ca159ea66696045b6a024c3b5f
     get_updated_states: 231defc1e9f0168524b0411d16cb6b98
     get_Y_vector: a2d51b96502e26b241292c9cb06f4e1f
-    initialize_Y: 8ce4e7fddfaedd4bc610190074d696fe
+    initialize_Y: cbbf41407ef6c0a40d53905c85691dca
     kalman_filter: b2f4113ce93f00c3ba34cb9673fbbc36
-    run_sntemp: 629666bcdd7d401e568e07186ca6acff
-    run_sntemp_spinup: aa16cce069ae3aff57a37a4f40751c8e
-    set_sntemp_start_stop: 741e6a6ab586478197ad21872424ba44
-    update_sntemp_params: 1dfdd1bf5ac037a0cd99e80cb4c6a78f
-    update_sntemp_states: e5312b185a0458c2c794c41feda80dc7
+    run_sntemp: cf3bca386f02255220454e5359f6b021
+    run_sntemp_spinup: 63b146f722c6c0fde4f2021e58319779
+    set_sntemp_start_stop: d1e61598c304eb7a048cd4694d04532b
+    update_sntemp_params: 83ed4ce25116a4da49d6fc73d023caec
+    update_sntemp_states: 1830fa6d6c9f65fddb629f4c621f6754
 
