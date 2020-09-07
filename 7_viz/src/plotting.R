@@ -48,7 +48,7 @@ add_uncertainty_ribbons = function(data){
 }
 
 
-output = readRDS('4_model/out/model_out_gwsum_only.rds')
+output = readRDS('4_model/out/model_out_gwsum_sssum.rds')
 output_no_assim = readRDS('4_model/out/model_out_no_assim.rds')
 compare_to_no_assim = T
 

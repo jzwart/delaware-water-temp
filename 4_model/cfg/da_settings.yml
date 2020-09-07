@@ -15,7 +15,7 @@ forecast_project_id: 'DRB_DA_SNTemp_20200310'
 #ID that applies to the specific forecast. Make new ID for every new forecast - will need to update based on
 # forecast_id: 'fodsiajafa2424oji'
 
-params_to_cal: ['ss_tau', 'gw_tau'] # parameters we want to calibrate
+params_to_update: [] # parameters we want to calibrate
 
 param_groups:
   param:
@@ -32,7 +32,7 @@ param_groups:
   - 6
 
 
-states_to_update: ['seg_tave_water', 'gw_sum']
+states_to_update: ['seg_tave_water', 'gw_sum', 'ss_sum']
 
 sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw', 'seg_tave_sroff', 'seg_tave_ss',
 'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow', 'seginc_potet', 'seginc_sroff', 'seginc_ssflow',

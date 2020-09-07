@@ -16,7 +16,7 @@ targets:
 # PRMS only uses one veg type cover per HRU
 
   param_names:
-    command: da_settings[[I('params_to_cal')]]
+    command: da_settings[[I('params_to_update')]]
 
   2_3_model_parameters/out/init_params.rds.ind:
     command: get_init_sntemp_params(

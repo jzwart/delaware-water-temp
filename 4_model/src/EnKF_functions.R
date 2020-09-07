@@ -308,12 +308,12 @@ EnKF = function(ind_file,
                 start,
                 stop,
                 time_step = 'days',
-                #process_model = 'random_walk',
                 model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
                 obs_file = '3_observations/in/obs_temp_full.rds',
                 init_param_file = '2_3_model_parameters/out/init_params.rds',
                 model_run_loc = '4_model/tmp',
                 orig_model_loc = '20200207_Delaware_streamtemp_state_adj', # this one has the modified prms.exe
+                param_default_file = 'control/delaware.control.par_name',
                 state_names,
                 driver_file = NULL,
                 n_states_est = 456,
@@ -369,10 +369,10 @@ EnKF = function(ind_file,
   #######################################################################
 
   # copy over original run files to temporary file location
-  # dir.create(model_run_loc, showWarnings = F)
-  # print('Copying original model files to model working directory...')
-  # files_to_transfer = list.files(orig_model_loc)
-  # file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
+  dir.create(model_run_loc, showWarnings = F)
+  print('Copying original model files to model working directory...')
+  files_to_transfer = list.files(orig_model_loc)
+  file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
 
   # spinning up model for running DA
   # model_spinup(
@@ -597,15 +597,18 @@ EnKF = function(ind_file,
                                             n_states_est = n_states_est,
                                             n_params_est = n_params_est,
                                             cur_step = t-1,
-                                            en = n)
+                                            en = n,
+                                            model_run_loc = model_run_loc,
+                                            param_default_file = param_default_file)
         update_sntemp_params(param_names = param_names,
-                             updated_params = updated_params)
+                             updated_params = updated_params,
+                             model_run_loc = model_run_loc)
       }
       updated_states = get_updated_states(Y = Y,
                                           state_names = state_names,
                                           n_states_est = n_states_est,
                                           n_params_est = n_params_est,
-                                          cur_step = 1,
+                                          cur_step = t-1,
                                           en = n)
 
       if(t==2){
