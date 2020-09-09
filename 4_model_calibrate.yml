@@ -49,7 +49,7 @@ targets:
       start = cal_start,
       stop = cal_stop,
       model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
-      obs_file = '3_observations/in/obs_temp_full.rds',
+      obs_file = '3_observations/out/obs_temp_flow.rds',
       init_param_file = '2_3_model_parameters/out/calibration_params_init.rds',
       model_run_loc = I('4_model_calibrate/tmp'),
       orig_model_loc = I('20191002_Delaware_streamtemp'),
