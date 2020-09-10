@@ -7,7 +7,8 @@ write_pestpp_ins_files = function(params,
                                   model_output_file,
                                   file_out,
                                   delim,
-                                  secondary_delim){
+                                  secondary_delim,
+                                  obs_type){ # obs type is either wtemp or flow
 
   output = read.csv(file.path(model_run_loc, model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
@@ -42,13 +43,13 @@ write_pestpp_ins_files = function(params,
       cur = as.character(model_idxs[i])
       if(cur == as.character(model_idxs[length(model_idxs)])){ # can't have trailing commas in row
         if(cur %in% cur_model_idxs){
-          out = sprintf('%swtemp_%s_%s%s ', secondary_delim, cur, cur_date, secondary_delim)
+          out = sprintf('%s%s_%s_%s%s ', secondary_delim, obs_type, cur, cur_date, secondary_delim)
         }else{
           out = ''
         }
       }else{
         if(cur %in% cur_model_idxs){
-          out = sprintf('%swtemp_%s_%s%s %s,%s ', secondary_delim, cur, cur_date, secondary_delim, delim, delim)
+          out = sprintf('%s%s_%s_%s%s %s,%s ', secondary_delim, obs_type, cur, cur_date, secondary_delim, delim, delim)
         }else{
           out = sprintf('%s,%s ', delim, delim)
         }

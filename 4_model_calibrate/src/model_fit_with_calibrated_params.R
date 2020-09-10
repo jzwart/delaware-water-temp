@@ -14,7 +14,7 @@ init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
 param_default_file = 'control/delaware.control.par_name'
 start = '2004-10-01'
 stop = '2016-09-30'
-obs_file = '3_observations/in/obs_temp_full.rds'
+obs_file = '3_observations/out/obs_temp_flow.rds'
 model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
 cur_subbasin_outlet = '4182'
 subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
@@ -45,11 +45,16 @@ model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
                          model_idx = as.character(model_fabric$model_idx)) %>%
   arrange(as.numeric(model_idx))
 
-obs_df = readRDS(obs_file) %>%
+temp_obs_df = readRDS(obs_file)$temp %>%
   left_join(model_locations, by = 'seg_id_nat')
+
+flow_obs_df = readRDS(obs_file)$flow %>%
+  left_join(model_locations, by = 'seg_id_nat') %>%
+  mutate(discharge_cfs = discharge_cms * (3.28084^3))
 
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.20.par.csv' # previous best with few params
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.10.par.csv'
+best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.9.par.csv' # cal with temp and flow
 
 par_cal = data.table::fread(best_params_file) %>% as_tibble()
 
@@ -116,6 +121,8 @@ run_sntemp(start = start,
 
 cal_temp = get_sntemp_temperature(model_output_file = '4_model_calibrate/tmp/output/seg_tave_water.csv',
                        model_fabric_file = '4_model_calibrate/tmp/GIS/Segments_subset.shp')
+cal_flow = get_sntemp_discharge(model_output_file = '4_model_calibrate/tmp/output/seg_outflow.csv',
+                                  model_fabric_file = '4_model_calibrate/tmp/GIS/Segments_subset.shp')
 
 
 update_sntemp_params(param_names = param_names,
@@ -132,6 +139,8 @@ run_sntemp(start = start,
 
 uncal_temp = get_sntemp_temperature(model_output_file = '4_model_calibrate/tmp/output/seg_tave_water.csv',
                                   model_fabric_file = '4_model_calibrate/tmp/GIS/Segments_subset.shp')
+uncal_flow = get_sntemp_discharge(model_output_file = '4_model_calibrate/tmp/output/seg_outflow.csv',
+                                model_fabric_file = '4_model_calibrate/tmp/GIS/Segments_subset.shp')
 
 
 cur_subbasin_outlet = '4182'
@@ -140,15 +149,24 @@ cur_subbasin = subbasins[cur_subbasin_outlet][[cur_subbasin_outlet]]
 
 # get subbasin parameter locations
 cur_model_idxs = as.character(cur_subbasin$model_idx)
-cur_obs = dplyr::filter(obs_df, model_idx %in% cur_model_idxs,
-                        date >= as.Date(start),
-                        date <= as.Date(stop)) %>%
+cur_temp_obs = dplyr::filter(temp_obs_df, model_idx %in% cur_model_idxs,
+                             date >= as.Date(start),
+                             date <= as.Date(stop)) %>%
+  arrange(as.numeric(model_idx), date)
+
+cur_flow_obs = dplyr::filter(flow_obs_df, model_idx %in% cur_model_idxs,
+                             date >= as.Date(start),
+                             date <= as.Date(stop)) %>%
   arrange(as.numeric(model_idx), date)
 
 
-all_preds = left_join(cal_temp, uncal_temp, by = c('seg_id_nat', 'model_idx', 'date'), suffix = c('_cal','_uncal'))
+all_preds_temp = left_join(cal_temp, uncal_temp, by = c('seg_id_nat', 'model_idx', 'date'), suffix = c('_cal','_uncal'))
 
-all_preds_obs = left_join(all_preds, select(cur_obs, seg_id_nat, date, temp_C), by = c('seg_id_nat', 'date'))
+all_preds_obs_temp = left_join(all_preds_temp, select(cur_temp_obs, seg_id_nat, date, temp_C), by = c('seg_id_nat', 'date'))
+
+all_preds_flow = left_join(cal_flow, uncal_flow, by = c('seg_id_nat', 'model_idx', 'date'), suffix = c('_cal','_uncal'))
+
+all_preds_obs_flow = left_join(all_preds_flow, select(cur_flow_obs, seg_id_nat, date, discharge_cfs), by = c('seg_id_nat', 'date'))
 
 
 rmse = function (actual, predicted, na.rm = T)
@@ -166,8 +184,11 @@ se = function (actual, predicted)
   return((actual - predicted)^2)
 }
 
-rmse(actual = all_preds_obs$temp_C, predicted = all_preds_obs$water_temp_cal)
-rmse(actual = all_preds_obs$temp_C, predicted = all_preds_obs$water_temp_uncal)
+rmse(actual = all_preds_obs_temp$temp_C, predicted = all_preds_obs_temp$water_temp_cal)
+rmse(actual = all_preds_obs_temp$temp_C, predicted = all_preds_obs_temp$water_temp_uncal)
+
+rmse(actual = all_preds_obs_flow$discharge_cfs, predicted = all_preds_flow$discharge_cal)
+rmse(actual = all_preds_obs_flow$discharge_cfs, predicted = all_preds_flow$discharge_uncal)
 
 
 all_preds_obs$cal_error = all_preds_obs$water_temp_cal - all_preds_obs$temp_C
