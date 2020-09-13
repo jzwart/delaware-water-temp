@@ -54,7 +54,7 @@ flow_obs_df = readRDS(obs_file)$flow %>%
 
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.20.par.csv' # previous best with few params
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.10.par.csv'
-best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.9.par.csv' # cal with temp and flow
+best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.15.par.csv' # cal with temp and flow
 
 par_cal = data.table::fread(best_params_file) %>% as_tibble()
 
@@ -81,6 +81,12 @@ for(i in seq_along(param_names)){
       cal_params_list[[param_names[i]]][as.numeric(cur_params$hru_model_idx[j])] = cal_val
     }
   }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'ngw'){
+    for(j in seq_len(nrow(cur_params))){
+      param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
+      cal_val = par_cal %>% slice(1:49) %>% pull(param_name_out) %>% mean() %>% round(digits = 6)
+      cal_params_list[[param_names[i]]][as.numeric(cur_params$hru_model_idx[j])] = cal_val
+    }
+  }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nssr'){
     for(j in seq_len(nrow(cur_params))){
       param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
       cal_val = par_cal %>% slice(1:49) %>% pull(param_name_out) %>% mean() %>% round(digits = 6)
@@ -183,6 +189,8 @@ se = function (actual, predicted)
 {
   return((actual - predicted)^2)
 }
+
+all_preds_obs_temp = all_preds_obs_temp[all_preds_obs_temp$water_temp_cal>-20 & all_preds_obs_temp$water_temp_uncal>-20, ]
 
 rmse(actual = all_preds_obs_temp$temp_C, predicted = all_preds_obs_temp$water_temp_cal)
 rmse(actual = all_preds_obs_temp$temp_C, predicted = all_preds_obs_temp$water_temp_uncal)

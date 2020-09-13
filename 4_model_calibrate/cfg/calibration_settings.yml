@@ -3,7 +3,8 @@
 start: '2014-05-01'
 stop: '2014-07-10'
 
-params_to_cal: ['ss_tau', 'gw_tau', 'vce', 'albedo', 'vdemx', 'vhe', 'lat_temp_adj', 'jh_coef', 'soil_moist_max', 'gwflow_coef', 'smidx_coef'] # parameters we want to calibrate
+params_to_cal: ['ss_tau', 'gw_tau', 'albedo', 'lat_temp_adj', 'jh_coef', 'soil_moist_max',
+'gwflow_coef', 'smidx_coef', 'gwsink_coef', 'melt_temp', 'rain_cbh_adj', 'ssr2gw_rate'] # parameters we want to calibrate
 
 param_groups:
   param:
@@ -20,6 +21,11 @@ param_groups:
   - soil_moist_max
   - gwflow_coef
   - smidx_coef
+  - gwsink_coef
+  - melt_temp
+  - rain_cbh_adj
+  - seg_humidity
+  - ssr2gw_rate
   min:
   - 1.0
   - 10.0
@@ -34,6 +40,11 @@ param_groups:
   - 0.000010
   - 0.0
   - 0.0
+  - 0.0
+  - 0.0
+  - 0.5
+  - 0.0
+  - 0.000100
   max:
   - 50.0
   - 150.0
@@ -47,6 +58,11 @@ param_groups:
   - 1.50
   - 20.0
   - 0.5
+  - 1.0
+  - 1.0
+  - 10.0
+  - 2.0
+  - 1.0
   - 1.0
   partrans:
   - log
@@ -62,9 +78,19 @@ param_groups:
   - log
   - none
   - none
+  - none
+  - none
+  - log
+  - none
+  - log
   inctyp:
   - absolute
   - absolute
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
   - relative
   - relative
   - relative
@@ -90,9 +116,19 @@ param_groups:
   - relative
   - relative
   - relative
+  - relative
+  - relative
+  - relative
+  - relative
+  - relative
   derinc:
   - 1.0
   - 1.0
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
   - 0.01
   - 0.01
   - 0.01
@@ -118,7 +154,17 @@ param_groups:
   - 0.0
   - 0.0
   - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
   forcen:
+  - switch
+  - switch
+  - switch
+  - switch
+  - switch
   - switch
   - switch
   - switch
@@ -146,6 +192,11 @@ param_groups:
   - 2.0
   - 2.0
   - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
   dermthd:
   - parabolic
   - parabolic
@@ -160,7 +211,11 @@ param_groups:
   - parabolic
   - parabolic
   - parabolic
-
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
+  - parabolic
 
 sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw', 'seg_tave_sroff', 'seg_tave_ss',
 'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow', 'seginc_potet', 'seginc_sroff', 'seginc_ssflow',

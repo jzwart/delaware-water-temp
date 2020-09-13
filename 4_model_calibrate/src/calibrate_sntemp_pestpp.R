@@ -98,26 +98,10 @@ calibrate_sntemp = function(ind_file,
 
   cal_order = get_calibration_order(subbasin_outlet_file = subbasin_outlet_file)
 
-  # setting params to initial conditions before calibrating
-  # init_params = init_params_df %>%
-  #   pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
-  #   arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
-  #   pull(param_value)
-
   update_sntemp_params(param_names = param_names,
                        updated_params = init_params_list,
                        model_run_loc = model_run_loc,
                        param_file = 'input/myparam.param')
-
-  # jh_coef_init = get_jh_coef(model_run_loc = orig_model_loc)
-  #
-  # update_jh_coef(updated_params = jh_coef_init$jh_coef,
-  #                model_run_loc = model_run_loc)
-
-  # lat_temp_adj_init = get_lat_temp_adj(model_run_loc = orig_model_loc)
-  #
-  # update_lat_temp_adj(updated_params = lat_temp_adj_init$lat_temp_adj,
-  #                     model_run_loc = model_run_loc)
 
   # run sntemp once with spinup to create a starting point for the model
   run_sntemp(start = (start-1),
@@ -213,6 +197,7 @@ calibrate_sntemp = function(ind_file,
                          tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
                          temp_ins_file_name = sprintf('pestpp/subbasin_%s_temp.ins', cur_subbasin_outlet),
                          flow_ins_file_name = sprintf('pestpp/subbasin_%s_flow.ins', cur_subbasin_outlet),
+                         weight_by_magnitude = T,# assigning weight based on magnitude of obs value
                          tie_by_group = F) # tying parameters together by group (e.g. gw_tau)
 
   set_sntemp_start_stop(start = start,

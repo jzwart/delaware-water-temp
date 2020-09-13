@@ -10,7 +10,8 @@ write_pestpp_tpl_files = function(params,
                                   n_digits = 10,
                                   n_segments = 456,
                                   n_hrus = 765,
-                                  n_gwr = 765){
+                                  n_gwr = 765,
+                                  n_ssr = 765){
 
   params_out = readLines(file.path(model_run_loc, param_file_name))
 
@@ -50,6 +51,16 @@ write_pestpp_tpl_files = function(params,
                                             delim)
       }
     }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'ngw'){
+      # it will be ordered by hru model_idx (e.g. 1, 2, ..., nhru)
+      for(j in seq_len(nrow(cur_params))){
+        cur_param_loc = which(params_out == param_names[i]) + 4 + as.numeric(cur_params$hru_model_idx[j])
+
+        params_out[cur_param_loc] = sprintf('%s%s  %s',
+                                            delim,
+                                            paste(param_names[i], cur_params$hru_model_idx[j], sep = '_'),
+                                            delim)
+      }
+    }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nssr'){
       # it will be ordered by hru model_idx (e.g. 1, 2, ..., nhru)
       for(j in seq_len(nrow(cur_params))){
         cur_param_loc = which(params_out == param_names[i]) + 4 + as.numeric(cur_params$hru_model_idx[j])

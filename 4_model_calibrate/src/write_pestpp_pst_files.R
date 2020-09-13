@@ -14,6 +14,7 @@ write_pestpp_pst_files = function(params,
                                   param_default_file = 'control/delaware.control.par_name',
                                   temp_ins_file_name,
                                   flow_ins_file_name,
+                                  weight_by_magnitude = T,
                                   tie_by_group = F){
 
   output = read.csv(file.path(model_run_loc, temp_model_output_file), header = T)
@@ -182,6 +183,18 @@ write_pestpp_pst_files = function(params,
                                                param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
                                                param_names[i]) # parameter group
                            }) %>% paste(., collapse = '\n')
+                         }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nssr'){
+                           out = sapply(seq_len(nrow(cur_params)), function(j){
+                             param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
+                             cur_out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                               param_name_out, # parameter name
+                                               param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                               param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                               cur_params$vals[j],  # initial parameter value
+                                               param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                               param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                               param_names[i]) # parameter group
+                           }) %>% paste(., collapse = '\n')
                          }else if(cur_defaults$ndim == '2'){
                            if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
                              # per segment x month basis is organized in order of segment model_idx and then month
@@ -231,7 +244,11 @@ write_pestpp_pst_files = function(params,
                   cur_date,
                   sep = '_')
       if(cur %in% obs$temp$obs_name){ # if obs matches predictions, use weight of 1.0
-        out = sprintf('%s %s %s %s', cur, obs$temp$temp_C[obs$temp$obs_name == cur], '1.0', 'wtemp')
+        if(weight_by_magnitude){
+          cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
+                                   cur_obs = obs$temp$temp_C[obs$temp$obs_name == cur]) # assigning weight based on magnitude of value
+        }else{cur_weight = '1.0'}
+        out = sprintf('%s %s %s %s', cur, obs$temp$temp_C[obs$temp$obs_name == cur], cur_weight, 'wtemp')
       }else{ # no observation available so giving 0 weight
         out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'wtemp')
       }
@@ -247,7 +264,11 @@ write_pestpp_pst_files = function(params,
                   cur_date,
                   sep = '_')
       if(cur %in% obs$flow$obs_name){ # if obs matches predictions, use weight of 1.0
-        out = sprintf('%s %s %s %s', cur, obs$flow$discharge_cfs[obs$flow$obs_name == cur], '1.0', 'flow')
+        if(weight_by_magnitude){
+          cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
+                                   cur_obs = obs$flow$discharge_cfs[obs$flow$obs_name == cur]) # assigning weight based on magnitude of value
+        }else{cur_weight = '1.0'}
+        out = sprintf('%s %s %s %s', cur, obs$flow$discharge_cfs[obs$flow$obs_name == cur], cur_weight, 'flow')
       }else{ # no observation available so giving 0 weight
         out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'flow')
       }
@@ -296,3 +317,12 @@ write_pestpp_pst_files = function(params,
 
   writeLines(pst_out, file.path(model_run_loc, file_out))
 }
+
+
+
+calc_weight = function(all_obs, cur_obs){
+  out = 1 - log10(cur_obs - min(all_obs) + 1) / log10(diff(range(all_obs)))# lower vals get higher weights
+
+  return(round(out, digits = 4))
+}
+
