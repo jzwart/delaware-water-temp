@@ -401,7 +401,7 @@ EnKF = function(ind_file,
   n_states_est = length(state_names) * nrow(model_locations)  # making this segment based for now, would need to change if updating HRUs
   n_states_obs = nrow(model_locations) # only assimilating temperature obs
   n_params_obs = 0 # include this as input or dynamic
-  state_sd = rep(obs_cv * 5, n_states_est)  # UPDATE THIS #########
+  state_sd = rep(obs_cv * 10, n_states_est)  # UPDATE THIS #########
 
   # get observation matrix
   obs_df = readRDS(obs_file)

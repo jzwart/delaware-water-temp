@@ -199,6 +199,12 @@ rmse(actual = all_preds_obs_flow$discharge_cfs, predicted = all_preds_flow$disch
 rmse(actual = all_preds_obs_flow$discharge_cfs, predicted = all_preds_flow$discharge_uncal)
 
 
+d = dplyr::filter(all_preds_obs_temp, model_idx == '445')
+
+plot(d$water_temp_cal, type = 'l')
+points(d$temp_C, col = 'red')
+lines(d$water_temp_uncal, col ='grey')
+
 all_preds_obs$cal_error = all_preds_obs$water_temp_cal - all_preds_obs$temp_C
 all_preds_obs$uncal_error = all_preds_obs$water_temp_uncal - all_preds_obs$temp_C
 

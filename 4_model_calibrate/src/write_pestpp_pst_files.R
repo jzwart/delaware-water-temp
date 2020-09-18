@@ -267,7 +267,7 @@ write_pestpp_pst_files = function(params,
         if(weight_by_magnitude){
           cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
                                    cur_obs = obs$flow$discharge_cfs[obs$flow$obs_name == cur]) # assigning weight based on magnitude of value
-        }else{cur_weight = '1.0'}
+        }else{cur_weight = '0.05'}
         out = sprintf('%s %s %s %s', cur, obs$flow$discharge_cfs[obs$flow$obs_name == cur], cur_weight, 'flow')
       }else{ # no observation available so giving 0 weight
         out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'flow')
