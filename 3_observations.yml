@@ -5,9 +5,11 @@ packages:
   - yaml
   - nhdplusTools
   - dplyr
+  - scipiper
 
 sources:
   - 3_observations/src/crosswalk_functions.R
+  - 3_observations/src/combine_obs.R
 
 targets:
   3_observations:
@@ -31,4 +33,9 @@ targets:
   3_observations/out/obs_subset.rds:
     command: gd_get('3_observations/out/obs_subset.rds.ind')
 
+  3_observations/out/obs_temp_flow.rds.ind:
+    command: combine_obs(
+      ind_file = target_name,
+      temp_obs_file = '3_observations/in/obs_temp_full.rds',
+      flow_obs_file = '3_observations/in/obs_flow_full.rds')
 

@@ -47,7 +47,7 @@ calibrate_sntemp = function(ind_file,
   start = '2000-10-01'
   stop = '2005-09-30'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
-  obs_file = '3_observations/in/obs_temp_full.rds'
+  obs_file = '3_observations/out/obs_temp_flow.rds'
   init_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
   model_run_loc = I('4_model_calibrate/tmp')
   orig_model_loc = I('20191002_Delaware_streamtemp')
@@ -80,8 +80,12 @@ calibrate_sntemp = function(ind_file,
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = 'days')
 
   # get observations
-  obs_df = readRDS(obs_file) %>%
+  temp_obs_df = readRDS(obs_file)$temp %>%
     left_join(model_locations, by = 'seg_id_nat')
+
+  flow_obs_df = readRDS(obs_file)$flow %>%
+    left_join(model_locations, by = 'seg_id_nat') %>%
+    mutate(discharge_cfs = discharge_cms * (3.28084^3))
 
   # get initial parameters
   init_params_list = readRDS(init_param_file) #%>% arrange(as.numeric(model_idx))
@@ -94,26 +98,10 @@ calibrate_sntemp = function(ind_file,
 
   cal_order = get_calibration_order(subbasin_outlet_file = subbasin_outlet_file)
 
-  # setting params to initial conditions before calibrating
-  # init_params = init_params_df %>%
-  #   pivot_longer(cols = eval(param_names), names_to = 'param_name', values_to = 'param_value') %>%
-  #   arrange(factor(param_name, levels = param_names), as.numeric(model_idx)) %>%
-  #   pull(param_value)
-
   update_sntemp_params(param_names = param_names,
                        updated_params = init_params_list,
                        model_run_loc = model_run_loc,
                        param_file = 'input/myparam.param')
-
-  # jh_coef_init = get_jh_coef(model_run_loc = orig_model_loc)
-  #
-  # update_jh_coef(updated_params = jh_coef_init$jh_coef,
-  #                model_run_loc = model_run_loc)
-
-  # lat_temp_adj_init = get_lat_temp_adj(model_run_loc = orig_model_loc)
-  #
-  # update_lat_temp_adj(updated_params = lat_temp_adj_init$lat_temp_adj,
-  #                     model_run_loc = model_run_loc)
 
   # run sntemp once with spinup to create a starting point for the model
   run_sntemp(start = (start-1),
@@ -140,9 +128,14 @@ calibrate_sntemp = function(ind_file,
 
   # for HydroPSO, vector of observations must match vector of simulated output. Order by model_idx and then date
   # observations for current subbasin
-  cur_obs = dplyr::filter(obs_df, model_idx %in% cur_model_idxs,
+  cur_temp_obs = dplyr::filter(temp_obs_df, model_idx %in% cur_model_idxs,
                           date >= as.Date(start),
                           date <= as.Date(stop)) %>%
+    arrange(as.numeric(model_idx), date)
+
+  cur_flow_obs = dplyr::filter(flow_obs_df, model_idx %in% cur_model_idxs,
+                               date >= as.Date(start),
+                               date <= as.Date(stop)) %>%
     arrange(as.numeric(model_idx), date)
 
   # pull out parameters for current subbasin based on segment model_idx
@@ -167,29 +160,44 @@ calibrate_sntemp = function(ind_file,
              model_run_loc = model_run_loc)
 
   # write instruction files needed for running PEST++
+  # for temperature
   write_pestpp_ins_files(params = cur_params_to_cal,
                          seg_model_idxs = cur_model_idxs,
                          model_run_loc = model_run_loc,
                          model_output_file = 'output/seg_tave_water.csv',
-                         file_out = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet),
+                         file_out = sprintf('pestpp/subbasin_%s_temp.ins', cur_subbasin_outlet),
                          delim = '@',
-                         secondary_delim = '!')
+                         secondary_delim = '!',
+                         obs_type = 'wtemp')
+  # for flow
+  write_pestpp_ins_files(params = cur_params_to_cal,
+                         seg_model_idxs = cur_model_idxs,
+                         model_run_loc = model_run_loc,
+                         model_output_file = 'output/seg_outflow.csv',
+                         file_out = sprintf('pestpp/subbasin_%s_flow.ins', cur_subbasin_outlet),
+                         delim = '@',
+                         secondary_delim = '!',
+                         obs_type = 'flow')
 
   ## to check ins file run pyEMU with
   #  i = pyemu.pst_utils.InstructionFIle("my.ins")
   #  df = i.read_output_file("my.output")
 
+  cur_obs_list = list(temp = cur_temp_obs, flow = cur_flow_obs)
   # write PEST++ sen control file
   write_pestpp_pst_files(params = cur_params_to_cal,
                          seg_model_idxs = cur_model_idxs,
                          model_run_loc = model_run_loc,
-                         model_output_file = 'output/seg_tave_water.csv',
-                         obs = cur_obs,
+                         temp_model_output_file = 'output/seg_tave_water.csv',
+                         flow_model_output_file = 'output/seg_outflow.csv',
+                         obs = cur_obs_list,
                          file_out = sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet),
                          param_groups = param_groups,
                          param_file_name = 'input/myparam.param',
                          tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
-                         ins_file_name = sprintf('pestpp/subbasin_%s.ins', cur_subbasin_outlet),
+                         temp_ins_file_name = sprintf('pestpp/subbasin_%s_temp.ins', cur_subbasin_outlet),
+                         flow_ins_file_name = sprintf('pestpp/subbasin_%s_flow.ins', cur_subbasin_outlet),
+                         weight_by_magnitude = T,# assigning weight based on magnitude of obs value
                          tie_by_group = F) # tying parameters together by group (e.g. gw_tau)
 
   set_sntemp_start_stop(start = start,

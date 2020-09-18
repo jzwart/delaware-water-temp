@@ -4,28 +4,35 @@
 write_pestpp_pst_files = function(params,
                                   seg_model_idxs,
                                   model_run_loc,
-                                  model_output_file,
+                                  temp_model_output_file,
+                                  flow_model_output_file,
                                   obs,
                                   file_out,
                                   param_groups,
                                   tpl_file_name,
                                   param_file_name,
                                   param_default_file = 'control/delaware.control.par_name',
-                                  ins_file_name,
+                                  temp_ins_file_name,
+                                  flow_ins_file_name,
+                                  weight_by_magnitude = T,
                                   tie_by_group = F){
 
-  output = read.csv(file.path(model_run_loc, model_output_file), header = T)
+  output = read.csv(file.path(model_run_loc, temp_model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
   colnames(output)[2:ncol(output)] = model_idxs
   dates = strftime(strptime(output$Date, format = '%Y-%m-%d'), '%Y%m%d') # date vector for
 
   cur_model_idxs = as.character(sort(as.numeric(seg_model_idxs)))
 
-  #### NEED TO UPDATE THIS IF ADDING STREAMFLOW ####
-  obs$obs_name = paste('wtemp',
-                       obs$model_idx,
-                       strftime(strptime(obs$date, format = '%Y-%m-%d'), '%Y%m%d'),
-                       sep = '_')
+  obs$temp$obs_name = paste('wtemp',
+                            obs$temp$model_idx,
+                            strftime(strptime(obs$temp$date, format = '%Y-%m-%d'), '%Y%m%d'),
+                            sep = '_')
+
+  obs$flow$obs_name = paste('flow',
+                            obs$flow$model_idx,
+                            strftime(strptime(obs$flow$date, format = '%Y-%m-%d'), '%Y%m%d'),
+                            sep = '_')
 
   #######################################################
   # format for minimalist .pst file :
@@ -176,6 +183,18 @@ write_pestpp_pst_files = function(params,
                                                param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
                                                param_names[i]) # parameter group
                            }) %>% paste(., collapse = '\n')
+                         }else if(cur_defaults$ndim == '1' & cur_defaults$dim == 'nssr'){
+                           out = sapply(seq_len(nrow(cur_params)), function(j){
+                             param_name_out = paste(param_names[i], cur_params$hru_model_idx[j], sep = '_')
+                             cur_out = sprintf('%s %s %s %s %s %s %s 1.0 0.0 1',
+                                               param_name_out, # parameter name
+                                               param_groups$partrans[param_groups$param == param_names[i]], # transformation of parameter
+                                               param_groups$parchglim[param_groups$param == param_names[i]], # limitation of parameter adjustment
+                                               cur_params$vals[j],  # initial parameter value
+                                               param_groups$min[param_groups$param == param_names[i]], # lower bound of parameter
+                                               param_groups$max[param_groups$param == param_names[i]], # upper bound of parameter
+                                               param_names[i]) # parameter group
+                           }) %>% paste(., collapse = '\n')
                          }else if(cur_defaults$ndim == '2'){
                            if(grepl('nsegment', cur_defaults$dim) & grepl('nmonths', cur_defaults$dim)){
                              # per segment x month basis is organized in order of segment model_idx and then month
@@ -212,20 +231,24 @@ write_pestpp_pst_files = function(params,
   }
 
 
-  # add in flow if calibrating with flow
   obs_groups = paste('* observation groups',
                      'wtemp',
+                     'flow',
                      sep = '\n')
 
-  obs_data = sapply(seq_along(dates), function(j){
+  temp_obs_data = sapply(seq_along(dates), function(j){
     cur_date = dates[j]
     sapply(seq_along(cur_model_idxs), function(i){
       cur = paste('wtemp',
                   as.character(cur_model_idxs[i]),
                   cur_date,
                   sep = '_')
-      if(cur %in% obs$obs_name){ # if obs matches predictions, use weight of 1.0
-        out = sprintf('%s %s %s %s', cur, obs$temp_C[obs$obs_name == cur], '1.0', 'wtemp')
+      if(cur %in% obs$temp$obs_name){ # if obs matches predictions, use weight of 1.0
+        if(weight_by_magnitude){
+          cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
+                                   cur_obs = obs$temp$temp_C[obs$temp$obs_name == cur]) # assigning weight based on magnitude of value
+        }else{cur_weight = '1.0'}
+        out = sprintf('%s %s %s %s', cur, obs$temp$temp_C[obs$temp$obs_name == cur], cur_weight, 'wtemp')
       }else{ # no observation available so giving 0 weight
         out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'wtemp')
       }
@@ -233,13 +256,34 @@ write_pestpp_pst_files = function(params,
     }) %>% paste(., collapse = '\n')
   }) %>% paste(., collapse = '\n') %>% paste('* observation data', ., sep = '\n')
 
+  flow_obs_data = sapply(seq_along(dates), function(j){
+    cur_date = dates[j]
+    sapply(seq_along(cur_model_idxs), function(i){
+      cur = paste('flow',
+                  as.character(cur_model_idxs[i]),
+                  cur_date,
+                  sep = '_')
+      if(cur %in% obs$flow$obs_name){ # if obs matches predictions, use weight of 1.0
+        if(weight_by_magnitude){
+          cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
+                                   cur_obs = obs$flow$discharge_cfs[obs$flow$obs_name == cur]) # assigning weight based on magnitude of value
+        }else{cur_weight = '0.05'}
+        out = sprintf('%s %s %s %s', cur, obs$flow$discharge_cfs[obs$flow$obs_name == cur], cur_weight, 'flow')
+      }else{ # no observation available so giving 0 weight
+        out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'flow')
+      }
+      return(out)
+    }) %>% paste(., collapse = '\n')
+  }) %>% paste(., collapse = '\n')
+
   model_cmd_line = paste('* model command line',
                          '"C:/Program Files/R/R-4.0.0/bin/Rscript.exe" ../src/pestpp_model_call.R',
                          sep = '\n')
 
   model_inout = paste('* model input/output',
                       sprintf('%s %s', tpl_file_name, param_file_name),
-                      sprintf('%s %s', ins_file_name, model_output_file),
+                      sprintf('%s %s', temp_ins_file_name, temp_model_output_file),
+                      sprintf('%s %s', flow_ins_file_name, flow_model_output_file),
                       sep = '\n')
 
   # model_out = paste('* model output',
@@ -261,7 +305,8 @@ write_pestpp_pst_files = function(params,
                   param_groups_out,
                   param_data,
                   obs_groups,
-                  obs_data,
+                  temp_obs_data,
+                  flow_obs_data,
                   model_cmd_line,
                   model_inout,
                   # model_out,
@@ -272,3 +317,12 @@ write_pestpp_pst_files = function(params,
 
   writeLines(pst_out, file.path(model_run_loc, file_out))
 }
+
+
+
+calc_weight = function(all_obs, cur_obs){
+  out = 1 - log10(cur_obs - min(all_obs) + 1) / log10(diff(range(all_obs)))# lower vals get higher weights
+
+  return(round(out, digits = 4))
+}
+

@@ -2,7 +2,7 @@
 library(dplyr)
 library(ggplot2)
 
-d = readRDS('4_model/out/model_out_gwsum_only.rds')
+d = readRDS('4_model/out/model_out_gwsum_sssum.rds')
 dd = readRDS('4_model/out/model_out_no_assim.rds')
 
 obs = d$obs
