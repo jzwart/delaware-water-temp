@@ -1,150 +1,209 @@
 
+library(dplyr)
+library(ggplot2)
 
+d = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182.rds')
+dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182.rds')
+
+obs = d$obs
+Y = d$Y
+R = d$R
+n_en = 20
+n_step = length(d$dates)
+cur_model_idxs = d$model_locations$model_idx
+Y_no_assim = dd$Y
+
+#lordsville site is seg_id_nat == 1573; model_idx = 224
+for(j in cur_model_idxs){
+  obs[,1,1]
+  matrix_loc = which(output$model_locations$model_idx == j)
+
+  windows()
+  plot(Y[matrix_loc,,1] ~ d$dates, type = 'l',
+       ylab = 'Stream Temp (C)', xlab = '', lty=0,
+       ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,], Y_no_assim[matrix_loc,,]), na.rm = T),)
+  for(i in 1:n_en){
+    lines(Y_no_assim[matrix_loc,1:71,i] ~ d$dates, col = 'grey')
+    lines(Y[matrix_loc,,i] ~ d$dates)
+  }
+  points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
+  arrows(d$dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], d$dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
+         angle = 90, length = .05, col = 'red', code = 3)
+}
+#
+# params = 456*2 + site
+# windows()
+# plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
+# for(i in 1:n_en){
+#   lines(Y[params,,i])
+# }
+#
+# gw_sum = Y[456*1 + site,,]
+# gw_tau = Y[456*4 + site,,]
+# seg_tave_gw = gw_sum / gw_tau
+# ss_sum = Y[456*1 + site,,]
+# ss_tau = Y[456*3 + site,,]
+# seg_tave_ss = ss_sum / ss_tau
+#
+# windows()
+# plot(seg_tave_gw[,1]~d$dates)
+# windows()
+# plot(seg_tave_ss[,1]~d$dates)
+# windows()
+# plot(gw_sum[,9]~d$dates)
+#
+# windows()
+# plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
+# for(i in 1:n_en){
+#   lines(Y[params,,i])
+# }
+
+#
+# uncert = c()
+# uncert_no_assim = c()
+# n_obs = c()
+# ss_tau = c()
+# gw_tau = c()
+# for(site in 1:456){
+#   # uncertainty at end of run
+#   uncert = rbind(uncert, sd(Y[site,n_step,]))
+#   uncert_no_assim = rbind(uncert_no_assim, sd(Y_no_assim[site, n_step, ]))
+#   n_obs = rbind(n_obs, sum(!is.na(obs[site,1,])))
+#   ss_tau = rbind(ss_tau, mean(Y[(456*2 + site), n_step, ]))
+#   gw_tau = rbind(gw_tau, mean(Y[(456*3 + site), n_step, ]))
+# }
+#
+# windows()
+#
+#
+# plot(uncert ~ n_obs, ylab = 'Temperature Standard Deviation', xlab= '# of Observations Assimilated', pch =16, cex = 1.5)
+#
+# loc = cbind(d$model_locations, uncert,uncert_no_assim, n_obs, ss_tau, gw_tau)
+# # loc = cbind(d$model_locations, uncert, n_obs)
+#
+# model_fabric = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp') %>%
+#   mutate(seg_id_nat = as.character(seg_id_nat),
+#          model_idx = as.character(model_idx))
+#
+# loc = dplyr::left_join(model_fabric, loc, by = c('seg_id_nat', 'model_idx'))
+#
+# library(ggplot2)
+# windows()
+# ggplot() +
+#   geom_sf(data = loc, aes(color = log10(uncert)))+
+#   scale_color_viridis_c() +
+#   theme_minimal()+
+#   theme(legend.title = element_text('Temp SD'))
+#
+# # reduction in uncertainty
+# windows()
+# ggplot() +
+#   geom_sf(data = loc, aes(color = (uncert_no_assim - uncert), size = .01*(uncert_no_assim - uncert)))+
+#   scale_color_viridis_c(direction = -1) +
+#   theme_minimal()
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = dplyr::filter(loc, n_obs >0), color = 'red')+
+#   geom_sf(data = dplyr::filter(loc, n_obs ==0), color = 'grey90')+
+#   theme_minimal()
+#
+# loc$red_uncert = loc$uncert_no_assim - loc$uncert
+# windows()
+# plot(loc$red_uncert ~ loc$n_obs)
+# abline(lm(loc$red_uncert~loc$n_obs))
+#
+# windows()
+# # loc$ss_tau = loc$ss_tau + 40
+# ggplot() +
+#   geom_sf(data = loc, aes(color = ss_tau ))+
+#   scale_color_viridis_c() +
+#   theme_minimal()+
+#   theme(legend.title = element_text('ss_tau'))
+#
+#
+# windows()
+# ggplot() +
+#   geom_sf(data = loc, aes(color = log10(uncert)))+
+#   scale_color_viridis_c() +
+#   theme_minimal()+
+#   theme(legend.title = element_text('Temp SD'))
+
+# RMSE
+time_period = 1:n_step
+mean_Y = rowMeans(Y, dims = 2) # mean of ensembles for each time step
+mean_Y_no_assim = rowMeans(Y_no_assim, dims = 2)
+mean_temp = mean_Y[1:length(cur_model_idxs), time_period]
+mean_temp_no_assim = mean_Y_no_assim[1:length(cur_model_idxs), time_period]
+temp_rmse = sqrt(rowMeans((mean_temp - obs[,1,time_period])^2, na.rm = T))
+temp_rmse_no_assim = sqrt(rowMeans((mean_temp_no_assim - obs[,1,time_period])^2, na.rm = T))
+
+hist(temp_rmse)
+hist(temp_rmse_no_assim)
+rmse_diff = temp_rmse_no_assim - temp_rmse
+rmse_reduced = ifelse(rmse_diff>0, 'decrease', 'increase')
+
+rmse_df = tibble(rmse = c(temp_rmse, temp_rmse_no_assim),
+                 da = c(rep('DA', length(temp_rmse)), rep('no_DA', length(temp_rmse_no_assim))),
+                 diff = rep(abs(rmse_diff), 2),
+                 reduced = rep(rmse_reduced, 2),
+                 id = rep(1:length(rmse_diff), 2))
+
+b <- runif(nrow(rmse_df), -0.1, 0.1)
+
+rmse_df$da = factor(x = rmse_df$da, levels = c('no_DA', 'DA'))
+
+windows()
+ggplot(rmse_df, aes(x = da, y = rmse)) +
+  geom_boxplot() +
+  geom_point(aes(color = reduced, size = diff)) +
+  geom_line(aes(group = id, color = reduced), linetype = '11')+
+  theme_classic() +
+  scale_color_manual(name = 'reduced',
+                     values = c('blue', 'red'))+
+  theme(strip.background = element_blank(),
+        strip.placement = 'inside',
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size =12)) +
+  xlab('') +
+  ylab(expression(RMSE~(degrees~C)))
+
+
+loc = cbind(d$model_locations, temp_rmse, temp_rmse_no_assim)
+
+model_fabric = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp') %>%
+  mutate(seg_id_nat = as.character(seg_id_nat),
+         model_idx = as.character(model_idx))
+
+loc = dplyr::left_join(model_fabric, loc, by = c('seg_id_nat', 'model_idx')) %>% dplyr::filter(model_idx %in% cur_model_idxs)
+
+loc$reduction_rmse = loc$temp_rmse_no_assim - loc$temp_rmse
 
 library(ggplot2)
-library(tidyr)
-library(dplyr)
+windows()
+ggplot() +
+  geom_sf(data = dplyr::filter(loc, !is.na(temp_rmse)), aes(color = temp_rmse), size =2)+
+  scale_color_viridis_c() +
+  theme_minimal()+
+  geom_sf(data = dplyr::filter(loc, is.na(temp_rmse)), color = 'grey90')
 
-output = readRDS('4_model/out/model_out.rds')
-
-site_index = 4
-
-site = output$model_locations$seg_id_nat[site_index]
-site_est_mean = apply(output$Y[site_index, , ], MARGIN = 1, FUN = mean)
-site_est_sd = apply(output$Y[site_index, , ], MARGIN = 1, FUN = sd)
-site_obs = output$obs[site_index, , ]
-site_obs_var = output$R[site_index, site_index, ] # site observation variance
-
-site_data = tibble(site_id = rep(site, length(output$dates)),
-                   date = output$dates,
-                   temp_est = site_est_mean,
-                   temp_est_sd = site_est_sd,
-                   temp_obs = site_obs,
-                   temp_obs_var = site_obs_var)
-
-axes_text_size = 18
-
-
-t_col <- function(color, percent = 50, name = NULL) {
-  #	  color = color name
-  #	percent = % transparency
-  #	   name = an optional name for the color
-  ## Get RGB values for named color
-  rgb.val <- col2rgb(color)
-  ## Make new color using input color as base and alpha set by transparency
-  t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
-               max = 255,
-               alpha = (100-percent)*255/100,
-               names = name)
-  ## Save the color
-  invisible(t.col)
-
-}
-
-add_uncertainty_ribbons = function(data){
-  uncert = ggplot(data = data) +
-    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*2, ymax = temp_est + temp_est_sd*2),
-                fill = t_col('lightblue',percent = 90), col = t_col('lightblue',percent = 90)) +
-    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*1.5, ymax = temp_est + temp_est_sd*1.5),
-                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
-    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*1.25, ymax = temp_est + temp_est_sd*1.25),
-                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
-    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd, ymax = temp_est + temp_est_sd),
-                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
-    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*.75, ymax = temp_est + temp_est_sd*.75),
-                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80)) +
-    geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd*.5, ymax = temp_est + temp_est_sd*.5),
-                fill = t_col('lightblue',percent = 80), col = t_col('lightblue',percent = 80))  +
-    geom_line(aes(x = date, y = temp_est), col = t_col('blue',percent = 50)) +
-    geom_point(aes(x = date, y = temp_obs), col = 'grey30', alpha = .3, size = 2) +
-    theme_classic() +
-    theme(axis.title = element_text(size = axes_text_size),
-          axis.text = element_text(size = axes_text_size)) +
-    ylab('Temperature (C)') +
-    xlab('')
-
-  return(uncert)
-}
-
-uncert = add_uncertainty_ribbons(data = dplyr::filter(site_data, date < as.Date('2011-01-01')))
-
-uncert
-
-ggplot(data = site_data) +
-  geom_line(aes(x = date, y = temp_est), col = 'blue') +
-  geom_point(aes(x = date, y = temp_obs), col = 'grey30', alpha = .3, size = 2) +
-  theme_classic() +
-  theme(axis.title = element_text(size = axes_text_size),
-        axis.text = element_text(size = axes_text_size)) +
-  ylab('Temperature (C)') +
-  xlab('')
+windows()
+ggplot() +
+  geom_sf(data = dplyr::filter(loc, !is.na(reduction_rmse)), aes(color = reduction_rmse,size = abs(reduction_rmse)))+
+  # scale_color_distiller(palette = 'RdBu', limits = c(-1,1)*max(abs(loc$reduction_rmse))) +
+  scale_color_gradient2() +
+  theme_minimal()+
+  geom_sf(data = dplyr::filter(loc, is.na(reduction_rmse)), color = 'grey90')
 
 
 
-ggplot(data = site_data) +
-  geom_ribbon(aes(x = date, ymin = temp_est - temp_est_sd, ymax = temp_est + temp_est_sd),
-              fill = 'lightblue', col = 'lightblue') +
-  geom_line(aes(x = date, y = temp_est), col = 'blue') +
-  geom_point(aes(x = date, y = temp_obs), col = 'grey30', alpha = .3, size = 2) +
-  theme_classic() +
-  theme(axis.title = element_text(size = axes_text_size),
-        axis.text = element_text(size = axes_text_size)) +
-  ylab('Temperature (C)') +
-  xlab('')
+plot(loc$reduction_rmse ~ loc$n_obs, ylab ='Reduction in RMSE', xlab = '# of Obs Assimilated', pch =16, cex = 1.5)
 
-ggplot(data = site_data) +
-  geom_point(aes(x = temp_obs, y = temp_est), col = 'black', alpha = .3, size = 2) +
-  theme_classic() +
-  theme(axis.title = element_text(size = axes_text_size),
-        axis.text = element_text(size = axes_text_size)) +
-  geom_abline(slope = 1, intercept = 0) +
-  ylab('Temperature (C)') +
-  xlab('')
+sum(loc$reduction_rmse/ length(!is.na(loc$n_obs)), na.rm = T)
 
-#
-# windows()
-# plot(Y[1, ,1] ~ dates, type = 'l', col = 'grey', ylab= 'Temp (C)')
-# for(n in 1:n_en){
-#   lines(Y[1,,n] ~ dates, col ='grey')
-# }
-# lines(apply(Y[1,,], MARGIN = 1, FUN = mean) ~ dates, col = 'black')
-# points(obs[1,1,] ~ dates)
-# # arrows(dates,
-# #        obs[1,1,]-state_sd[1],
-# #        dates,
-# #        obs[1,1,]+state_sd[1],
-# #        code=3, length=0.1, angle=90, col='black')
-#
-#
-# windows()
-# plot(Y[4, ,1] ~ dates, type = 'l', col = 'grey', ylab= 'Temp (C)')
-# for(n in 1:n_en){
-#   lines(Y[4,,n] ~ dates, col ='grey')
-# }
-# lines(apply(Y[4,,], MARGIN = 1, FUN = mean) ~ dates, col = 'black')
-# points(obs[4,1,] ~ dates)
-#
-# windows()
-# plot(Y[3, ,1] ~ dates, type = 'l', col = 'grey', ylab= 'Temp (C)')
-# for(n in 1:n_en){
-#   lines(Y[3,,n] ~ dates, col ='grey')
-# }
-# lines(apply(Y[3,,], MARGIN = 1, FUN = mean) ~ dates, col = 'black')
-# points(obs[3,1,] ~ dates)
-#
-#
-# windows()
-# plot(apply(Y[1,,], MARGIN = 1, FUN = mean) ~ obs[1,1,])
-# abline(0,1, lty =2 ,col ='red', lwd = 2)
-#
-# windows()
-# plot(apply(Y[4,,], MARGIN = 1, FUN = mean) ~ obs[4,1,])
-# abline(0,1, lty =2 ,col ='red', lwd = 2)
+hist(loc$reduction_rmse)
 
-
-
-
-
-
-
+loc$model_idx[which(loc$reduction_rmse == max(loc$reduction_rmse, na.rm = T))]
 

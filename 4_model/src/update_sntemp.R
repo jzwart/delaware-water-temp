@@ -80,6 +80,7 @@ update_lat_temp_adj = function(updated_params,
 #'
 update_sntemp_states = function(state_names,
                                 by_seg = T,
+                                seg_model_idxs = NULL, # segments to update
                                 updated_states,
                                 state_order_file = '4_model/cfg/state_order.rds',
                                 model_run_loc = '4_model/tmp',
@@ -89,6 +90,10 @@ update_sntemp_states = function(state_names,
   # order of the states in the ic file - PRMS-SNTemp ic file isn't documented so these are the order of the states AS LONG AS
   #  we use the same modules every time
   state_order = readRDS(state_order_file)
+
+  if(!is.null(seg_model_idxs)){
+    n_segments = length(seg_model_idxs)
+  }
 
   # open the ic file
   fc = file(file.path(model_run_loc, ic_file_in))
@@ -102,7 +107,15 @@ update_sntemp_states = function(state_names,
       cur_state = state_names[i]
       cur_state_row = state_order$row_idx[state_order$state_name == cur_state]
 
-      ic[[cur_state_row]] = as.character(updated_states[((i-1)*n_segments+1):(i*n_segments)])
+      cur_updated_states = tibble(vals = as.character(updated_states[((i-1)*n_segments+1):(i*n_segments)]), model_idx = seg_model_idxs)
+
+      prior_states = stringi::stri_remove_empty(ic[[cur_state_row]]) # removes blank string
+
+      cur_updated_states_vec = prior_states
+
+      cur_updated_states_vec[as.numeric(cur_updated_states$model_idx)] = cur_updated_states$vals
+
+      ic[[cur_state_row]] = cur_updated_states_vec
     }
   }else{
     for(i in 1:length(state_names)){

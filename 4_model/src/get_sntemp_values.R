@@ -89,6 +89,7 @@ get_sntemp_intermediates = function(model_output_file,
 
 get_sntemp_initial_states = function(state_names,
                                      by_seg = T,
+                                     seg_model_idxs = NULL, # IC of segments to return
                                      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
                                      state_order_file = '4_model/cfg/state_order.rds',
                                      model_run_loc = '4_model/tmp',
@@ -120,6 +121,9 @@ get_sntemp_initial_states = function(state_names,
       out = out %>%
         mutate(temp_name = cur_state_vals) %>%
         rename(!!noquote(cur_state) := temp_name)
+    }
+    if(!is.null(seg_model_idxs)){
+      out = dplyr::filter(out, model_idx %in% seg_model_idxs)
     }
   }else{
     for(i in 1:length(state_names)){

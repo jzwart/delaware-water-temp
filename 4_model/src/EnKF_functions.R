@@ -308,6 +308,9 @@ EnKF = function(ind_file,
                 start,
                 stop,
                 time_step = 'days',
+                subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
+                subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
+                subbasin_outlet_id = NULL,
                 model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
                 obs_file = '3_observations/in/obs_temp_full.rds',
                 init_param_file = '2_3_model_parameters/out/init_params.rds',
@@ -347,13 +350,14 @@ EnKF = function(ind_file,
   # library(tidyverse)
   # library(igraph)
   # start = '2014-05-01'
-  # stop = '2014-07-30'
+  # stop = '2014-07-10'
   # model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   # obs_file = '3_observations/in/obs_temp_full.rds'
   # model_run_loc = I('4_model/tmp')
   # orig_model_loc = I('20200207_Delaware_streamtemp_state_adj')
   # subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
   # subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
+  # subbasin_outlet_id = '4182'
   # param_groups = as_tibble(yaml::read_yaml('4_model/cfg/da_settings.yml')$param_groups)
   # param_default_file = 'control/delaware.control.par_name'
   # n_en = 20
@@ -386,9 +390,19 @@ EnKF = function(ind_file,
   # use this to organize the matrices
   model_fabric = sf::read_sf(model_fabric_file)
 
+  subbasins = readRDS(subbasin_file)
+
+  if(!is.null(subbasin_outlet_id)){
+    cur_subbasin = subbasins[subbasin_outlet_id][[subbasin_outlet_id]]
+  }
+
+  # get subbasin parameter locations
+  cur_model_idxs = as.character(cur_subbasin$model_idx)
+
   # arrange by model_idx
   model_locations = tibble(seg_id_nat = as.character(model_fabric$seg_id_nat),
                            model_idx = as.character(model_fabric$model_idx)) %>%
+    dplyr::filter(model_idx %in% cur_model_idxs) %>%
     arrange(as.numeric(model_idx))
 
   # get model start, stop, full dates, and n_steps
@@ -407,7 +421,7 @@ EnKF = function(ind_file,
   obs_df = readRDS(obs_file)
 
   # get initial parameters; already arranged by model_idx within each param list
-  init_params_list = NULL#readRDS(init_param_file)
+  init_params_list = NULL #readRDS(init_param_file)
 
   n_params_est = sum(unlist(lapply(init_params_list, length)))
 
@@ -465,6 +479,7 @@ EnKF = function(ind_file,
   init_states = model_locations
   for(n in 1:n_en){
     cur_ic = get_sntemp_initial_states(state_names = state_names,
+                                       seg_model_idxs = cur_model_idxs,
                                        model_run_loc = model_run_loc,
                                        ic_file = sprintf('prms_ic_spinup_%s.txt', n))
 
@@ -538,11 +553,13 @@ EnKF = function(ind_file,
 
         if(t==2){
           update_sntemp_states(state_names = state_names,
+                               seg_model_idxs = cur_model_idxs,
                                updated_states = updated_states,
                                ic_file_in = sprintf('prms_ic_spinup_%s.txt', n),
                                ic_file_out = sprintf('prms_ic_%s.txt', n))
         }else{
           update_sntemp_states(state_names = state_names,
+                               seg_model_idxs = cur_model_idxs,
                                updated_states = updated_states,
                                ic_file_in = sprintf('prms_ic_%s.txt', n),
                                ic_file_out = sprintf('prms_ic_%s.txt', n))
@@ -562,6 +579,7 @@ EnKF = function(ind_file,
 
 
         ic_out = get_sntemp_initial_states(state_names = state_names,
+                                           seg_model_idxs = cur_model_idxs,
                                            model_run_loc = model_run_loc,
                                            ic_file = sprintf('prms_ic_%s.txt', n))
         predicted_states = gather_states(ic_out) # predicted states from model
@@ -589,6 +607,7 @@ EnKF = function(ind_file,
       }
     }
   }else{
+    t = 2
     for(n in 1:n_en){
       # set parameters / states for model config
       if(n_params_est>0){
@@ -613,18 +632,20 @@ EnKF = function(ind_file,
 
       if(t==2){
         update_sntemp_states(state_names = state_names,
+                             seg_model_idxs = cur_model_idxs,
                              updated_states = updated_states,
                              ic_file_in = sprintf('prms_ic_spinup_%s.txt', n),
                              ic_file_out = sprintf('prms_ic_%s.txt', n))
       }else{
         update_sntemp_states(state_names = state_names,
+                             seg_model_idxs = cur_model_idxs,
                              updated_states = updated_states,
                              ic_file_in = sprintf('prms_ic_%s.txt', n),
                              ic_file_out = sprintf('prms_ic_%s.txt', n))
       }
 
       # run model
-      run_sntemp(start = dates[2],
+      run_sntemp(start = dates[t],
                  stop = dates[n_step],
                  spinup = F,
                  restart = T,
@@ -636,15 +657,15 @@ EnKF = function(ind_file,
 
       model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
                                             model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
-        dplyr::filter(date %in% dates[2:n_step]) %>%
+        dplyr::filter(date %in% dates[t:n_step], model_idx %in% cur_model_idxs) %>%
         arrange(date, as.numeric(model_idx))
 
       out_temp = array(model_output$water_temp, dim = c(nrow(model_locations), n_step-1))
 
-      Y[1:nrow(model_locations), 2:n_step, n] = out_temp # store temp in Y vector
+      Y[1:nrow(model_locations), t:n_step, n] = out_temp # store temp in Y vector
       if(n_params_est > 0){
         out_params = array(rep(updated_params, (n_step-1)), dim = c(n_params_est, n_step-1))
-        Y[(n_states_est+1):(n_states_est+n_params_est), 2:n_step, n] = out_params # store params in Y vector
+        Y[(n_states_est+1):(n_states_est+n_params_est), t:n_step, n] = out_params # store params in Y vector
       }
     }
   }

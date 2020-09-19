@@ -48,12 +48,12 @@ add_uncertainty_ribbons = function(data){
 }
 
 
-output = readRDS('4_model/out/model_out_gwsum_sssum.rds')
-output_no_assim = readRDS('4_model/out/model_out_no_assim.rds')
+output = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182.rds')
+output_no_assim = readRDS('4_model/out/model_out_no_assim_subbasin_4182.rds')
 compare_to_no_assim = T
 
 dates = output$dates
-start = '2014-05-10'
+start = '2014-05-01'
 stop = '2014-07-10'
 start_idx = which(dates == start)
 stop_idx = which(dates == stop)
@@ -69,15 +69,16 @@ most_obs
 # 1450; 122 == Downstream of Pepacton Res
 # 1566; 217 == Downstream of Cannonsville Res
 
-site_index = 224
+site_index = 422
+matrix_loc = which(output$model_locations$model_idx == as.character(site_index))
 
-site = output$model_locations$seg_id_nat[site_index]
-site_est_mean = apply(output$Y[site_index, start_idx:stop_idx, ], MARGIN = 1, FUN = mean)
-site_est_sd = apply(output$Y[site_index, start_idx:stop_idx, ], MARGIN = 1, FUN = sd)
-site_obs = output$obs[site_index, , start_idx:stop_idx]
-site_obs_var = output$R[site_index, site_index, start_idx:stop_idx] # site observation variance
+site = output$model_locations$seg_id_nat[matrix_loc]
+site_est_mean = apply(output$Y[matrix_loc, start_idx:stop_idx, ], MARGIN = 1, FUN = mean)
+site_est_sd = apply(output$Y[matrix_loc, start_idx:stop_idx, ], MARGIN = 1, FUN = sd)
+site_obs = output$obs[matrix_loc, , start_idx:stop_idx]
+site_obs_var = output$R[matrix_loc, matrix_loc, start_idx:stop_idx] # site observation variance
 if(compare_to_no_assim){
-  site_no_assim_mean = apply(output_no_assim$Y[site_index, which(output_no_assim$dates == start):which(output_no_assim$dates == stop) , ], MARGIN = 1, FUN = mean)
+  site_no_assim_mean = apply(output_no_assim$Y[matrix_loc, which(output_no_assim$dates == start):which(output_no_assim$dates == stop) , ], MARGIN = 1, FUN = mean)
 
   site_data = tibble(site_id = rep(site, length(output$dates[start_idx:stop_idx])),
                      date = output$dates[start_idx:stop_idx],
@@ -94,9 +95,6 @@ if(compare_to_no_assim){
                      temp_obs = site_obs,
                      temp_obs_var = site_obs_var)
 }
-
-
-
 
 windows()
 ggplot(data = site_data) +
@@ -129,14 +127,15 @@ if(compare_to_no_assim){
 
 for(sites in most_obs$model_idx[1:10]){
   site_index = as.numeric(sites)
+  matrix_loc = which(output$model_locations$model_idx == as.character(site_index))
 
-  site = output$model_locations$seg_id_nat[site_index]
-  site_est_mean = apply(output$Y[site_index, start_idx:stop_idx, ], MARGIN = 1, FUN = mean)
-  site_est_sd = apply(output$Y[site_index, start_idx:stop_idx, ], MARGIN = 1, FUN = sd)
-  site_obs = output$obs[site_index, , start_idx:stop_idx]
-  site_obs_var = output$R[site_index, site_index, start_idx:stop_idx] # site observation variance
+  site = output$model_locations$seg_id_nat[matrix_loc]
+  site_est_mean = apply(output$Y[matrix_loc, start_idx:stop_idx, ], MARGIN = 1, FUN = mean)
+  site_est_sd = apply(output$Y[matrix_loc, start_idx:stop_idx, ], MARGIN = 1, FUN = sd)
+  site_obs = output$obs[matrix_loc, , start_idx:stop_idx]
+  site_obs_var = output$R[matrix_loc, matrix_loc, start_idx:stop_idx] # site observation variance
   if(compare_to_no_assim){
-    site_no_assim_mean = apply(output_no_assim$Y[site_index, which(output_no_assim$dates == start):which(output_no_assim$dates == stop), ], MARGIN = 1, FUN = mean)
+    site_no_assim_mean = apply(output_no_assim$Y[matrix_loc, which(output_no_assim$dates == start):which(output_no_assim$dates == stop), ], MARGIN = 1, FUN = mean)
 
     site_data = tibble(site_id = rep(site, length(output$dates[start_idx:stop_idx])),
                        date = output$dates[start_idx:stop_idx],
@@ -174,14 +173,15 @@ for(sites in most_obs$model_idx[1:10]){
 all_sites = tibble()
 for(sites in most_obs$model_idx[1:9]){
   site_index = as.numeric(sites)
+  matrix_loc = which(output$model_locations$model_idx == as.character(site_index))
 
-  site = output$model_locations$seg_id_nat[site_index]
-  site_est_mean = apply(output$Y[site_index, start_idx:stop_idx, ], MARGIN = 1, FUN = mean)
-  site_est_sd = apply(output$Y[site_index, start_idx:stop_idx, ], MARGIN = 1, FUN = sd)
-  site_obs = output$obs[site_index, , start_idx:stop_idx]
-  site_obs_var = output$R[site_index, site_index, start_idx:stop_idx] # site observation variance
+  site = output$model_locations$seg_id_nat[matrix_loc]
+  site_est_mean = apply(output$Y[matrix_loc, start_idx:stop_idx, ], MARGIN = 1, FUN = mean)
+  site_est_sd = apply(output$Y[matrix_loc, start_idx:stop_idx, ], MARGIN = 1, FUN = sd)
+  site_obs = output$obs[matrix_loc, , start_idx:stop_idx]
+  site_obs_var = output$R[matrix_loc, matrix_loc, start_idx:stop_idx] # site observation variance
   if(compare_to_no_assim){
-    site_no_assim_mean = apply(output_no_assim$Y[site_index, which(output_no_assim$dates == start):which(output_no_assim$dates == stop), ], MARGIN = 1, FUN = mean)
+    site_no_assim_mean = apply(output_no_assim$Y[matrix_loc, which(output_no_assim$dates == start):which(output_no_assim$dates == stop), ], MARGIN = 1, FUN = mean)
 
     site_data = tibble(site_id = rep(site, length(output$dates[start_idx:stop_idx])),
                        date = output$dates[start_idx:stop_idx],
@@ -217,8 +217,7 @@ ggplot(data = all_sites) +
   ylab('Temperature (C)') +
   xlab('')
 
-Metrics::rmse(all_sites$temp_est, all_sites$temp_obs)
-
+caret::RMSE(all_sites$temp_est, all_sites$temp_obs, na.rm = T)
 
 dim(output$Y)
 
