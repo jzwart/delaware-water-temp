@@ -4,8 +4,8 @@ n_en: 20 # number of ensembles for data assimilation
 n_params_est: 10 # number of parameters we're calibrating
 n_params_obs: 0 # number of parameters for which we have observations
 n_states_obs: 10 # number of states we're updating; will be dependent on obs
-start: '1980-10-01'
-stop: '2019-12-31'
+start: '2014-03-01'
+stop: '2015-03-01'
 
 # metadata settings
 # change this to reflect the actual forecast issue time
