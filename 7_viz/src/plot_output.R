@@ -2,18 +2,20 @@
 library(dplyr)
 library(ggplot2)
 
-d = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182.rds')
-dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182.rds')
+d = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_short.rds')
+dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182_short.rds')
 
 obs = d$obs
 Y = d$Y
 R = d$R
 n_en = 20
 n_step = length(d$dates)
+dates = d$dates
 cur_model_idxs = d$model_locations$model_idx
 Y_no_assim = dd$Y
 
 #lordsville site is seg_id_nat == 1573; model_idx = 224
+cur_model_idxs = '423'
 for(j in cur_model_idxs){
   obs[,1,1]
   matrix_loc = which(output$model_locations$model_idx == j)
@@ -23,13 +25,19 @@ for(j in cur_model_idxs){
        ylab = 'Stream Temp (C)', xlab = '', lty=0,
        ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,], Y_no_assim[matrix_loc,,]), na.rm = T),)
   for(i in 1:n_en){
-    lines(Y_no_assim[matrix_loc,1:71,i] ~ d$dates, col = 'grey')
-    lines(Y[matrix_loc,,i] ~ d$dates)
+    lines(Y_no_assim[matrix_loc,,i] ~ d$dates, col = 'grey')
+    # lines(Y[matrix_loc,,i] ~ d$dates)
   }
-  points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
-  arrows(d$dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], d$dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
-         angle = 90, length = .05, col = 'red', code = 3)
+  # points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
+  # arrows(d$dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], d$dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
+  #        angle = 90, length = .05, col = 'red', code = 3)
 }
+
+
+
+
+
+
 #
 # params = 456*2 + site
 # windows()
@@ -155,9 +163,9 @@ rmse_df$da = factor(x = rmse_df$da, levels = c('no_DA', 'DA'))
 
 windows()
 ggplot(rmse_df, aes(x = da, y = rmse)) +
-  geom_boxplot() +
-  geom_point(aes(color = reduced, size = diff)) +
-  geom_line(aes(group = id, color = reduced), linetype = '11')+
+  geom_boxplot(size=2) +
+  # geom_point(aes(color = reduced, size = diff)) +
+  # geom_line(aes(group = id, color = reduced), linetype = '11')+
   theme_classic() +
   scale_color_manual(name = 'reduced',
                      values = c('blue', 'red'))+
@@ -176,6 +184,20 @@ loc = cbind(d$model_locations, temp_rmse, temp_rmse_no_assim)
 model_fabric = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp') %>%
   mutate(seg_id_nat = as.character(seg_id_nat),
          model_idx = as.character(model_idx))
+
+temp = as_tibble(mean_temp) %>%
+  magrittr::set_colnames(dates) %>%
+  mutate(model_idx = cur_model_idxs) %>%
+  pivot_longer(names_to = 'date', values_to = 'temp_est', cols = -model_idx) %>%
+  mutate(date = as.Date(date))
+temp_no_assim = as_tibble(mean_temp_no_assim) %>%
+  magrittr::set_colnames(dates) %>%
+  mutate(model_idx = cur_model_idxs) %>%
+  pivot_longer(names_to = 'date', values_to = 'temp_est_no_assim', cols = -model_idx) %>%
+  mutate(date = as.Date(date))
+
+spatial_temp = dplyr::left_join(model_fabric, temp, by = c('model_idx'))%>% dplyr::filter(model_idx %in% cur_model_idxs) %>%
+  dplyr::left_join(temp_no_assim, by = c('model_idx', 'date'))
 
 loc = dplyr::left_join(model_fabric, loc, by = c('seg_id_nat', 'model_idx')) %>% dplyr::filter(model_idx %in% cur_model_idxs)
 
@@ -197,6 +219,23 @@ ggplot() +
   theme_minimal()+
   geom_sf(data = dplyr::filter(loc, is.na(reduction_rmse)), color = 'grey90')
 
+cur_date = as.Date('2014-07-01')
+windows()
+ggplot() +
+  geom_sf(data = dplyr::filter(spatial_temp, date == cur_date), aes(color = temp_est_no_assim))+
+  scale_color_viridis_c() +
+  theme_minimal()
+
+# library(gganimate)
+# library(transformr)
+# windows()
+# plot = ggplot() +
+#   geom_sf(data = spatial_temp, aes(color = temp_est))+
+#   scale_color_viridis_c() +
+#   theme_minimal() +
+#   transition_time(time = date)
+#
+# plot
 
 
 plot(loc$reduction_rmse ~ loc$n_obs, ylab ='Reduction in RMSE', xlab = '# of Obs Assimilated', pch =16, cex = 1.5)

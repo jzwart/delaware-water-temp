@@ -40,7 +40,7 @@ targets:
       model_run_loc = I('4_model/tmp'),
       spinup_days = I(730))
 
-  4_model/out/model_out_gwsum_sssum_subbasin_4182.rds.ind:
+  4_model/out/model_out_gwsum_sssum_subbasin_4182_short.rds.ind:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
@@ -57,11 +57,11 @@ targets:
       orig_model_loc = I('20200207_Delaware_streamtemp_state_adj'),
       state_names = state_names,
       n_params_obs = I(0),
-      obs_cv = I(0.1),
+      obs_cv = I(0.05),
       param_cv = I(0.2),
       init_cond_cv = I(0.1))
 
-  4_model/out/model_out_no_assim_subbasin_4182.rds.ind:
+  4_model/out/model_out_no_assim_subbasin_4182_short.rds.ind:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
@@ -78,7 +78,7 @@ targets:
       orig_model_loc = I('20200207_Delaware_streamtemp_state_adj'),
       state_names = state_names,
       n_params_obs = I(0),
-      obs_cv = I(0.1),
+      obs_cv = I(0.05),
       param_cv = I(0.2),
       init_cond_cv = I(0.1),
       assimilate_obs = FALSE)

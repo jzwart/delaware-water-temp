@@ -48,13 +48,13 @@ add_uncertainty_ribbons = function(data){
 }
 
 
-output = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182.rds')
-output_no_assim = readRDS('4_model/out/model_out_no_assim_subbasin_4182.rds')
+output = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_short.rds')
+output_no_assim = readRDS('4_model/out/model_out_no_assim_subbasin_4182_short.rds')
 compare_to_no_assim = T
 
 dates = output$dates
-start = '2014-05-01'
-stop = '2014-07-10'
+start = '2014-06-01'
+stop = '2014-10-01'
 start_idx = which(dates == start)
 stop_idx = which(dates == stop)
 
@@ -69,7 +69,7 @@ most_obs
 # 1450; 122 == Downstream of Pepacton Res
 # 1566; 217 == Downstream of Cannonsville Res
 
-site_index = 422
+site_index = 423
 matrix_loc = which(output$model_locations$model_idx == as.character(site_index))
 
 site = output$model_locations$seg_id_nat[matrix_loc]
@@ -107,8 +107,8 @@ ggplot(data = site_data) +
   ylab('Temperature (C)') +
   xlab('')
 
-Metrics::rmse(site_data$temp_obs, site_data$temp_est_no_assim)
-Metrics::rmse(site_data$temp_obs, site_data$temp_est)
+caret::RMSE(site_data$temp_obs, site_data$temp_est_no_assim, na.rm = T)
+caret::RMSE(site_data$temp_obs, site_data$temp_est, na.rm = T)
 
 
 uncert = add_uncertainty_ribbons(data = site_data)
@@ -218,6 +218,7 @@ ggplot(data = all_sites) +
   xlab('')
 
 caret::RMSE(all_sites$temp_est, all_sites$temp_obs, na.rm = T)
+caret::RMSE(all_sites$temp_est_no_assim, all_sites$temp_obs, na.rm = T)
 
 dim(output$Y)
 
