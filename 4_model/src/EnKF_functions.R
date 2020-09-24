@@ -17,9 +17,9 @@ get_model_dates = function(model_start, model_stop, time_step = 'days'){
 #' @param n_params_est number of parameters we're calibrating
 #' @param n_step number of model timesteps
 #' @param n_en number of ensembles
-get_Y_vector = function(n_states, n_params_est, n_step, n_en){
+get_Y_vector = function(n_states, n_params_est, n_covar_inf_factor, n_step, n_en){
 
-  Y = array(dim = c(n_states + n_params_est, n_step, n_en))
+  Y = array(dim = c(n_states + n_params_est + n_covar_inf_factor, n_step, n_en))
 
   return(Y)
 }
@@ -66,11 +66,17 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
 #' @param n_params_est number of parameters we're calibrating
 #' @param n_step number of model timesteps
 #' @param obs observation matrix created with get_obs_matrix function
-get_obs_id_matrix = function(n_states_obs, n_states_est, n_params_obs, n_params_est, n_step, obs){
+get_obs_id_matrix = function(n_states_obs,
+                             n_states_est,
+                             n_params_obs,
+                             n_params_est,
+                             n_covar_inf_factor,
+                             n_step,
+                             obs){
 
-  H = array(0, dim=c(n_states_obs + n_params_obs, n_states_est + n_params_est, n_step))
+  H = array(0, dim=c(n_states_obs + n_params_obs, n_states_est + n_params_est + n_covar_inf_factor, n_step))
 
-  # order goes 1) states, 2)params for which we have obs, 3) params for which we're estimating but don't have obs
+  # order goes 1) states, 2)params for which we have obs, 3) params for which we're estimating but don't have obs 4) covariance inflation factor if estimated
 
   for(t in 1:n_step){
     H[1:(n_states_obs + n_params_obs), 1:(n_states_obs + n_params_obs), t] = diag(ifelse(is.na(obs[,,t]),0, 1), n_states_obs + n_params_obs, n_states_obs + n_params_obs)
@@ -128,7 +134,16 @@ get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states
 ##' @param H observation identity matrix
 ##' @param n_en number of ensembles
 ##' @param cur_step current model timestep
-kalman_filter = function(Y, R, obs, H, n_en, cur_step){
+kalman_filter = function(Y,
+                         R,
+                         obs,
+                         H,
+                         n_en,
+                         cur_step,
+                         covar_inf_factor,
+                         n_states_est,
+                         n_params_est,
+                         n_covar_inf_factor){
 
   cur_obs = obs[ , , cur_step]
 
@@ -138,11 +153,19 @@ kalman_filter = function(Y, R, obs, H, n_en, cur_step){
   Y_mean = matrix(apply(Y[ , cur_step, ], MARGIN = 1, FUN = mean), nrow = length(Y[ , 1, 1])) # calculating the mean of each temp and parameter estimate
   delta_Y = Y[ , cur_step, ] - matrix(rep(Y_mean, n_en), nrow = length(Y[ , 1, 1])) # difference in ensemble state/parameter and mean of all ensemble states/parameters
 
-  ###### estimate Kalman gain #########
-  K = ((1 / (n_en - 1)) * delta_Y %*% t(delta_Y) %*% t(H[, , cur_step])) %*%
-    qr.solve(((1 / (n_en - 1)) * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
+  if(covar_inf_factor){ # check to see if I have this right
+    covar_inf_mean = mean(Y_mean[(n_states_est+n_params_est+1):(n_states_est+n_params_est+n_covar_inf_factor), ]) # just taking mean for now because I don't think it's easy to make this inflation for any one segment
 
-  ###### update Y vector ######
+    # estimate Kalman gain #
+    K = ((1 / (n_en - 1)) * covar_inf_mean * delta_Y %*% t(delta_Y) %*% t(H[, , cur_step])) %*%
+      qr.solve(((1 / (n_en - 1)) * covar_inf_mean * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
+  }else{
+    # estimate Kalman gain w/o covar_inf_factor #
+    K = ((1 / (n_en - 1)) * delta_Y %*% t(delta_Y) %*% t(H[, , cur_step])) %*%
+      qr.solve(((1 / (n_en - 1)) * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
+  }
+
+  # update Y vector #
   for(q in 1:n_en){
     Y[, cur_step, q] = Y[, cur_step, q] + K %*% (cur_obs - H[, , cur_step] %*% Y[, cur_step, q]) # adjusting each ensemble using kalman gain and observations
   }
@@ -155,10 +178,10 @@ kalman_filter = function(Y, R, obs, H, n_en, cur_step){
 #'
 #' @param Y Y vector
 #' @param obs observation matrix
-initialize_Y = function(Y, init_states, init_params,
+initialize_Y = function(Y, init_states, init_params, init_covar_inf_factor,
                         n_states_est, n_states_obs, n_params_est,
-                        n_params_obs, n_step, n_en,
-                        state_sd, param_sd){
+                        n_params_obs, n_covar_inf_factor, n_step, n_en,
+                        state_sd, param_sd, covar_inf_factor_sd){
 
   # initializing states with end of spinup from SNTemp ic files (or obs if available)
   if(n_states_est > 0){
@@ -186,15 +209,22 @@ initialize_Y = function(Y, init_states, init_params,
     }
     first_params = as.numeric(first_params)
     param_sd_vec = as.numeric(param_sd_vec)
-
   }else{
     first_params = NULL
   }
 
-  Y[ , 1, ] = array(rnorm(n = n_en * (n_states_est + n_params_est),
-                          mean = c(first_states, first_params),
-                          sd = c(state_sd, param_sd_vec)),
-                    dim = c(c(n_states_est + n_params_est), n_en))
+  if(n_covar_inf_factor > 0){
+    first_covar_inf_factors = init_covar_inf_factor
+    covar_inf_factor_sd_vec = rep(covar_inf_factor_sd, n_covar_inf_factor)
+  }else{
+    first_covar_inf_factors = NULL
+    covar_inf_factor_sd_vec = NULL
+  }
+
+  Y[ , 1, ] = array(rnorm(n = n_en * (n_states_est + n_params_est + n_covar_inf_factor),
+                          mean = c(first_states, first_params, first_covar_inf_factors),
+                          sd = c(state_sd, param_sd_vec, covar_inf_factor_sd_vec)),
+                    dim = c(c(n_states_est + n_params_est + n_covar_inf_factor), n_en))
 
   return(Y)
 }
@@ -234,9 +264,21 @@ get_updated_params = function(Y, param_names, n_states_est, n_params_est, cur_st
     }
   }
 
+  return(out)
+}
+
+get_updated_covar_inf_factor = function(Y,
+                                        n_states_est,
+                                        n_params_est,
+                                        n_covar_inf_factor,
+                                        cur_step,
+                                        en){
+
+  out = Y[(n_states_est+n_params_est+1):(n_states_est+n_params_est+n_covar_inf_factor), cur_step, en]
 
   return(out)
 }
+
 
 get_updated_states = function(Y, state_names, n_states_est, n_params_est, cur_step, en){
 
@@ -329,6 +371,8 @@ EnKF = function(ind_file,
                 driver_cv = 0.1,
                 init_cond_cv = 0.1,
                 assimilate_obs = TRUE,
+                covar_inf_factor = TRUE,
+                covar_inf_factor_sd = 0.5,
                 gd_config = 'lib/cfg/gd_config.yml'){
 
 
@@ -350,7 +394,7 @@ EnKF = function(ind_file,
   # library(tidyverse)
   # library(igraph)
   # start = '2014-05-01'
-  # stop = '2014-07-10'
+  # stop = '2014-05-10'
   # model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   # obs_file = '3_observations/in/obs_temp_full.rds'
   # model_run_loc = I('4_model/tmp')
@@ -361,15 +405,15 @@ EnKF = function(ind_file,
   # param_groups = as_tibble(yaml::read_yaml('4_model/cfg/da_settings.yml')$param_groups)
   # param_default_file = 'control/delaware.control.par_name'
   # n_en = 20
-  # start = I('2014-05-01')
-  # stop = I('2014-07-10')
   # time_step = 'days'
   # init_param_file = '2_3_model_parameters/out/init_params.rds'
   # state_names = yaml::read_yaml('4_model/cfg/da_settings.yml')$states_to_update
   # obs_cv = I(0.1)
   # param_cv = I(0.2)
   # init_cond_cv = I(0.1)
+  # covar_inf_factor_sd = 0.5
   # assimilate_obs = TRUE
+  # covar_inf_factor = TRUE
   #######################################################################
 
   # copy over original run files to temporary file location
@@ -441,6 +485,12 @@ EnKF = function(ind_file,
     param_sd = NULL
   }
 
+  if(covar_inf_factor){
+    covar_inf_factor_df = tibble(model_idx = cur_model_idxs,
+                                 covar_inf_factor = 1)%>%
+      arrange(as.numeric(model_idx))
+    n_covar_inf_factor = nrow(covar_inf_factor_df)
+  }else{n_covar_inf_factor = 0}
 
   # setting up matrices
   # observations as matrix
@@ -455,6 +505,7 @@ EnKF = function(ind_file,
   # Y vector for storing state / param estimates and updates
   Y = get_Y_vector(n_states = n_states_est,
                    n_params_est = n_params_est,
+                   n_covar_inf_factor = n_covar_inf_factor,
                    n_step = n_step,
                    n_en = n_en)
 
@@ -470,6 +521,7 @@ EnKF = function(ind_file,
                         n_states_est = n_states_est,
                         n_params_obs = n_params_obs,
                         n_params_est = n_params_est,
+                        n_covar_inf_factor = n_covar_inf_factor,
                         n_step = n_step,
                         obs = obs)
 
@@ -511,14 +563,17 @@ EnKF = function(ind_file,
   Y = initialize_Y(Y = Y,
                    init_states = init_states_median,
                    init_params = init_params_list,
+                   init_covar_inf_factor = covar_inf_factor_df$covar_inf_factor,
                    n_states_est = n_states_est,
                    n_states_obs = n_states_obs,
                    n_params_est = n_params_est,
                    n_params_obs = n_params_obs,
+                   n_covar_inf_factor = n_covar_inf_factor,
                    n_step = n_step,
                    n_en = n_en,
                    state_sd = state_sd,
-                   param_sd = param_sd)
+                   param_sd = param_sd,
+                   covar_inf_factor_sd = covar_inf_factor_sd)
 
 
   # start modeling
@@ -590,10 +645,29 @@ EnKF = function(ind_file,
             updated_params_vec = c(updated_params_vec, updated_params[[param_names[i]]])
           }
           updated_params_vec = as.numeric(updated_params_vec)
-
-          Y[ , t, n] = c(predicted_states, updated_params_vec) # store in Y vector
+          if(n_covar_inf_factor>0){
+            updated_covar_inf_factor = get_updated_covar_inf_factor(Y = Y,
+                                                                    n_states_est = n_states_est,
+                                                                    n_params_est = n_params_est,
+                                                                    n_covar_inf_factor = n_covar_inf_factor,
+                                                                    cur_step = t-1,
+                                                                    en = n)
+            Y[ , t, n] = c(predicted_states, updated_params_vec, updated_covar_inf_factor) # store in Y vector
+          }else{
+            Y[ , t, n] = c(predicted_states, updated_params_vec) # store in Y vector
+          }
         }else{
-          Y[ , t, n] = predicted_states # only updating states, not params
+          if(n_covar_inf_factor>0){
+            updated_covar_inf_factor = get_updated_covar_inf_factor(Y = Y,
+                                                                    n_states_est = n_states_est,
+                                                                    n_params_est = n_params_est,
+                                                                    n_covar_inf_factor = n_covar_inf_factor,
+                                                                    cur_step = t-1,
+                                                                    en = n)
+            Y[ , t, n] = c(predicted_states, updated_covar_inf_factor) # store in Y vector
+          }else{
+            Y[ , t, n] = predicted_states # only updating states, not params
+          }
         }
       }
       if(any(H[,,t]==1)){
@@ -603,7 +677,11 @@ EnKF = function(ind_file,
                           obs = obs,
                           H = H,
                           n_en = n_en,
-                          cur_step = t) # updating params / states if obs available
+                          cur_step = t,
+                          covar_inf_factor = covar_inf_factor,
+                          n_states_est = n_states_est,
+                          n_params_est = n_params_est,
+                          n_covar_inf_factor = n_covar_inf_factor) # updating params / states if obs available
       }
     }
   }else{
