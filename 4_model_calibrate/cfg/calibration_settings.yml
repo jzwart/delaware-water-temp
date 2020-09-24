@@ -1,10 +1,12 @@
 
 ### calibration settings ###
-start: '2014-05-01'
-stop: '2014-07-10'
+start: '1980-10-01'
+stop: '2004-10-02'
 
-params_to_cal: ['ss_tau', 'gw_tau', 'albedo', 'lat_temp_adj', 'jh_coef', 'soil_moist_max',
-'gwflow_coef', 'smidx_coef', 'gwsink_coef', 'melt_temp', 'rain_cbh_adj', 'ssr2gw_rate'] # parameters we want to calibrate
+#params_to_cal: ['ss_tau', 'gw_tau', 'albedo', 'lat_temp_adj', 'jh_coef', 'soil_moist_max',
+#'gwflow_coef', 'smidx_coef', 'gwsink_coef', 'melt_temp', 'rain_cbh_adj', 'ssr2gw_rate'] # parameters we want to calibrate
+params_to_cal: ['soil_moist_max', 'gwflow_coef', 'gwsink_coef',
+'ssr2gw_rate', 'op_flow_thres', 'srain_intcp'] # parameters we want to calibrate
 
 param_groups:
   param:
@@ -26,6 +28,9 @@ param_groups:
   - rain_cbh_adj
   - seg_humidity
   - ssr2gw_rate
+  - op_flow_thres
+  - wrain_intcp
+  - srain_intcp
   min:
   - 1.0
   - 10.0
@@ -45,6 +50,9 @@ param_groups:
   - 0.5
   - 0.0
   - 0.000100
+  - 0.010000
+  - 0.0
+  - 0.0
   max:
   - 50.0
   - 150.0
@@ -62,6 +70,9 @@ param_groups:
   - 1.0
   - 10.0
   - 2.0
+  - 1.0
+  - 1.0
+  - 1.0
   - 1.0
   - 1.0
   partrans:
@@ -83,9 +94,15 @@ param_groups:
   - log
   - none
   - log
+  - log
+  - none
+  - none
   inctyp:
   - absolute
   - absolute
+  - relative
+  - relative
+  - relative
   - relative
   - relative
   - relative
@@ -121,9 +138,15 @@ param_groups:
   - relative
   - relative
   - relative
+  - relative
+  - relative
+  - relative
   derinc:
   - 1.0
   - 1.0
+  - 0.01
+  - 0.01
+  - 0.01
   - 0.01
   - 0.01
   - 0.01
@@ -159,7 +182,13 @@ param_groups:
   - 0.0
   - 0.0
   - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
   forcen:
+  - switch
+  - switch
+  - switch
   - switch
   - switch
   - switch
@@ -197,7 +226,13 @@ param_groups:
   - 2.0
   - 2.0
   - 2.0
+  - 2.0
+  - 2.0
+  - 2.0
   dermthd:
+  - parabolic
+  - parabolic
+  - parabolic
   - parabolic
   - parabolic
   - parabolic

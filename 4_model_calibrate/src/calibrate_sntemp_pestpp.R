@@ -24,6 +24,9 @@ calibrate_sntemp = function(ind_file,
                             orig_model_loc,
                             subbasin_file,
                             subbasin_outlet_file,
+                            calibration_settings,
+                            calibrate_flow, #T/F
+                            calibrate_temp, #T/F
                             gd_config = 'lib/cfg/gd_config.yml'){
 
 
@@ -44,7 +47,7 @@ calibrate_sntemp = function(ind_file,
   source('2_1_model_fabric/src/get_segment_hrus.R')
   library(tidyverse)
   library(igraph)
-  start = '2000-10-01'
+  start = '1980-10-01'
   stop = '2005-09-30'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/out/obs_temp_flow.rds'
@@ -55,6 +58,8 @@ calibrate_sntemp = function(ind_file,
   subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
   subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
   param_groups = as_tibble(yaml::read_yaml('4_model_calibrate/cfg/calibration_settings.yml')$param_groups)
+  calibrate_flow = T
+  calibrate_temp = F
  #######################################################################
 
 
@@ -64,8 +69,8 @@ calibrate_sntemp = function(ind_file,
   files_to_transfer = list.files(orig_model_loc)
   file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
   # copy over pest++ executables
-  #files_to_transfer = list.files(pestpp_exe_loc)
-  #file.copy(from = file.path(pestpp_exe_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
+  # files_to_transfer = list.files(pestpp_exe_loc)
+  # file.copy(from = file.path(pestpp_exe_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
 
   # use this to organize the parameters being calibrated
   model_fabric = sf::read_sf(model_fabric_file)
@@ -80,12 +85,15 @@ calibrate_sntemp = function(ind_file,
   dates = get_model_dates(model_start = start, model_stop = stop, time_step = 'days')
 
   # get observations
-  temp_obs_df = readRDS(obs_file)$temp %>%
-    left_join(model_locations, by = 'seg_id_nat')
-
-  flow_obs_df = readRDS(obs_file)$flow %>%
-    left_join(model_locations, by = 'seg_id_nat') %>%
-    mutate(discharge_cfs = discharge_cms * (3.28084^3))
+  if(calibrate_temp){
+    temp_obs_df = readRDS(obs_file)$temp %>%
+      left_join(model_locations, by = 'seg_id_nat')
+  }
+  if(calibrate_flow){
+    flow_obs_df = readRDS(obs_file)$flow %>%
+      left_join(model_locations, by = 'seg_id_nat') %>%
+      mutate(discharge_cfs = discharge_cms * (3.28084^3))
+  }
 
   # get initial parameters
   init_params_list = readRDS(init_param_file) #%>% arrange(as.numeric(model_idx))
@@ -126,17 +134,20 @@ calibrate_sntemp = function(ind_file,
   # get subbasin parameter locations
   cur_model_idxs = as.character(cur_subbasin$model_idx)
 
-  # for HydroPSO, vector of observations must match vector of simulated output. Order by model_idx and then date
+  # Order by model_idx and then date
   # observations for current subbasin
-  cur_temp_obs = dplyr::filter(temp_obs_df, model_idx %in% cur_model_idxs,
-                          date >= as.Date(start),
-                          date <= as.Date(stop)) %>%
-    arrange(as.numeric(model_idx), date)
-
-  cur_flow_obs = dplyr::filter(flow_obs_df, model_idx %in% cur_model_idxs,
-                               date >= as.Date(start),
-                               date <= as.Date(stop)) %>%
-    arrange(as.numeric(model_idx), date)
+  if(calibrate_temp){
+    cur_temp_obs = dplyr::filter(temp_obs_df, model_idx %in% cur_model_idxs,
+                                 date >= as.Date(start),
+                                 date <= as.Date(stop)) %>%
+      arrange(as.numeric(model_idx), date)
+  }
+  if(calibrate_flow){
+    cur_flow_obs = dplyr::filter(flow_obs_df, model_idx %in% cur_model_idxs,
+                                 date >= as.Date(start),
+                                 date <= as.Date(stop)) %>%
+      arrange(as.numeric(model_idx), date)
+  }
 
   # pull out parameters for current subbasin based on segment model_idx
   cur_params_to_cal = get_params_by_segment(param_names = param_names,
@@ -161,29 +172,41 @@ calibrate_sntemp = function(ind_file,
 
   # write instruction files needed for running PEST++
   # for temperature
-  write_pestpp_ins_files(params = cur_params_to_cal,
-                         seg_model_idxs = cur_model_idxs,
-                         model_run_loc = model_run_loc,
-                         model_output_file = 'output/seg_tave_water.csv',
-                         file_out = sprintf('pestpp/subbasin_%s_temp.ins', cur_subbasin_outlet),
-                         delim = '@',
-                         secondary_delim = '!',
-                         obs_type = 'wtemp')
+  if(calibrate_temp){
+    write_pestpp_ins_files(params = cur_params_to_cal,
+                           seg_model_idxs = cur_model_idxs,
+                           model_run_loc = model_run_loc,
+                           model_output_file = 'output/seg_tave_water.csv',
+                           file_out = sprintf('pestpp/subbasin_%s_temp.ins', cur_subbasin_outlet),
+                           delim = '@',
+                           secondary_delim = '!',
+                           obs_type = 'wtemp')
+  }
+
   # for flow
-  write_pestpp_ins_files(params = cur_params_to_cal,
-                         seg_model_idxs = cur_model_idxs,
-                         model_run_loc = model_run_loc,
-                         model_output_file = 'output/seg_outflow.csv',
-                         file_out = sprintf('pestpp/subbasin_%s_flow.ins', cur_subbasin_outlet),
-                         delim = '@',
-                         secondary_delim = '!',
-                         obs_type = 'flow')
+  if(calibrate_flow){
+    write_pestpp_ins_files(params = cur_params_to_cal,
+                           seg_model_idxs = cur_model_idxs,
+                           model_run_loc = model_run_loc,
+                           model_output_file = 'output/seg_outflow.csv',
+                           file_out = sprintf('pestpp/subbasin_%s_flow.ins', cur_subbasin_outlet),
+                           delim = '@',
+                           secondary_delim = '!',
+                           obs_type = 'flow')
+  }
 
   ## to check ins file run pyEMU with
   #  i = pyemu.pst_utils.InstructionFIle("my.ins")
   #  df = i.read_output_file("my.output")
 
-  cur_obs_list = list(temp = cur_temp_obs, flow = cur_flow_obs)
+  if(calibrate_flow & calibrate_temp){
+    cur_obs_list = list(temp = cur_temp_obs, flow = cur_flow_obs)
+  }else if(calibrate_flow & !calibrate_temp){
+    cur_obs_list = list(flow = cur_flow_obs)
+  }else if(calibrate_temp & !calibrate_flow){
+    cur_obs_list = list(temp = cur_temp_obs)
+  }
+
   # write PEST++ sen control file
   write_pestpp_pst_files(params = cur_params_to_cal,
                          seg_model_idxs = cur_model_idxs,
@@ -197,6 +220,8 @@ calibrate_sntemp = function(ind_file,
                          tpl_file_name = sprintf('pestpp/subbasin_%s.tpl', cur_subbasin_outlet),
                          temp_ins_file_name = sprintf('pestpp/subbasin_%s_temp.ins', cur_subbasin_outlet),
                          flow_ins_file_name = sprintf('pestpp/subbasin_%s_flow.ins', cur_subbasin_outlet),
+                         calibrate_flow = calibrate_flow,
+                         calibrate_temp = calibrate_temp,
                          weight_by_magnitude = T,# assigning weight based on magnitude of obs value
                          tie_by_group = F) # tying parameters together by group (e.g. gw_tau)
 
@@ -209,7 +234,7 @@ calibrate_sntemp = function(ind_file,
 
   setwd(file.path(current.wd, model_run_loc)) # set wd to where model run location is
   # to run pest++ in serial, pest++ pest_ctl_file.pst
-  shell(sprintf('pestpp-ies %s', sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet))) # run pest++; this is running pestpp 4.3.17
+  shell(sprintf('pestpp-sen %s', sprintf('pestpp/subbasin_%s.pst', cur_subbasin_outlet))) # run pest++; this is running pestpp 4.3.17
 
   setwd(current.wd) # set wd back to root of project
 

@@ -14,6 +14,8 @@ write_pestpp_pst_files = function(params,
                                   param_default_file = 'control/delaware.control.par_name',
                                   temp_ins_file_name,
                                   flow_ins_file_name,
+                                  calibrate_flow,
+                                  calibrate_temp,
                                   weight_by_magnitude = T,
                                   tie_by_group = F){
 
@@ -24,15 +26,18 @@ write_pestpp_pst_files = function(params,
 
   cur_model_idxs = as.character(sort(as.numeric(seg_model_idxs)))
 
-  obs$temp$obs_name = paste('wtemp',
-                            obs$temp$model_idx,
-                            strftime(strptime(obs$temp$date, format = '%Y-%m-%d'), '%Y%m%d'),
-                            sep = '_')
-
-  obs$flow$obs_name = paste('flow',
-                            obs$flow$model_idx,
-                            strftime(strptime(obs$flow$date, format = '%Y-%m-%d'), '%Y%m%d'),
-                            sep = '_')
+  if(calibrate_temp){
+    obs$temp$obs_name = paste('wtemp',
+                              obs$temp$model_idx,
+                              strftime(strptime(obs$temp$date, format = '%Y-%m-%d'), '%Y%m%d'),
+                              sep = '_')
+  }
+  if(calibrate_flow){
+    obs$flow$obs_name = paste('flow',
+                              obs$flow$model_idx,
+                              strftime(strptime(obs$flow$date, format = '%Y-%m-%d'), '%Y%m%d'),
+                              sep = '_')
+  }
 
   #######################################################
   # format for minimalist .pst file :
@@ -230,61 +235,101 @@ write_pestpp_pst_files = function(params,
                        sep = '\n')
   }
 
+  if(calibrate_temp & calibrate_flow){
+    obs_groups = paste('* observation groups',
+                       'wtemp',
+                       'flow',
+                       sep = '\n')
+  }else if(calibrate_temp & !calibrate_flow){
+    obs_groups = paste('* observation groups',
+                       'wtemp',
+                       sep = '\n')
+  }else if(!calibrate_temp & calibrate_flow){
+    obs_groups = paste('* observation groups',
+                       'flow',
+                       sep = '\n')
+  }
 
-  obs_groups = paste('* observation groups',
-                     'wtemp',
-                     'flow',
-                     sep = '\n')
 
-  temp_obs_data = sapply(seq_along(dates), function(j){
-    cur_date = dates[j]
-    sapply(seq_along(cur_model_idxs), function(i){
-      cur = paste('wtemp',
-                  as.character(cur_model_idxs[i]),
-                  cur_date,
-                  sep = '_')
-      if(cur %in% obs$temp$obs_name){ # if obs matches predictions, use weight of 1.0
-        if(weight_by_magnitude){
-          cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
-                                   cur_obs = obs$temp$temp_C[obs$temp$obs_name == cur]) # assigning weight based on magnitude of value
-        }else{cur_weight = '1.0'}
-        out = sprintf('%s %s %s %s', cur, obs$temp$temp_C[obs$temp$obs_name == cur], cur_weight, 'wtemp')
-      }else{ # no observation available so giving 0 weight
-        out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'wtemp')
-      }
-      return(out)
+  if(calibrate_temp){
+    temp_obs_data = sapply(seq_along(dates), function(j){
+      cur_date = dates[j]
+      sapply(seq_along(cur_model_idxs), function(i){
+        cur = paste('wtemp',
+                    as.character(cur_model_idxs[i]),
+                    cur_date,
+                    sep = '_')
+        if(cur %in% obs$temp$obs_name){ # if obs matches predictions, use weight of 1.0
+          if(weight_by_magnitude){
+            if(calibrate_flow){
+              cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
+                                       cur_obs = obs$temp$temp_C[obs$temp$obs_name == cur]) # assigning weight based on magnitude of value
+            }else{
+              cur_weight = calc_weight(all_obs = c(obs$temp$temp_C),
+                                       cur_obs = obs$temp$temp_C[obs$temp$obs_name == cur]) # assigning weight based on magnitude of value
+            }
+          }else{cur_weight = '1.0'}
+          out = sprintf('%s %s %s %s', cur, obs$temp$temp_C[obs$temp$obs_name == cur], cur_weight, 'wtemp')
+        }else{ # no observation available so giving 0 weight
+          out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'wtemp')
+        }
+        return(out)
+      }) %>% paste(., collapse = '\n')
+    }) %>% paste(., collapse = '\n') %>% paste('* observation data', ., sep = '\n')
+  }
+
+  if(calibrate_flow){
+    flow_obs_data = sapply(seq_along(dates), function(j){
+      cur_date = dates[j]
+      sapply(seq_along(cur_model_idxs), function(i){
+        cur = paste('flow',
+                    as.character(cur_model_idxs[i]),
+                    cur_date,
+                    sep = '_')
+        if(cur %in% obs$flow$obs_name){ # if obs matches predictions, use weight of 1.0
+          if(weight_by_magnitude){
+            if(calibrate_temp){
+              cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
+                                       cur_obs = obs$flow$discharge_cfs[obs$flow$obs_name == cur]) # assigning weight based on magnitude of value
+            }else{
+              cur_weight = calc_weight(all_obs = c(obs$flow$discharge_cfs),
+                                       cur_obs = obs$flow$discharge_cfs[obs$flow$obs_name == cur]) # assigning weight based on magnitude of value
+            }
+          }else{cur_weight = '1.0'}
+          out = sprintf('%s %s %s %s', cur, obs$flow$discharge_cfs[obs$flow$obs_name == cur], cur_weight, 'flow')
+        }else{ # no observation available so giving 0 weight
+          out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'flow')
+        }
+        return(out)
+      }) %>% paste(., collapse = '\n')
     }) %>% paste(., collapse = '\n')
-  }) %>% paste(., collapse = '\n') %>% paste('* observation data', ., sep = '\n')
-
-  flow_obs_data = sapply(seq_along(dates), function(j){
-    cur_date = dates[j]
-    sapply(seq_along(cur_model_idxs), function(i){
-      cur = paste('flow',
-                  as.character(cur_model_idxs[i]),
-                  cur_date,
-                  sep = '_')
-      if(cur %in% obs$flow$obs_name){ # if obs matches predictions, use weight of 1.0
-        if(weight_by_magnitude){
-          cur_weight = calc_weight(all_obs = c(obs$temp$temp_C, obs$flow$discharge_cfs),
-                                   cur_obs = obs$flow$discharge_cfs[obs$flow$obs_name == cur]) # assigning weight based on magnitude of value
-        }else{cur_weight = '0.05'}
-        out = sprintf('%s %s %s %s', cur, obs$flow$discharge_cfs[obs$flow$obs_name == cur], cur_weight, 'flow')
-      }else{ # no observation available so giving 0 weight
-        out = sprintf('%s %s %s %s', cur, '0.0', '0.0', 'flow')
-      }
-      return(out)
-    }) %>% paste(., collapse = '\n')
-  }) %>% paste(., collapse = '\n')
+    if(!calibrate_temp){
+      flow_obs_data = paste('* observation data', flow_obs_data, sep = '\n')
+    }
+  }
 
   model_cmd_line = paste('* model command line',
                          '"C:/Program Files/R/R-4.0.0/bin/Rscript.exe" ../src/pestpp_model_call.R',
                          sep = '\n')
 
-  model_inout = paste('* model input/output',
-                      sprintf('%s %s', tpl_file_name, param_file_name),
-                      sprintf('%s %s', temp_ins_file_name, temp_model_output_file),
-                      sprintf('%s %s', flow_ins_file_name, flow_model_output_file),
-                      sep = '\n')
+  if(calibrate_temp & calibrate_flow){
+    model_inout = paste('* model input/output',
+                        sprintf('%s %s', tpl_file_name, param_file_name),
+                        sprintf('%s %s', temp_ins_file_name, temp_model_output_file),
+                        sprintf('%s %s', flow_ins_file_name, flow_model_output_file),
+                        sep = '\n')
+  }else if(calibrate_temp & !calibrate_flow){
+    model_inout = paste('* model input/output',
+                        sprintf('%s %s', tpl_file_name, param_file_name),
+                        sprintf('%s %s', temp_ins_file_name, temp_model_output_file),
+                        sep = '\n')
+  }else if(!calibrate_temp & calibrate_flow){
+    model_inout = paste('* model input/output',
+                        sprintf('%s %s', tpl_file_name, param_file_name),
+                        sprintf('%s %s', flow_ins_file_name, flow_model_output_file),
+                        sep = '\n')
+  }
+
 
   # model_out = paste('* model output',
   #                   sprintf('%s %s', ins_file_name, model_output_file),
@@ -300,20 +345,51 @@ write_pestpp_pst_files = function(params,
                        sep = '\n')
 
 
-  pst_out = paste(first_line,
-                  control_data,
-                  param_groups_out,
-                  param_data,
-                  obs_groups,
-                  temp_obs_data,
-                  flow_obs_data,
-                  model_cmd_line,
-                  model_inout,
-                  # model_out,
-                  prior_inf,
-                  reg,
-                  control_vars,
-                  sep = '\n')
+  if(calibrate_temp & calibrate_flow){
+    pst_out = paste(first_line,
+                    control_data,
+                    param_groups_out,
+                    param_data,
+                    obs_groups,
+                    temp_obs_data,
+                    flow_obs_data,
+                    model_cmd_line,
+                    model_inout,
+                    # model_out,
+                    prior_inf,
+                    reg,
+                    control_vars,
+                    sep = '\n')
+  }else if(calibrate_temp & !calibrate_flow){
+    pst_out = paste(first_line,
+                    control_data,
+                    param_groups_out,
+                    param_data,
+                    obs_groups,
+                    temp_obs_data,
+                    model_cmd_line,
+                    model_inout,
+                    # model_out,
+                    prior_inf,
+                    reg,
+                    control_vars,
+                    sep = '\n')
+  }else if(!calibrate_temp & calibrate_flow){
+    pst_out = paste(first_line,
+                    control_data,
+                    param_groups_out,
+                    param_data,
+                    obs_groups,
+                    flow_obs_data,
+                    model_cmd_line,
+                    model_inout,
+                    # model_out,
+                    prior_inf,
+                    reg,
+                    control_vars,
+                    sep = '\n')
+  }
+
 
   writeLines(pst_out, file.path(model_run_loc, file_out))
 }
