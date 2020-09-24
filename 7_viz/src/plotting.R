@@ -48,13 +48,13 @@ add_uncertainty_ribbons = function(data){
 }
 
 
-output = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_short.rds')
-output_no_assim = readRDS('4_model/out/model_out_no_assim_subbasin_4182_short.rds')
+output = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_inf_factor.rds')
+output_no_assim = readRDS('4_model/out/model_out_no_assim_subbasin_4182_inf_factor.rds')
 compare_to_no_assim = T
 
 dates = output$dates
 start = '2014-06-01'
-stop = '2014-10-01'
+stop = '2014-12-31'
 start_idx = which(dates == start)
 stop_idx = which(dates == stop)
 

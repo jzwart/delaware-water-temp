@@ -2,8 +2,8 @@
 library(dplyr)
 library(ggplot2)
 
-d = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_short.rds')
-dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182_short.rds')
+d = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_inf_factor.rds')
+dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182_inf_factor.rds')
 
 obs = d$obs
 Y = d$Y
@@ -18,7 +18,7 @@ Y_no_assim = dd$Y
 cur_model_idxs = '423'
 for(j in cur_model_idxs){
   obs[,1,1]
-  matrix_loc = which(output$model_locations$model_idx == j)
+  matrix_loc = which(d$model_locations$model_idx == j)
 
   windows()
   plot(Y[matrix_loc,,1] ~ d$dates, type = 'l',
@@ -26,11 +26,11 @@ for(j in cur_model_idxs){
        ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,], Y_no_assim[matrix_loc,,]), na.rm = T),)
   for(i in 1:n_en){
     lines(Y_no_assim[matrix_loc,,i] ~ d$dates, col = 'grey')
-    # lines(Y[matrix_loc,,i] ~ d$dates)
+    lines(Y[matrix_loc,,i] ~ d$dates)
   }
-  # points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
-  # arrows(d$dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], d$dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
-  #        angle = 90, length = .05, col = 'red', code = 3)
+  points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
+  arrows(d$dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], d$dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
+         angle = 90, length = .05, col = 'red', code = 3)
 }
 
 
@@ -39,12 +39,13 @@ for(j in cur_model_idxs){
 
 
 #
-# params = 456*2 + site
-# windows()
-# plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
-# for(i in 1:n_en){
-#   lines(Y[params,,i])
-# }
+site = 4
+params = 42*3 + site
+windows()
+plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))
+for(i in 1:n_en){
+  lines(Y[params,,i])
+}
 #
 # gw_sum = Y[456*1 + site,,]
 # gw_tau = Y[456*4 + site,,]

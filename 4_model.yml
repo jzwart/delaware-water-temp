@@ -40,28 +40,7 @@ targets:
       model_run_loc = I('4_model/tmp'),
       spinup_days = I(730))
 
-  4_model/out/model_out_gwsum_sssum_subbasin_4182_short.rds.ind:
-    command: EnKF(
-      ind_file = target_name,
-      n_en = n_en,
-      start = start,
-      stop = stop,
-      time_step = I('days'),
-      subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
-      subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
-      subbasin_outlet_id = I('4182'),
-      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
-      obs_file = '3_observations/in/obs_temp_full.rds',
-      init_param_file = '2_3_model_parameters/out/init_params.rds',
-      model_run_loc = I('4_model/tmp'),
-      orig_model_loc = I('20200207_Delaware_streamtemp_state_adj'),
-      state_names = state_names,
-      n_params_obs = I(0),
-      obs_cv = I(0.05),
-      param_cv = I(0.2),
-      init_cond_cv = I(0.1))
-
-  4_model/out/model_out_no_assim_subbasin_4182_short.rds.ind:
+  4_model/out/model_out_gwsum_sssum_subbasin_4182_inf_factor.rds.ind:
     command: EnKF(
       ind_file = target_name,
       n_en = n_en,
@@ -81,7 +60,30 @@ targets:
       obs_cv = I(0.05),
       param_cv = I(0.2),
       init_cond_cv = I(0.1),
-      assimilate_obs = FALSE)
+      covar_inf_factor = TRUE)
+
+  4_model/out/model_out_no_assim_subbasin_4182_inf_factor.rds.ind:
+    command: EnKF(
+      ind_file = target_name,
+      n_en = n_en,
+      start = start,
+      stop = stop,
+      time_step = I('days'),
+      subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
+      subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
+      subbasin_outlet_id = I('4182'),
+      model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp',
+      obs_file = '3_observations/in/obs_temp_full.rds',
+      init_param_file = '2_3_model_parameters/out/init_params.rds',
+      model_run_loc = I('4_model/tmp'),
+      orig_model_loc = I('20200207_Delaware_streamtemp_state_adj'),
+      state_names = state_names,
+      n_params_obs = I(0),
+      obs_cv = I(0.05),
+      param_cv = I(0.2),
+      init_cond_cv = I(0.1),
+      assimilate_obs = FALSE,
+      covar_inf_factor = TRUE)
 
 
 
