@@ -191,7 +191,8 @@ create_cal_files_denali = function(ind_file,
                          calibrate_flow = calibrate_flow,
                          calibrate_temp = calibrate_temp,
                          weight_by_magnitude = T,# assigning weight based on magnitude of obs value
-                         tie_by_group = F) # tying parameters together by group (e.g. gw_tau)
+                         tie_by_group = F, # tying parameters together by group (e.g. gw_tau)
+                         unix_cmds = T)
 
   set_sntemp_start_stop(start = start,
                         stop = stop,

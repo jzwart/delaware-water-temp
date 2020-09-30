@@ -72,7 +72,7 @@ server_put(local_dir = 'C:/Users/jzwart/Documents',
 ### now we should be able to execute prms with:
 # > ./prms
 
-### If copying files from Windows machine to Denali, you need to convert delaware.control, myparams.param, and seg_tave_water.csv files to unix using the dos2unix command
+### If copying files from Windows machine to Denali, you need to convert delaware.control, myparams.param, seg_outflow.csv, and seg_tave_water.csv files to unix using the dos2unix command
 # > dos2unix input/myparams.param
 
 ### From Steve Markstrom on 2020-07-10 re: PRMS-SNTemp model on Denali:

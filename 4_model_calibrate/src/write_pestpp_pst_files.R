@@ -17,7 +17,8 @@ write_pestpp_pst_files = function(params,
                                   calibrate_flow,
                                   calibrate_temp,
                                   weight_by_magnitude = T,
-                                  tie_by_group = F){
+                                  tie_by_group = F,
+                                  unix_cmds = F){
 
   output = read.csv(file.path(model_run_loc, temp_model_output_file), header = T)
   model_idxs = seq(1,ncol(output)-1)
@@ -100,21 +101,40 @@ write_pestpp_pst_files = function(params,
     npar = npar + nrow(params[[param_names[i]]])
   }
 
-  control_data = paste('* control data',
-                       'restart estimation',
-                       sprintf('%s %s %s %s %s',
-                               npar,
-                               length(dates) * length(cur_model_idxs),
-                               npargp,
-                               '0',
-                               '1'),
-                       '1 1 single point',
-                       '10.0 -2.0 0.3 0.01 10',
-                       '10.0 10.0 0.001',
-                       '0.1',
-                       '50 0.005 4 4 0.005 4',
-                       '0 0 0',
-                       sep = '\n')
+  if(unix_cmds){
+    control_data = paste('* control data',
+                         'restart estimation',
+                         sprintf('%s %s %s %s %s',
+                                 npar,
+                                 length(dates) * length(cur_model_idxs),
+                                 npargp,
+                                 '0',
+                                 '1'),
+                         '1 1 single point 2',
+                         '10.0 -2.0 0.3 0.01 10',
+                         '10.0 10.0 0.001',
+                         '0.1',
+                         '50 0.005 4 4 0.005 4',
+                         '0 0 0',
+                         sep = '\n')
+  }else{
+    control_data = paste('* control data',
+                         'restart estimation',
+                         sprintf('%s %s %s %s %s',
+                                 npar,
+                                 length(dates) * length(cur_model_idxs),
+                                 npargp,
+                                 '0',
+                                 '1'),
+                         '1 1 single point',
+                         '10.0 -2.0 0.3 0.01 10',
+                         '10.0 10.0 0.001',
+                         '0.1',
+                         '50 0.005 4 4 0.005 4',
+                         '0 0 0',
+                         sep = '\n')
+  }
+
 
   # single value decomposition is not needed in control file unless you want to override default
   #single_val_decomp = paste('* single value decomposition',
@@ -308,9 +328,17 @@ write_pestpp_pst_files = function(params,
     }
   }
 
-  model_cmd_line = paste('* model command line',
-                         '"C:/Program Files/R/R-4.0.0/bin/Rscript.exe" ../src/pestpp_model_call.R',
-                         sep = '\n')
+  if(unix_cmds){
+    model_cmd_line = paste('* model command line',
+                           'Rscript ../src/pestpp_model_call_denali.R',
+                           './bin/prms -C./control/delaware.control',
+                           sep = '\n')
+  }else{
+    model_cmd_line = paste('* model command line',
+                           '"C:/Program Files/R/R-4.0.0/bin/Rscript.exe" ../src/pestpp_model_call.R',
+                           sep = '\n')
+  }
+
 
   if(calibrate_temp & calibrate_flow){
     model_inout = paste('* model input/output',

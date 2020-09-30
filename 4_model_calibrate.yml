@@ -76,8 +76,8 @@ targets:
       subbasin_file = '4_model_calibrate/out/drb_subbasins.rds',
       subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
       calibration_settings = calibration_settings,
-      calibrate_flow = TRUE,
-      calibrate_temp = FALSE)
+      calibrate_flow = FALSE,
+      calibrate_temp = TRUE)
 
   remote_cal_path:
     command: calibration_settings[[I(c('remote_cal_path'))]]
@@ -87,5 +87,6 @@ targets:
       local_dir = I('4_model_calibrate'),
       server_dir = remote_cal_path,
       server = I('caldera-dtn')) # caldera-dtn is the data transfer node
-
+### If copying files from Windows machine to Denali, you need to convert delaware.control, myparams.param, seg_outflow.csv, and seg_tave_water.csv files to unix using the dos2unix command
+# > dos2unix input/myparams.param
 

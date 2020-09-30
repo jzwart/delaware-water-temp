@@ -15,6 +15,8 @@ list_server_files <- function(server_dir,
   files = ssh::ssh_exec_internal(session = session, command = paste('ls', server_dir))
   files_out = dplyr::tibble(files = unlist(strsplit(rawToChar(files$stdout), split = '\n')))
 
+  files_out = files_out$files
+
   ssh::ssh_disconnect(session = session)
 
   return(files_out)
@@ -81,6 +83,7 @@ server_get <- function(local_dir,
   }
 
   file_paths = sprintf('%s/%s', server_dir, files)
+  file_paths = server_dir
 
   ssh::scp_download(session = session, files = file_paths, to = local_dir)
 
