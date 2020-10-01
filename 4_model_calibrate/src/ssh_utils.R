@@ -83,7 +83,7 @@ server_get <- function(local_dir,
   }
 
   file_paths = sprintf('%s/%s', server_dir, files)
-  file_paths = server_dir
+  # file_paths = server_dir
 
   ssh::scp_download(session = session, files = file_paths, to = local_dir)
 

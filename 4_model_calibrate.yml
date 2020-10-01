@@ -77,7 +77,8 @@ targets:
       subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml',
       calibration_settings = calibration_settings,
       calibrate_flow = FALSE,
-      calibrate_temp = TRUE)
+      calibrate_temp = TRUE,
+      weight_by_magnitude = FALSE)
 
   remote_cal_path:
     command: calibration_settings[[I(c('remote_cal_path'))]]
@@ -89,4 +90,4 @@ targets:
       server = I('caldera-dtn')) # caldera-dtn is the data transfer node
 ### If copying files from Windows machine to Denali, you need to convert delaware.control, myparams.param, seg_outflow.csv, and seg_tave_water.csv files to unix using the dos2unix command
 # > dos2unix input/myparams.param
-
+### need to run model once to create an ic file that can be restarted on unix (current windows ic file won't work on denali)

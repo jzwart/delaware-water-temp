@@ -57,7 +57,8 @@ flow_obs_df = readRDS(obs_file)$flow %>%
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.20.par.csv' # previous best with few params
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.10.par.csv'
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.15.par.csv' # cal with temp and flow
-best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/pestpp/subbasin_4182.13.par.csv'
+best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/flow/subbasin_4182.13.par.csv'
+best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/temp/subbasin_4182.8.par.csv'
 
 par_cal = data.table::fread(best_params_file) %>% as_tibble()
 
@@ -240,7 +241,7 @@ lines(d$discharge_cfs, col = 'red')
 lines(d$discharge_uncal, col ='grey')
 
 flow_summary = all_preds_obs_flow %>%
-  group_by(model_idx) %>%
+  group_by(model_idx, seg_id_nat) %>%
   summarise(cal_rmse = rmse(discharge_cal, discharge_cfs),
             uncal_rmse = rmse(discharge_uncal, discharge_cfs),
             mean_discharge = mean(discharge_cfs)) %>%

@@ -27,6 +27,7 @@ create_cal_files_denali = function(ind_file,
                                    calibration_settings,
                                    calibrate_flow, #T/F
                                    calibrate_temp, #T/F
+                                   weight_by_magnitude, #T/F
                                    gd_config = 'lib/cfg/gd_config.yml'){
 
   # copy over original run files to temporary file location
@@ -190,7 +191,7 @@ create_cal_files_denali = function(ind_file,
                          flow_ins_file_name = sprintf('pestpp/subbasin_%s_flow.ins', cur_subbasin_outlet),
                          calibrate_flow = calibrate_flow,
                          calibrate_temp = calibrate_temp,
-                         weight_by_magnitude = T,# assigning weight based on magnitude of obs value
+                         weight_by_magnitude = weight_by_magnitude,# assigning weight based on magnitude of obs value
                          tie_by_group = F, # tying parameters together by group (e.g. gw_tau)
                          unix_cmds = T)
 
