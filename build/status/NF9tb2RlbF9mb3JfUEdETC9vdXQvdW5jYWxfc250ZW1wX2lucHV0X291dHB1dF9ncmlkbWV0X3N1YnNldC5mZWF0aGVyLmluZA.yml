@@ -1,0 +1,12 @@
+version: 0.3.0
+name: 4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet_subset.feather.ind
+type: file
+hash: 51a501198a7cb568228c9bf2d9d7c735
+time: 2020-10-02 21:17:43 UTC
+depends:
+  4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet.feather: 481cf7bba67b0fa12af0977e36efa562
+fixed: ce20de58e71d49fa12d49ea4dacf6c8e
+code:
+  functions:
+    data_subset_for_pgdl: b973dd2d9a091cbe9d3dae7b56bb79cf
+

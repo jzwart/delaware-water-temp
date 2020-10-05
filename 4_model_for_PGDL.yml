@@ -42,7 +42,7 @@ targets:
   move_model_to_run_dir:
     command: copy_model_to_run_dir(
       model_run_loc = I('4_model_for_PGDL/tmp'),
-      orig_model_loc = I('prms_sntemp/20191002_Delaware_streamtemp'))
+      orig_model_loc = I('20191002_Delaware_streamtemp'))
 
   uncal_settings:
     command: read_yaml('4_model_for_PGDL/cfg/uncal_settings.yml')
@@ -71,25 +71,25 @@ targets:
     depends: set_sntemp_output_vars
 
 # input only contains tmin, tmax, prcp
-  4_model_for_PGDL/out/sntemp_input.feather.ind:
-    command: get_segment_drivers(
-      ind_file = target_name,
-      model_run_loc = I('4_model_for_PGDL/tmp'),
-      param_file = I('input/myparam.param'),
-      start = uncal_start,
-      stop = uncal_stop)
-  4_model_for_PGDL/out/sntemp_input.feather:
-    command: gd_get('4_model_for_PGDL/out/sntemp_input.feather.ind')
-
-  4_model_for_PGDL/out/sntemp_input_subset.feather.ind:
-    command: data_subset_for_pgdl(
-      ind_file = target_name,
-      full_data_file = '4_model_for_PGDL/out/sntemp_input.feather')
-  4_model_for_PGDL/out/sntemp_input_subset.feather:
-    command: gd_get('4_model_for_PGDL/out/sntemp_input_subset.feather.ind')
+  # 4_model_for_PGDL/out/sntemp_input.feather.ind:
+  #   command: get_segment_drivers(
+  #     ind_file = target_name,
+  #     model_run_loc = I('4_model_for_PGDL/tmp'),
+  #     param_file = I('input/myparam.param'),
+  #     start = uncal_start,
+  #     stop = uncal_stop)
+  # 4_model_for_PGDL/out/sntemp_input.feather:
+  #   command: gd_get('4_model_for_PGDL/out/sntemp_input.feather.ind')
+  #
+  # 4_model_for_PGDL/out/sntemp_input_subset.feather.ind:
+  #   command: data_subset_for_pgdl(
+  #     ind_file = target_name,
+  #     full_data_file = '4_model_for_PGDL/out/sntemp_input.feather')
+  # 4_model_for_PGDL/out/sntemp_input_subset.feather:
+  #   command: gd_get('4_model_for_PGDL/out/sntemp_input_subset.feather.ind')
 
 # includes output in 4_model_for_PGDL/cfg/uncal_settings.yml
-  4_model_for_PGDL/out/sntemp_output.feather.ind:
+  4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet.feather.ind:
     command: data_for_pgdl(
       ind_file = target_name,
       model_run_loc = I('4_model_for_PGDL/tmp'),
@@ -97,15 +97,15 @@ targets:
       model_fabric_file = I('GIS/Segments_subset.shp'),
       sntemp_vars = sntemp_output_vars)
     depends: uncal_sntemp_run
-  4_model_for_PGDL/out/sntemp_output.feather:
-    command: gd_get('4_model_for_PGDL/out/sntemp_output.feather.ind')
+  4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet.feather:
+    command: gd_get('4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet.feather.ind')
 
-  4_model_for_PGDL/out/sntemp_output_subset.feather.ind:
+  4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet_subset.feather.ind:
     command: data_subset_for_pgdl(
       ind_file = target_name,
-      full_data_file = '4_model_for_PGDL/out/sntemp_output.feather')
-  4_model_for_PGDL/out/sntemp_output_subset.feather:
-    command: gd_get('4_model_for_PGDL/out/sntemp_output_subset.feather.ind')
+      full_data_file = '4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet.feather')
+  4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet_subset.feather:
+    command: gd_get('4_model_for_PGDL/out/uncal_sntemp_input_output_gridmet_subset.feather.ind')
 
 
   4_model_for_PGDL/out/subbasin_options.feather.ind:
