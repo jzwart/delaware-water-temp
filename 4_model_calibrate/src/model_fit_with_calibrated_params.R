@@ -58,7 +58,7 @@ best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.20.par.csv' # pre
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.10.par.csv'
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.15.par.csv' # cal with temp and flow
 best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/flow/subbasin_4182.13.par.csv'
-best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/temp/subbasin_4182.8.par.csv'
+best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/temp/subbasin_4182.7.par.csv'
 
 par_cal = data.table::fread(best_params_file) %>% as_tibble()
 
@@ -277,7 +277,45 @@ arrange(flow_summary, mean_discharge)
 
 
 
-d = dplyr::filter(all_preds_obs_flow, model_idx == '416') %>%
+
+d = dplyr::filter(all_preds_obs_temp, model_idx == '416')
+
+plot(d$water_temp_cal, type = 'l')
+lines(d$temp_C, col = 'red')
+lines(d$water_temp_uncal, col ='grey')
+
+temp_summary = all_preds_obs_temp %>%
+  group_by(model_idx, seg_id_nat) %>%
+  summarise(cal_rmse = rmse(water_temp_cal, temp_C),
+            uncal_rmse = rmse(water_temp_uncal, temp_C),
+            mean_temp = mean(temp_C, na.rm = T)) %>%
+  ungroup() %>%
+  mutate(rmse_diff = uncal_rmse - cal_rmse) %>%
+  filter(model_idx %in% cur_model_idxs)
+
+temp_summary
+
+windows()
+ggplot(temp_summary, aes(x = mean_temp, y = rmse_diff)) +
+  geom_point(size =2)+ theme_minimal() +
+  ylab('Reduction in RMSE (C)') + xlab('Mean Temp (C)')
+
+# all_flow = left_join(all_preds_obs_flow, flow_summary, by = 'model_idx')
+#
+# ggplot(all_flow, aes(x = mean_discharge, y = discharge_cal, group = mean_discharge)) +
+#   geom_histogram()
+arrange(temp_summary, mean_temp)
+
+# d = dplyr::filter(all_preds_obs_flow, model_idx == '416')
+#
+# windows()
+# ggplot(d, aes(x = date, y = discharge_cal, color = 'Calibrated')) +
+#   geom_line()+
+#   geom_line(data = d, aes(x = date, y = discharge_cfs, color = 'Obs')) +
+#   geom_line(data = d, aes(x = date, y = discharge_uncal, color = 'Uncal')) +
+#   theme_minimal() +
+#   ylab('Discharge (cms)') + xlab('Date')
+d = dplyr::filter(all_preds_obs_temp, model_idx == '416') %>%
   mutate(cal_error = discharge_cal - discharge_cfs,
          uncal_error = discharge_uncal - discharge_cfs,
          delta_error = cal_error - uncal_error)

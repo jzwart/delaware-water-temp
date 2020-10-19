@@ -3,7 +3,7 @@
 start: '1980-10-01'
 stop: '2004-10-02'
 
-params_to_cal: ['ss_tau', 'gw_tau', 'albedo', 'melt_temp'] # parameters we want to calibrate for temp
+params_to_cal: ['ss_tau', 'gw_tau', 'albedo', 'melt_temp', 'lat_temp_adj'] # parameters we want to calibrate for temp
 # params_to_cal: ['soil_moist_max', 'gwflow_coef', 'gwsink_coef',
 # 'ssr2gw_rate', 'op_flow_thres', 'srain_intcp'] # parameters we want to calibrate for flow
 
@@ -256,5 +256,5 @@ sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'se
 'seginc_swrad', 'seg_humid', 'seg_shade', 'seg_ccov', 'seg_width']
 
 # file paths on denali
-remote_cal_path: '/caldera/projects/usgs/water/iidd/datasci/delaware-water-temp/4_model_calibrate'
+remote_cal_path: '/caldera/projects/usgs/water/iidd/datasci/delaware-water-temp/4_model_calibrate/tmp'
 

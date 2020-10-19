@@ -1,12 +1,14 @@
 
 
 # comparing PRMS-SNTemp output from original DayMet drivers and new GridMet drivers pulled in Sept 2020
+library(tidyverse)
+library(ggplot2)
 
 source('4_model/src/run_sntemp.R')
 source('4_model/src/get_sntemp_values.R')
 
-start = '1980-01-01'
-stop = '2016-01-01'
+start = '2004-10-01'
+stop = '2016-10-01'
 restart = 'F'
 spinup = 'F'
 
@@ -39,19 +41,28 @@ gridmet_flow = get_sntemp_discharge(model_output_file = '20191002_Delaware_strea
                                    model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
 
 
-library(dplyr)
-library(ggplot2)
+obs = readRDS('3_observations/out/obs_temp_flow.rds')
+
 cfs_to_cms = 1/(3.28084^3)
 compare_temp = left_join(daymet_temp, gridmet_temp,
                          by = c('seg_id_nat', 'model_idx', 'date'),
-                         suffix = c('_daymet', '_gridmet'))
+                         suffix = c('_daymet', '_gridmet')) %>%
+  left_join(select(obs$temp, seg_id_nat, date, temp_C), by = c('seg_id_nat', 'date'))
 compare_flow = left_join(daymet_flow, gridmet_flow,
                          by = c('seg_id_nat', 'model_idx', 'date'),
-                         suffix = c('_daymet', '_gridmet'))
+                         suffix = c('_daymet', '_gridmet')) %>%
+  left_join(select(obs$flow, seg_id_nat, date, discharge_cms), by = c('seg_id_nat', 'date'))
+
 
 caret::RMSE(pred = compare_temp$water_temp_gridmet, obs = compare_temp$water_temp_daymet)
 
 caret::RMSE(pred = compare_flow$discharge_gridmet, obs = compare_flow$discharge_daymet) * cfs_to_cms
+
+caret::RMSE(pred = compare_temp$water_temp_gridmet, obs = compare_temp$temp_C, na.rm = T)
+caret::RMSE(pred = compare_temp$water_temp_daymet, obs = compare_temp$temp_C, na.rm = T)
+
+caret::RMSE(pred = compare_flow$discharge_gridmet * cfs_to_cms, obs = compare_flow$discharge_cms, na.rm = T)
+caret::RMSE(pred = compare_flow$discharge_daymet * cfs_to_cms, obs = compare_flow$discharge_cms, na.rm = T)
 
 
 d = filter(compare_temp, model_idx == '1')
