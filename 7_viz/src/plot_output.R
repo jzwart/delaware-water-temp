@@ -20,17 +20,19 @@ for(j in cur_model_idxs){
   obs[,1,1]
   matrix_loc = which(d$model_locations$model_idx == j)
 
-  windows()
+  windows(width = 14, height = 8)
+  par(mar = c(3,6,4,3))
   plot(Y[matrix_loc,,1] ~ d$dates, type = 'l',
        ylab = 'Stream Temp (C)', xlab = '', lty=0,
-       ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,], Y_no_assim[matrix_loc,,]), na.rm = T),)
+       ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,], Y_no_assim[matrix_loc,,]), na.rm = T),
+       cex.axis = 2, cex.lab =2)
   for(i in 1:n_en){
     lines(Y_no_assim[matrix_loc,,i] ~ d$dates, col = 'grey')
     lines(Y[matrix_loc,,i] ~ d$dates)
   }
   points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
   arrows(d$dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], d$dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
-         angle = 90, length = .05, col = 'red', code = 3)
+  angle = 90, length = .05, col = 'red', code = 3)
 }
 
 

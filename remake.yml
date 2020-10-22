@@ -10,6 +10,7 @@ include:
   - 4_model.yml
   - 4_model_calibrate.yml
   - 4_model_for_PGDL.yml
+  - 4_model_forecast.yml
   - 6_model_output.yml
   - 7_viz.yml
   - 8_forecast_metadata.yml
@@ -26,6 +27,7 @@ targets:
       - 4_model
       - 4_model_calibrate
       - 4_model_for_PGDL
+      - 4_model_forecast
       - 6_model_output
       - 7_viz
       - 8_forecast_metadata

@@ -40,6 +40,8 @@ nc_close(forecast_driver)
 
 ## NOAA GEFS archive
 library(ncdf4)
+library(tidyverse)
+library(ggplot2)
 nc_file = '../../jzwart/Downloads/NOAA GEFS/tmax_2m_latlon_all_20200101_20200831_jzwalEY3fw.nc'
 forecast_driver <- nc_open(filename = nc_file)
 
@@ -48,19 +50,19 @@ issue_time <- ncvar_get(nc = forecast_driver, varid = 'intTime') # forecast issu
 valid_time <- ncvar_get(nc = forecast_driver, varid = 'intValidTime') # forecast valid time in YYYYMMDDHH; should be two dimensions, forecast hours x issue date
 
 
-temp = forecast_driver$var[[3]]
-varsize = temp$varsize
-ndims = temp$ndims
-nt = varsize[ndims]
-# example for getting one time out
-for(i in 1:nt){
-  start = rep(1, ndims)
-  start[ndims] = i
-  count = varsize
-  count[ndims] = 1
-  cur = ncvar_get(forecast_driver, temp, start = start, count = count)
-  timeval = ncvar_get(forecast_driver, temp$dim[[ndims]]$name, start = i, count = 1)
-}
+# temp = forecast_driver$var[[3]]
+# varsize = temp$varsize
+# ndims = temp$ndims
+# nt = varsize[ndims]
+# # example for getting one time out
+# for(i in 1:nt){
+#   start = rep(1, ndims)
+#   start[ndims] = i
+#   count = varsize
+#   count[ndims] = 1
+#   cur = ncvar_get(forecast_driver, temp, start = start, count = count)
+#   timeval = ncvar_get(forecast_driver, temp$dim[[ndims]]$name, start = i, count = 1)
+# }
 
 # example for getting multiple dimensions out
 lon_dim = 1
@@ -74,7 +76,7 @@ k_to_c = -273.15 # conversion from Kelvin to Celsius
 temp = forecast_driver$var[['Maximum_temperature']]
 varsize = temp$varsize
 n_dims = temp$ndims
-n_time = 110 # varsize[time_dim]
+n_time = 150 # varsize[time_dim]
 n_lon = 1 #varsize[lon_dim]
 n_lat = 1 # varsize[lat_dim]
 n_fhours = varsize[fhours_dim]
@@ -85,13 +87,13 @@ for(lon in 1:n_lon){
   for(lat in 1:n_lat){
     # for(fhours in 1:n_fhours){
       # for(en in 1:n_en){
-        for(t in 100:n_time){
+        for(t in 150:n_time){
           start = rep(1, n_dims)
           start[time_dim] = t
           start[lon_dim] = lon
           start[lat_dim] = lat
-          start[fhours_dim] = fhours
-          start[en_dim] = en
+          start[fhours_dim] = 1 #fhours
+          start[en_dim] = 1 #en
 
           count = varsize
           count[time_dim] = 1 # one time step
@@ -132,6 +134,15 @@ ggplot(out, aes(x = valid_time, y = mean_max_temp, group = issue_time, color = i
   geom_line(data = out, aes(x = valid_time, y = max_temp_c, group = interaction(ensemble, issue_time), color = issue_time))+
   ylab('Maximum Air Temperature (C)') + xlab('') +
   theme_minimal()
+
+
+
+# quick plot for presentation
+windows()
+ggplot(out, aes(x = valid_time, y = max_temp_c, group = interaction(ensemble, issue_time)))+
+  geom_line(size =1.5, color = 'grey') +
+  ylab('Maximum Air Temperature (C)') + xlab('') +
+  theme_classic()
 
 
 # some questions: Are time values local time? are the valid times for the daily maximum temperature or for the maximum temperature at that time?

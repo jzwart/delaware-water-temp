@@ -1,0 +1,42 @@
+
+### data assimilation settings ###
+n_en: 20 # number of ensembles for data assimilation
+n_params_est: 10 # number of parameters we're calibrating
+n_params_obs: 0 # number of parameters for which we have observations
+n_states_obs: 10 # number of states we're updating; will be dependent on obs
+start: '2014-06-01'
+stop: '2015-01-01'
+forecast_horizon: 10 # days to forecast
+
+# metadata settings
+# change this to reflect the actual forecast issue time
+forecast_issue_time: '2020-03-10'
+# ID that applies to set of forecasts
+forecast_project_id: 'DRB_DA_SNTemp_20200310'
+#ID that applies to the specific forecast. Make new ID for every new forecast - will need to update based on
+# forecast_id: 'fodsiajafa2424oji'
+
+params_to_update: [] # parameters we want to calibrate
+
+param_groups:
+  param:
+  - ss_tau
+  - gw_tau
+  min:
+  - 1.0
+  - 10.0
+  max:
+  - 50.0
+  - 150.0
+  sd:
+  - 2
+  - 6
+
+
+states_to_update: ['seg_tave_water', 'gw_sum', 'ss_sum']
+
+sntemp_output: ['seg_tave_air', 'seg_rain', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw', 'seg_tave_sroff', 'seg_tave_ss',
+'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow', 'seginc_potet', 'seginc_sroff', 'seginc_ssflow',
+'seginc_swrad', 'seg_humid', 'seg_shade', 'seg_ccov', 'seg_width']
+
+
