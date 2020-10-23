@@ -56,15 +56,16 @@ forecast = function(ind_file,
   source('4_model_calibrate/src/get_subbasins.R')
   source('4_model/src/get_upstream_downstream_segs.R')
   source('4_model_calibrate/src/get_calibration_order.R')
-  source('4_model_calibrate/src/write_pestpp_tpl_files.R')
-  source('4_model_calibrate/src/write_pestpp_ins_files.R')
-  source('4_model_calibrate/src/write_pestpp_pst_files.R')
   source('2_3_model_parameters/src/add_default_sntemp_params.R')
   source('2_1_model_fabric/src/get_segment_hrus.R')
+  source('4_model_forecast/src/nc_forecast_utils.R')
+  source('8_forecast_metadata/src/create_forecast_id.R')
   library(tidyverse)
   library(igraph)
+  forecast_project_id = 'DRB_DA_SNTemp_20201023'
   start = '2014-05-01'
   stop = '2014-05-10'
+  ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s.nc.ind', forecast_project_id, start, stop)
   forecast_horizon = 10
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
@@ -74,11 +75,13 @@ forecast = function(ind_file,
   subbasin_outlet_file = '4_model_calibrate/cfg/subbasin_outlets.yml'
   subbasin_outlet_id = '4182'
   param_groups = as_tibble(yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$param_groups)
+  states = as_tibble(yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$states)
+  state_names = states$state
   param_default_file = 'control/delaware.control.par_name'
   n_en = 20
   time_step = 'days'
   init_param_file = '2_3_model_parameters/out/init_params.rds'
-  state_names = yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$states_to_update
+  # state_names = yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$states_to_update
   obs_cv = I(0.1)
   param_cv = I(0.2)
   init_cond_cv = I(0.1)
@@ -246,6 +249,14 @@ forecast = function(ind_file,
                    param_sd = param_sd,
                    covar_inf_factor_sd = covar_inf_factor_sd)
 
+  # store forecast out in NetCDF; use same dimensions as NOAA forecasts [lon, lat, forecast hours, ensemble, issue date]
+  nc_create_forecast_out(seg_model_idxs = model_locations$model_idx,
+                         forecast_horizon = forecast_horizon,
+                         n_en = n_en,
+                         issue_dates = dates,
+                         forecast_project_id = forecast_project_id,
+                         vars = states,
+                         nc_name_out = as_data_file(ind_file))
 
   # start modeling
   if(assimilate_obs){
@@ -281,22 +292,52 @@ forecast = function(ind_file,
           update_sntemp_states(state_names = state_names,
                                seg_model_idxs = cur_model_idxs,
                                updated_states = updated_states,
+                               model_run_loc = model_run_loc,
                                ic_file_in = sprintf('prms_ic_spinup_%s.txt', n),
                                ic_file_out = sprintf('prms_ic_%s.txt', n))
         }else{
           update_sntemp_states(state_names = state_names,
                                seg_model_idxs = cur_model_idxs,
                                updated_states = updated_states,
+                               model_run_loc = model_run_loc,
                                ic_file_in = sprintf('prms_ic_%s.txt', n),
                                ic_file_out = sprintf('prms_ic_%s.txt', n))
         }
 
-
-        # run model
+        cur_stop = as.character(as.Date(dates[t]) + as.difftime(forecast_horizon - 1, units = 'days'))
+        cur_forecast_dates = get_model_dates(model_start = dates[t], model_stop = cur_stop, time_step = 'days')
+        # run model for forecast horizon; don't save IC (need to update those in next step)
         run_sntemp(start = dates[t],
-                   stop = dates[t],
+                   stop = cur_stop,
+                   model_run_loc = model_run_loc,
                    spinup = F,
                    restart = T,
+                   save_ic = F, # don't save IC
+                   precip_file = sprintf('./input/prcp_%s.cbh', n),
+                   tmax_file = sprintf('./input/tmax_%s.cbh', n),
+                   tmin_file = sprintf('./input/tmin_%s.cbh', n),
+                   var_init_file = sprintf('prms_ic_%s.txt', n),
+                   var_save_file = sprintf('prms_ic_%s.txt', n))
+
+        # get predicted temperatures over forecast horizon
+        model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                                              model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
+          dplyr::filter(date %in% cur_forecast_dates, model_idx %in% cur_model_idxs) %>%
+          arrange(date, as.numeric(model_idx))
+
+        nc_forecast_put(var_df = model_output,
+                        var_name = 'seg_tave_water',
+                        en = n,
+                        issue_date = dates[t],
+                        nc_name_out = as_data_file(ind_file))
+
+        # rerun model to get initial states for current date
+        run_sntemp(start = dates[t],
+                   stop = dates[t],
+                   model_run_loc = model_run_loc,
+                   spinup = F,
+                   restart = T,
+                   save_ic = T,
                    precip_file = sprintf('./input/prcp_%s.cbh', n),
                    tmax_file = sprintf('./input/tmax_%s.cbh', n),
                    tmin_file = sprintf('./input/tmin_%s.cbh', n),

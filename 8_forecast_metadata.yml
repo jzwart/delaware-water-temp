@@ -23,18 +23,6 @@ targets:
     depends:
       - 8_forecast_metadata/out/model_out.nc.ind
 
-  # when the forecast was issued
-  forecast_issue_time:
-    command: da_settings[I('forecast_issue_time')]
-
-  # applies to a set of forecasts - equivalent to a DOI and shouldn't change unless algorithms change
-  forecast_project_id:
-    command: da_settings[I('forecast_project_id')]
-
-  # Unique ID for when the forecast was generated.
-  forecast_id:
-    command: create_forecast_id(forecast_project_id)
-
   # update the file out to reflect forecast_id ?
   8_forecast_metadata/out/model_out.nc.ind:
     command: array_to_ncdf(

@@ -12,6 +12,7 @@ run_sntemp = function(start,
                       spinup = F,
                       spinup_days = 730,
                       restart = F,
+                      save_ic = T, # save a restart file T/F
                       model_run_loc = '4_model/tmp/',
                       control_file = 'delaware.control',
                       precip_file = './input/prcp.cbh',
@@ -40,7 +41,9 @@ run_sntemp = function(start,
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '1'
-    ctrl[save_vars_loc] = '1'
+    if(save_ic){
+      ctrl[save_vars_loc] = '1'
+    }else{ctrl[save_vars_loc] = '0'}
 
     precip_file_loc = grep('precip_day', ctrl) + 3
     tmax_file_loc = grep('tmax_day', ctrl) + 3
@@ -63,7 +66,9 @@ run_sntemp = function(start,
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '0'
-    ctrl[save_vars_loc] = '1'
+    if(save_ic){
+      ctrl[save_vars_loc] = '1'
+    }else{ctrl[save_vars_loc] = '0'}
 
     precip_file_loc = grep('precip_day', ctrl) + 3
     tmax_file_loc = grep('tmax_day', ctrl) + 3
@@ -197,6 +202,7 @@ set_sntemp_start_stop = function(start, stop,
 #' For hydroPSO functions
 #'
 set_sntemp_restart = function(restart,
+                              save_ic = T, # save a restart file T/F
                               model_run_loc,
                               control_file,
                               var_init_file,
@@ -208,7 +214,9 @@ set_sntemp_restart = function(restart,
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '1'
-    ctrl[save_vars_loc] = '1'
+    if(save_ic){
+      ctrl[save_vars_loc] = '1'
+    }else{ctrl[save_vars_loc] = '0'}
 
     var_init_file_loc = grep('var_init_file', ctrl) + 3
     var_save_file_loc = grep('var_save_file', ctrl) + 3
@@ -222,7 +230,9 @@ set_sntemp_restart = function(restart,
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     ctrl[init_vars_loc] = '0'
-    ctrl[save_vars_loc] = '1'
+    if(save_ic){
+      ctrl[save_vars_loc] = '1'
+    }else{ctrl[save_vars_loc] = '0'}
 
     var_init_file_loc = grep('var_init_file', ctrl) + 3
     var_save_file_loc = grep('var_save_file', ctrl) + 3
