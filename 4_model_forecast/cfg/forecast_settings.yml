@@ -31,15 +31,38 @@ param_groups:
   param:
   - ss_tau
   - gw_tau
+  - albedo
+  - melt_temp
   min:
   - 1.0
   - 10.0
+  - 0.0
+  - 0.0
   max:
   - 50.0
   - 150.0
+  - 1.0
+  - 10.0
   sd:
-  - 2
-  - 6
+  - 2.0
+  - 6.0
+  - .05
+  - 1.0
+  units:
+  - days
+  - days
+  - decimal fraction
+  - degrees C
+  longname:
+  - Average residence time of subsurface interflow
+  - Average residence time in groundwater flow
+  - Short-wave solar radiation reflected by streams
+  - Temperature at which snowmelt enters a stream
+  prec:
+  - integer
+  - integer
+  - float
+  - float
 
 
 states_to_update: ['seg_tave_water', 'gw_sum', 'ss_sum']

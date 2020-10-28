@@ -60,11 +60,14 @@ forecast = function(ind_file,
   source('2_1_model_fabric/src/get_segment_hrus.R')
   source('4_model_forecast/src/nc_forecast_utils.R')
   source('8_forecast_metadata/src/create_forecast_id.R')
+  source('4_model_forecast/src/get_calibrated_params.R')
   library(tidyverse)
   library(igraph)
+  library(ncdf4)
+  library(scipiper)
   forecast_project_id = 'DRB_DA_SNTemp_20201023'
   start = '2014-05-01'
-  stop = '2014-05-10'
+  stop = '2014-08-10'
   ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s.nc.ind', forecast_project_id, start, stop)
   forecast_horizon = 10
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
@@ -78,9 +81,11 @@ forecast = function(ind_file,
   states = as_tibble(yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$states)
   state_names = states$state
   param_default_file = 'control/delaware.control.par_name'
+  cal_param_file = '4_model_calibrate/tmp/pestpp/denali_cal/temp/subbasin_4182.8.par.csv'
   n_en = 20
   time_step = 'days'
   init_param_file = '2_3_model_parameters/out/init_params.rds'
+  init_cal_param_file = '2_3_model_parameters/out/calibration_params_init.rds'
   # state_names = yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$states_to_update
   obs_cv = I(0.1)
   param_cv = I(0.2)
@@ -102,8 +107,16 @@ forecast = function(ind_file,
   #   start = start,
   #   stop = stop,
   #   time_step = I('days'),
-  #   model_run_loc = I('4_model/tmp'),
+  #   model_run_loc = model_run_loc,
   #   spinup_days = I(730))
+
+  # this should be moved to yaml as it's own target
+  nc_create_cal_params(n_en = n_en,
+                       forecast_project_id = forecast_project_id,
+                       vars = param_groups,
+                       nc_name_out = '2_3_model_parameters/out/forecast_params.nc',
+                       model_run_loc = '4_model_calibrate/tmp',
+                       param_default_file = param_default_file)
 
   # use this to organize the matrices
   model_fabric = sf::read_sf(model_fabric_file)
@@ -138,10 +151,27 @@ forecast = function(ind_file,
   # get observation matrix
   obs_df = readRDS(obs_file)
 
+  ########only need init params if also updating params ##########
   # get initial parameters; already arranged by model_idx within each param list
   init_params_list = NULL #readRDS(init_param_file)
 
   n_params_est = sum(unlist(lapply(init_params_list, length)))
+
+  cal_params_list = readRDS(init_cal_param_file)
+  cal_param_names = names(cal_params_list)
+
+  calibrated_params_list = get_calibrated_params_forecast(param_file = cal_param_file,
+                                                          param_names = cal_param_names,
+                                                          model_run_loc = '4_model_calibrate/tmp',
+                                                          n_en = n_en,
+                                                          seg_model_idxs = cur_model_idxs,
+                                                          cal_params_list = cal_params_list,
+                                                          param_default_file = param_default_file)
+
+  # put calibrated parameters in to netcdf param file
+  nc_cal_params_put(var_list = calibrated_params_list,
+                    n_en = n_en,
+                    nc_name_out = '2_3_model_parameters/out/forecast_params.nc')
 
   if(n_params_est > 0){
     param_names = names(init_params_list)
@@ -258,6 +288,45 @@ forecast = function(ind_file,
                          vars = states,
                          nc_name_out = as_data_file(ind_file))
 
+  # run first forecast and store in nc out file
+  for(n in 1:n_en){
+    cur_stop = as.character(as.Date(dates[1]) + as.difftime(forecast_horizon - 1, units = 'days'))
+    cur_forecast_dates = get_model_dates(model_start = dates[1], model_stop = cur_stop, time_step = 'days')
+
+    # get calibrated parameters for given ensemble; update parameter file for running model
+    cur_params_list = nc_cal_params_get(nc_file = '2_3_model_parameters/out/forecast_params.nc',
+                                        param_names = cal_param_names,
+                                        ens = n)
+    update_sntemp_params(param_names = cal_param_names,
+                         updated_params = cur_params_list,
+                         model_run_loc = model_run_loc)
+
+    # run model for forecast horizon; don't save IC (need to update those in next step)
+    run_sntemp(start = dates[1],
+               stop = cur_stop,
+               model_run_loc = model_run_loc,
+               spinup = F,
+               restart = T,
+               save_ic = F, # don't save IC
+               precip_file = sprintf('./input/prcp_%s.cbh', n),
+               tmax_file = sprintf('./input/tmax_%s.cbh', n),
+               tmin_file = sprintf('./input/tmin_%s.cbh', n),
+               var_init_file = sprintf('prms_ic_spinup_%s.txt', n),
+               var_save_file = sprintf('prms_ic_spinup_%s.txt', n))
+
+    # get predicted temperatures over forecast horizon
+    model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
+                                          model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
+      dplyr::filter(date %in% cur_forecast_dates, model_idx %in% cur_model_idxs) %>%
+      arrange(date, as.numeric(model_idx))
+
+    nc_forecast_put(var_df = model_output,
+                    var_name = 'seg_tave_water',
+                    en = n,
+                    issue_date = dates[1],
+                    nc_name_out = as_data_file(ind_file))
+  }
+
   # start modeling
   if(assimilate_obs){
     for(t in 2:n_step){
@@ -306,6 +375,13 @@ forecast = function(ind_file,
 
         cur_stop = as.character(as.Date(dates[t]) + as.difftime(forecast_horizon - 1, units = 'days'))
         cur_forecast_dates = get_model_dates(model_start = dates[t], model_stop = cur_stop, time_step = 'days')
+        # get calibrated parameters for given ensemble; update parameter file for running model
+        cur_params_list = nc_cal_params_get(nc_file = '2_3_model_parameters/out/forecast_params.nc',
+                                            param_names = cal_param_names,
+                                            ens = n)
+        update_sntemp_params(param_names = cal_param_names,
+                             updated_params = cur_params_list,
+                             model_run_loc = model_run_loc)
         # run model for forecast horizon; don't save IC (need to update those in next step)
         run_sntemp(start = dates[t],
                    stop = cur_stop,

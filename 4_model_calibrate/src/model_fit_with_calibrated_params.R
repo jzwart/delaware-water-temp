@@ -58,7 +58,7 @@ best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.20.par.csv' # pre
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.10.par.csv'
 best_params_file = '4_model_calibrate/tmp/pestpp/subbasin_4182.15.par.csv' # cal with temp and flow
 best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/flow/subbasin_4182.13.par.csv'
-best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/temp/subbasin_4182.7.par.csv'
+best_params_file = '4_model_calibrate/tmp/pestpp/denali_cal/temp/subbasin_4182.8.par.csv'
 
 par_cal = data.table::fread(best_params_file) %>% as_tibble()
 

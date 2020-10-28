@@ -3,7 +3,7 @@
 start: '1980-10-01'
 stop: '2004-10-02'
 
-params_to_cal: ['ss_tau', 'gw_tau', 'albedo', 'melt_temp', 'lat_temp_adj'] # parameters we want to calibrate for temp
+params_to_cal: ['ss_tau', 'gw_tau', 'albedo', 'melt_temp'] # parameters we want to calibrate for temp
 # params_to_cal: ['soil_moist_max', 'gwflow_coef', 'gwsink_coef',
 # 'ssr2gw_rate', 'op_flow_thres', 'srain_intcp'] # parameters we want to calibrate for flow
 
