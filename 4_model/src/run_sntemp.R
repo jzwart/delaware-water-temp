@@ -18,6 +18,10 @@ run_sntemp = function(start,
                       precip_file = './input/prcp.cbh',
                       tmax_file = './input/tmax.cbh',
                       tmin_file = './input/tmin.cbh',
+                      humidity_file = './input/humidity.cbh',
+                      strmtemp_humidity_flag = 0, # default to using the cbh file. 1= use parameter seg_humidity
+                      ws_file = './input/ws.cbh',
+                      srad_file = './input/srad.cbh',
                       sf_data_file = './input/sf_data',
                       var_init_file = 'prms_ic.txt',
                       var_save_file = 'prms_ic.txt'){
@@ -31,6 +35,10 @@ run_sntemp = function(start,
                       precip_file = precip_file,
                       tmax_file = tmax_file,
                       tmin_file = tmin_file,
+                      humidity_file = humidity_file,
+                      strmtemp_humidity_flag = strmtemp_humidity_flag,
+                      ws_file = ws_file,
+                      srad_file = srad_file,
                       sf_data_file = sf_data_file,
                       var_init_file = var_init_file,
                       var_save_file = var_save_file)
@@ -40,18 +48,26 @@ run_sntemp = function(start,
 
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
+    strmtemp_humidity_flag_loc = grep('strmtemp_humidity_flag', ctrl) + 3
     ctrl[init_vars_loc] = '1'
     if(save_ic){
       ctrl[save_vars_loc] = '1'
     }else{ctrl[save_vars_loc] = '0'}
+    ctrl[strmtemp_humidity_flag_loc] = strmtemp_humidity_flag
 
     precip_file_loc = grep('precip_day', ctrl) + 3
     tmax_file_loc = grep('tmax_day', ctrl) + 3
     tmin_file_loc = grep('tmin_day', ctrl) + 3
+    humidity_file_loc = grep('humidity_day', ctrl) + 3
+    ws_file_loc = grep('windspeed_day', ctrl) + 3
+    srad_file_loc = grep('swrad_day', ctrl) + 3
     sf_data_file_loc = grep('data_file', ctrl) + 3
     ctrl[precip_file_loc] = precip_file
     ctrl[tmax_file_loc] = tmax_file
     ctrl[tmin_file_loc] = tmin_file
+    ctrl[humidity_file_loc] = humidity_file
+    ctrl[ws_file_loc] = ws_file
+    ctrl[srad_file_loc] = srad_file
     ctrl[sf_data_file_loc] = sf_data_file
 
     var_init_file_loc = grep('var_init_file', ctrl) + 3
@@ -65,18 +81,26 @@ run_sntemp = function(start,
 
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
-    ctrl[init_vars_loc] = '0'
+    strmtemp_humidity_flag_loc = grep('strmtemp_humidity_flag', ctrl) + 3
+    ctrl[init_vars_loc] = '1'
     if(save_ic){
       ctrl[save_vars_loc] = '1'
     }else{ctrl[save_vars_loc] = '0'}
+    ctrl[strmtemp_humidity_flag_loc] = strmtemp_humidity_flag
 
     precip_file_loc = grep('precip_day', ctrl) + 3
     tmax_file_loc = grep('tmax_day', ctrl) + 3
     tmin_file_loc = grep('tmin_day', ctrl) + 3
+    humidity_file_loc = grep('humidity_day', ctrl) + 3
+    ws_file_loc = grep('windspeed_day', ctrl) + 3
+    srad_file_loc = grep('swrad_day', ctrl) + 3
     sf_data_file_loc = grep('data_file', ctrl) + 3
     ctrl[precip_file_loc] = precip_file
     ctrl[tmax_file_loc] = tmax_file
     ctrl[tmin_file_loc] = tmin_file
+    ctrl[humidity_file_loc] = humidity_file
+    ctrl[ws_file_loc] = ws_file
+    ctrl[srad_file_loc] = srad_file
     ctrl[sf_data_file_loc] = sf_data_file
 
     var_init_file_loc = grep('var_init_file', ctrl) + 3
@@ -103,6 +127,10 @@ run_sntemp_spinup = function(spinup_days, start,
                              precip_file,
                              tmax_file,
                              tmin_file,
+                             humidity_file,
+                             strmtemp_humidity_flag,
+                             ws_file,
+                             srad_file,
                              sf_data_file,
                              var_init_file,
                              var_save_file){
@@ -115,6 +143,8 @@ run_sntemp_spinup = function(spinup_days, start,
 
   init_vars_loc = grep('init_vars_from_file', ctrl) + 3
   save_vars_loc = grep('save_vars_to_file', ctrl) + 3
+  strmtemp_humidity_flag_loc = grep('strmtemp_humidity_flag', ctrl) + 3
+  ctrl[strmtemp_humidity_flag_loc] = strmtemp_humidity_flag
 
   start_year_loc = grep('start_time', ctrl) + 3
   start_month_loc = grep('start_time', ctrl) + 4
@@ -140,10 +170,16 @@ run_sntemp_spinup = function(spinup_days, start,
   precip_file_loc = grep('precip_day', ctrl) + 3
   tmax_file_loc = grep('tmax_day', ctrl) + 3
   tmin_file_loc = grep('tmin_day', ctrl) + 3
+  humidity_file_loc = grep('humidity_day', ctrl) + 3
+  ws_file_loc = grep('windspeed_day', ctrl) + 3
+  srad_file_loc = grep('swrad_day', ctrl) + 3
   sf_data_file_loc = grep('data_file', ctrl) + 3
   ctrl[precip_file_loc] = precip_file
   ctrl[tmax_file_loc] = tmax_file
   ctrl[tmin_file_loc] = tmin_file
+  ctrl[humidity_file_loc] = humidity_file
+  ctrl[ws_file_loc] = ws_file
+  ctrl[srad_file_loc] = srad_file
   ctrl[sf_data_file_loc] = sf_data_file
 
   var_init_file_loc = grep('var_init_file', ctrl) + 3
