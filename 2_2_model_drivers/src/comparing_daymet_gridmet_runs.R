@@ -117,3 +117,132 @@ ggplot(flow_summary, aes(x = mean_discharge, y = standardized_rmse)) +
   ylab('Flow RMSE (CMS) / Mean Flow (CMS)') +
   xlab('Mean Discharge (CMS)') + scale_x_log10()
 
+
+
+
+
+# comparing PRMS-SNTemp output from GridMet drivers pulled in Sept 2020, using humidity as an input or parameter
+library(tidyverse)
+library(ggplot2)
+
+source('4_model/src/run_sntemp.R')
+source('4_model/src/get_sntemp_values.R')
+
+start = '2004-10-01'
+stop = '2016-10-01'
+restart = 'F'
+spinup = 'F'
+
+# run prms-sntemp without humidity cbh input
+run_sntemp(start = start,
+           stop = stop,
+           spinup = spinup,
+           restart = restart,
+           model_run_loc = '20191002_Delaware_streamtemp',
+           strmtemp_humidity_flag = 1)  # 1 = use seg_humidity parameter
+
+humidity_param_temp = get_sntemp_temperature(model_output_file = '20191002_Delaware_streamtemp/output/seg_tave_water.csv',
+                                             model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+humidity_param_flow = get_sntemp_discharge(model_output_file = '20191002_Delaware_streamtemp/output/seg_outflow.csv',
+                                           model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+
+# run prms-sntemp with humidity cbh input
+run_sntemp(start = start,
+           stop = stop,
+           spinup = spinup,
+           restart = restart,
+           model_run_loc = '20191002_Delaware_streamtemp')
+
+humidity_input_temp = get_sntemp_temperature(model_output_file = '20191002_Delaware_streamtemp/output/seg_tave_water.csv',
+                                             model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+humidity_input_flow = get_sntemp_discharge(model_output_file = '20191002_Delaware_streamtemp/output/seg_outflow.csv',
+                                           model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+
+
+obs = readRDS('3_observations/out/obs_temp_flow.rds')
+
+cfs_to_cms = 1/(3.28084^3)
+compare_temp = left_join(humidity_input_temp, humidity_param_temp,
+                         by = c('seg_id_nat', 'model_idx', 'date'),
+                         suffix = c('_input', '_param')) %>%
+  left_join(select(obs$temp, seg_id_nat, date, temp_C), by = c('seg_id_nat', 'date'))
+compare_flow = left_join(humidity_input_flow, humidity_param_flow,
+                         by = c('seg_id_nat', 'model_idx', 'date'),
+                         suffix = c('_input', '_param')) %>%
+  left_join(select(obs$flow, seg_id_nat, date, discharge_cms), by = c('seg_id_nat', 'date'))
+
+
+caret::RMSE(pred = compare_temp$water_temp_input, obs = compare_temp$water_temp_param)
+
+caret::RMSE(pred = compare_flow$discharge_input, obs = compare_flow$discharge_param) * cfs_to_cms
+
+caret::RMSE(pred = compare_temp$water_temp_input, obs = compare_temp$temp_C, na.rm = T)
+caret::RMSE(pred = compare_temp$water_temp_param, obs = compare_temp$temp_C, na.rm = T)
+
+caret::RMSE(pred = compare_flow$discharge_input * cfs_to_cms, obs = compare_flow$discharge_cms, na.rm = T)
+caret::RMSE(pred = compare_flow$discharge_param * cfs_to_cms, obs = compare_flow$discharge_cms, na.rm = T)
+
+
+
+# comparing PRMS-SNTemp output from GridMet drivers pulled in Sept 2020, using ws as an input
+library(tidyverse)
+library(ggplot2)
+
+source('4_model/src/run_sntemp.R')
+source('4_model/src/get_sntemp_values.R')
+
+start = '2004-10-01'
+stop = '2016-10-01'
+restart = 'F'
+spinup = 'F'
+
+# run prms-sntemp without humidity cbh input
+run_sntemp(start = start,
+           stop = stop,
+           spinup = spinup,
+           restart = restart,
+           model_run_loc = '20191002_Delaware_streamtemp',
+           strmtemp_humidity_flag = 1)  # 1 = use seg_humidity parameter
+
+humidity_param_temp = get_sntemp_temperature(model_output_file = '20191002_Delaware_streamtemp/output/seg_tave_water.csv',
+                                             model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+humidity_param_flow = get_sntemp_discharge(model_output_file = '20191002_Delaware_streamtemp/output/seg_outflow.csv',
+                                           model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+
+# run prms-sntemp with humidity cbh input
+run_sntemp(start = start,
+           stop = stop,
+           spinup = spinup,
+           restart = restart,
+           model_run_loc = '20191002_Delaware_streamtemp')
+
+humidity_input_temp = get_sntemp_temperature(model_output_file = '20191002_Delaware_streamtemp/output/seg_tave_water.csv',
+                                             model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+humidity_input_flow = get_sntemp_discharge(model_output_file = '20191002_Delaware_streamtemp/output/seg_outflow.csv',
+                                           model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp')
+
+
+obs = readRDS('3_observations/out/obs_temp_flow.rds')
+
+cfs_to_cms = 1/(3.28084^3)
+compare_temp = left_join(humidity_input_temp, humidity_param_temp,
+                         by = c('seg_id_nat', 'model_idx', 'date'),
+                         suffix = c('_input', '_param')) %>%
+  left_join(select(obs$temp, seg_id_nat, date, temp_C), by = c('seg_id_nat', 'date'))
+compare_flow = left_join(humidity_input_flow, humidity_param_flow,
+                         by = c('seg_id_nat', 'model_idx', 'date'),
+                         suffix = c('_input', '_param')) %>%
+  left_join(select(obs$flow, seg_id_nat, date, discharge_cms), by = c('seg_id_nat', 'date'))
+
+
+caret::RMSE(pred = compare_temp$water_temp_input, obs = compare_temp$water_temp_param)
+
+caret::RMSE(pred = compare_flow$discharge_input, obs = compare_flow$discharge_param) * cfs_to_cms
+
+caret::RMSE(pred = compare_temp$water_temp_input, obs = compare_temp$temp_C, na.rm = T)
+caret::RMSE(pred = compare_temp$water_temp_param, obs = compare_temp$temp_C, na.rm = T)
+
+caret::RMSE(pred = compare_flow$discharge_input * cfs_to_cms, obs = compare_flow$discharge_cms, na.rm = T)
+caret::RMSE(pred = compare_flow$discharge_param * cfs_to_cms, obs = compare_flow$discharge_cms, na.rm = T)
+
+
