@@ -1,0 +1,11 @@
+
+Historical NOAA GEFS - reforecast. https://psl.noaa.gov/forecasts/reforecast2/
+see https://psl.noaa.gov/forecasts/reforecast2/README.GEFS_Reforecast2.pdf for description and variable details
+
+- getting single level Gaussian 0.5 degree grid
+- Variables: Total Accumulated Precipitation (accumulated in last 6 hrs or 3hrs; mm); Minimum Temperature (in last 6 or 3 hrs; K); Maximum Temperature (in last 6 or 3 hrs; K);
+- grabbing forecasts from 2019-01-01 to 2020-08-31
+- selecting all forecast hours from high res (0-8 days)
+- selecting all ensemble members
+- netCDF4
+-

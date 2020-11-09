@@ -66,8 +66,8 @@ forecast = function(ind_file,
   library(ncdf4)
   library(scipiper)
   forecast_project_id = 'DRB_DA_SNTemp_20201023'
-  start = '2014-05-01'
-  stop = '2014-08-10'
+  start = '2019-01-01'
+  stop = '2020-01-01'
   ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s.nc.ind', forecast_project_id, start, stop)
   forecast_horizon = 10
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
@@ -80,6 +80,7 @@ forecast = function(ind_file,
   param_groups = as_tibble(yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$param_groups)
   states = as_tibble(yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$states)
   state_names = states$state
+  drivers = as_tibble(yaml::read_yaml('4_model_forecast/cfg/forecast_settings.yml')$drivers)
   param_default_file = 'control/delaware.control.par_name'
   cal_param_file = '4_model_calibrate/tmp/pestpp/denali_cal/temp/subbasin_4182.8.par.csv'
   n_en = 20
