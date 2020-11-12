@@ -4,6 +4,7 @@ library(ggplot2)
 
 d = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_inf_factor.rds')
 dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182_inf_factor.rds')
+d = readRDS('4_model_forecast/out/DRB_DA_SNTemp_20201023_2019-03-01_to_2019-09-01_8fdays_param[TRUE]_driver[TRUE]_init[TRUE].rds')
 
 obs = d$obs
 Y = d$Y
@@ -15,7 +16,7 @@ cur_model_idxs = d$model_locations$model_idx
 Y_no_assim = dd$Y
 
 #lordsville site is seg_id_nat == 1573; model_idx = 224
-cur_model_idxs = '423'
+cur_model_idxs = '416'
 for(j in cur_model_idxs){
   obs[,1,1]
   matrix_loc = which(d$model_locations$model_idx == j)
@@ -24,10 +25,10 @@ for(j in cur_model_idxs){
   par(mar = c(3,6,4,3))
   plot(Y[matrix_loc,,1] ~ d$dates, type = 'l',
        ylab = 'Stream Temp (C)', xlab = '', lty=0,
-       ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,], Y_no_assim[matrix_loc,,]), na.rm = T),
+       ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,]), na.rm = T), #, Y_no_assim[matrix_loc,,])
        cex.axis = 2, cex.lab =2)
   for(i in 1:n_en){
-    lines(Y_no_assim[matrix_loc,,i] ~ d$dates, col = 'grey')
+    # lines(Y_no_assim[matrix_loc,,i] ~ d$dates, col = 'grey')
     lines(Y[matrix_loc,,i] ~ d$dates)
   }
   points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
@@ -41,7 +42,7 @@ for(j in cur_model_idxs){
 
 
 #
-site = 4
+site = 6
 params = 42*3 + site
 windows()
 plot(Y[params,,1], type = 'l', ylim = range(Y[params,,]))

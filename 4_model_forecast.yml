@@ -32,9 +32,24 @@ targets:
   forecast_stop:
     command: forecast_settings[[I('stop')]]
 
+  forecast_param_groups:
+    command: forecast_settings[[I('param_groups')]]
+
+  forecast_n_en:
+    command: forecast_settings[[I('n_en')]]
+
   # applies to a set of forecasts - equivalent to a DOI and shouldn't change unless algorithms change
   forecast_project_id:
     command: forecast_settings[[I('forecast_project_id')]]
+
+  2_3_model_parameters/out/forecast_params.nc:
+    command: nc_create_cal_params(
+      n_en = forecast_n_en,
+      forecast_project_id = forecast_project_id,
+      vars = forecast_param_groups,
+      nc_name_out = target_name,
+      model_run_loc = I('4_model_calibrate/tmp'),
+      param_default_file = I('control/delaware.control.par_name'))
 
   # model_spinup:
   #   command: model_spinup(

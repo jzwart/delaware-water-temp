@@ -64,14 +64,20 @@ forecast = function(ind_file,
   library(tidyverse)
   library(igraph)
   library(ncdf4)
+  library(tidync)
   library(scipiper)
   forecast_project_id = 'DRB_DA_SNTemp_20201023'
-  start = '2019-01-01'
-  stop = '2020-01-01'
-  ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s.nc.ind', forecast_project_id, start, stop)
-  forecast_horizon = 10
+  start = '2019-03-01'
+  stop = '2019-09-01'
+  forecast_horizon = 8
+  param_error = T # should parameter error be included in forecast run?
+  driver_error = T
+  driver_names = c('tmin','tmax','prcp')
+  init_cond_error = T
+  ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s_%sfdays_param[%s]_driver[%s]_init[%s].nc.ind',
+                     forecast_project_id, start, stop, forecast_horizon, param_error, driver_error, init_cond_error)
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
-  obs_file = '3_observations/in/obs_temp_full.rds'
+  obs_file = '3_observations/in/obs_temp_drb.rds'
   model_run_loc = I('4_model_forecast/tmp')
   orig_model_loc = I('20200207_Delaware_streamtemp_state_adj')
   subbasin_file = '4_model_calibrate/out/drb_subbasins.rds'
@@ -103,21 +109,13 @@ forecast = function(ind_file,
   file.copy(from = file.path(orig_model_loc, files_to_transfer), to = model_run_loc, overwrite = T, recursive = T)
 
   # spinning up model for running DA
-  # model_spinup(
-  #   n_en = n_en,
-  #   start = start,
-  #   stop = stop,
-  #   time_step = I('days'),
-  #   model_run_loc = model_run_loc,
-  #   spinup_days = I(730))
-
-  # this should be moved to yaml as it's own target
-  nc_create_cal_params(n_en = n_en,
-                       forecast_project_id = forecast_project_id,
-                       vars = param_groups,
-                       nc_name_out = '2_3_model_parameters/out/forecast_params.nc',
-                       model_run_loc = '4_model_calibrate/tmp',
-                       param_default_file = param_default_file)
+  model_spinup(
+    n_en = n_en,
+    start = start,
+    stop = stop,
+    time_step = I('days'),
+    model_run_loc = model_run_loc,
+    spinup_days = I(730))
 
   # use this to organize the matrices
   model_fabric = sf::read_sf(model_fabric_file)
@@ -150,7 +148,9 @@ forecast = function(ind_file,
   state_sd = rep(obs_cv * 10, n_states_est)  # UPDATE THIS #########
 
   # get observation matrix
-  obs_df = readRDS(obs_file)
+  obs_df = readRDS(obs_file) %>%
+    mutate(seg_id_nat = as.character(seg_id_nat)) %>%
+    rename(temp_C = temp_c) # can update functions later to look for lower case
 
   ########only need init params if also updating params ##########
   # get initial parameters; already arranged by model_idx within each param list
@@ -302,6 +302,19 @@ forecast = function(ind_file,
                          updated_params = cur_params_list,
                          model_run_loc = model_run_loc)
 
+    # update drivers with that days forecasted drivers
+    if(driver_error){
+      cur_drivers = nc_drivers_get(nc_file = '2_2_model_drivers/out/forecasted_drivers.nc',
+                                   issue_dates = dates[1],
+                                   ens = n,
+                                   fdays = seq(0, forecast_horizon-1, 1))
+
+      update_sntemp_drivers(driver_names = driver_names,
+                            updated_drivers = cur_drivers,
+                            model_run_loc = model_run_loc,
+                            en = n)
+    }
+
     # run model for forecast horizon; don't save IC (need to update those in next step)
     run_sntemp(start = dates[1],
                stop = cur_stop,
@@ -383,6 +396,19 @@ forecast = function(ind_file,
         update_sntemp_params(param_names = cal_param_names,
                              updated_params = cur_params_list,
                              model_run_loc = model_run_loc)
+
+        if(driver_error){
+          cur_drivers = nc_drivers_get(nc_file = '2_2_model_drivers/out/forecasted_drivers.nc',
+                                       issue_dates = dates[t],
+                                       ens = n,
+                                       fdays = seq(0, forecast_horizon-1, 1))
+
+          update_sntemp_drivers(driver_names = driver_names,
+                                updated_drivers = cur_drivers,
+                                model_run_loc = model_run_loc,
+                                en = n)
+        }
+
         # run model for forecast horizon; don't save IC (need to update those in next step)
         run_sntemp(start = dates[t],
                    stop = cur_stop,

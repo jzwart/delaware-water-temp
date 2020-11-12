@@ -62,7 +62,7 @@ for(t in seq_along(dates_nc)){
     cur_en = n
     for(f in forecast_days){
       cur_day_hours = f * 24 + 24
-      cur_fhours = which(as.numeric(fhours) <= cur_day_hours & as.numeric(fhours) >= cur_day_hours-24)
+      cur_fhours = which(as.numeric(fhours) <= cur_day_hours & as.numeric(fhours) >= cur_day_hours-23)
       if(cur_en < 12){ # if less than number of GEFS ensembles, then use the ensemble number
         cur_temp = temp[,,cur_fhours, cur_en, cur_issue_time]
         # take min, max, or sum of values depending on driver (e.g. take min if calculating min temp)

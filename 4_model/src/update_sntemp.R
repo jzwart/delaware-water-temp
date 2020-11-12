@@ -136,3 +136,76 @@ update_sntemp_states = function(state_names,
   lapply(out, write, file.path(model_run_loc, ic_file_out), append = T)
 }
 
+
+update_sntemp_drivers = function(driver_names,
+                                 updated_drivers, # df of drivers
+                                 model_run_loc,
+                                 en = NULL, # current ensemble
+                                 n_hrus = 765){
+
+  for(cur in driver_names){
+    if(!is.null(en)){ # ensemble files
+      driver_file_path = file.path(model_run_loc, sprintf('input/%s_%s.cbh', cur, en))
+
+      # read in original, unmodified driver data
+      orig_driver = data.table::fread(file = driver_file_path,
+                                      skip = 3,
+                                      header = F)
+      date_start_loc = grep(min(updated_drivers$valid_time),
+                            as.Date(paste(orig_driver$V1, orig_driver$V2, orig_driver$V3, sep ='-'),
+                                    format = '%Y-%m-%d'))
+      date_end_loc = grep(max(updated_drivers$valid_time),
+                            as.Date(paste(orig_driver$V1, orig_driver$V2, orig_driver$V3, sep ='-'),
+                                    format = '%Y-%m-%d'))
+
+      # need matrix of hru_model_idx  by valid date
+      cur_updated_drivers = updated_drivers %>% arrange(as.integer(model_idx)) %>%
+        select(model_idx, valid_time, all_of(cur)) %>%
+        pivot_wider(names_from = model_idx, values_from = cur) %>% arrange(valid_time)
+
+      cur_mat = as.matrix(cur_updated_drivers[,2:ncol(cur_updated_drivers)]) %>% round(digits = 2)
+
+      driver_out = as.matrix(orig_driver)
+      driver_out[date_start_loc:date_end_loc, 7:ncol(driver_out)] = cur_mat
+
+      data.table::fwrite(x = driver_out, file = driver_file_path, row.names = F, col.names = F, sep = ' ')
+
+      tmp = readLines(driver_file_path)
+      tmp = c('Written by Bandit', sprintf('%s 765', cur),
+              '########################################', tmp)
+      writeLines(tmp, driver_file_path)
+
+    }else{ # single file
+      driver_file_path = file.path(model_run_loc, sprintf('input/%s.cbh', cur))
+
+      # read in original, unmodified driver data
+      orig_driver = data.table::fread(file = driver_file_path,
+                                      skip = 3,
+                                      header = F)
+      date_start_loc = grep(min(updated_drivers$valid_time),
+                            as.Date(paste(orig_driver$V1, orig_driver$V2, orig_driver$V3, sep ='-'),
+                                    format = '%Y-%m-%d'))
+      date_end_loc = grep(max(updated_drivers$valid_time),
+                          as.Date(paste(orig_driver$V1, orig_driver$V2, orig_driver$V3, sep ='-'),
+                                  format = '%Y-%m-%d'))
+
+      # need matrix of hru_model_idx  by valid date
+      cur_updated_drivers = updated_drivers %>% arrange(as.integer(model_idx)) %>%
+        select(model_idx, valid_time, all_of(cur)) %>%
+        pivot_wider(names_from = model_idx, values_from = cur) %>% arrange(valid_time)
+
+      cur_mat = as.matrix(cur_updated_drivers[,2:ncol(cur_updated_drivers)]) %>% round(digits = 2)
+
+      driver_out = as.matrix(orig_driver)
+      driver_out[date_start_loc:date_end_loc, 7:ncol(driver_out)] = cur_mat
+
+      data.table::fwrite(x = driver_out, file = driver_file_path, row.names = F, col.names = F)
+
+      tmp = readLines(driver_file_path)
+      tmp = c('Written by Bandit', sprintf('%s 765', cur),
+              '########################################', tmp)
+      writeLines(tmp, driver_file_path)
+    }
+  }
+
+}
