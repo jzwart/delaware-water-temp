@@ -348,3 +348,125 @@ plot(cor_mat, col = topo.colors)
 
 
 
+######################
+# figures for AGU 2020
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+
+seg = sf::read_sf('20191002_Delaware_streamtemp/GIS/Segments_subset.shp') %>%
+  mutate(seg_id_nat = as.character(seg_id_nat))
+obs = readRDS('3_observations/in/obs_temp_full.rds')
+boundary = sf::read_sf('1_geo_boundary/in/DRB_Extent/DRB_Extent.shp')
+waterbodies = readRDS('2_1_model_fabric/out/nhd_waterbody_subset.rds') %>%
+  dplyr::filter(FType %in% c(463, 390))
+
+obs_agg = obs %>%
+  group_by(seg_id_nat) %>%
+  summarise(obs_dates = n()) %>%
+  ungroup()
+obs_agg_forecast = obs %>%
+  dplyr::filter(date >= as.Date('2019-03-01'), date <= as.Date('2019-09-01')) %>%
+  group_by(seg_id_nat) %>%
+  summarise(obs_dates = n()) %>%
+  ungroup()
+
+da_out = readRDS('4_model_forecast/out/DRB_DA_SNTemp_20201023_2019-03-01_to_2019-09-01_8fdays_param[TRUE]_driver[TRUE]_init[TRUE].rds')
+all_dates = da_out$dates
+cur_model_idxs = da_out$model_locations$model_idx
+
+seg_obs = left_join(seg, obs_agg, by = "seg_id_nat") %>%
+  mutate(obs_dates = ifelse(is.na(obs_dates), 0, obs_dates),
+         obs_bins = cut(obs_dates, breaks = c(-1,0,10,100,1000,10000, 1000000000000),
+                        labels = c('0','1-10','11-100','101-1000','1001-10000','>10001')))
+subset_seg_obs = seg_obs %>%
+  dplyr::filter(as.character(model_idx) %in% cur_model_idxs)
+
+seg_obs_forecast = left_join(seg, obs_agg_forecast, by = "seg_id_nat") %>%
+  mutate(obs_dates = ifelse(is.na(obs_dates), 0, obs_dates),
+         obs_bins = cut(obs_dates, breaks = c(-1,0,10,100,1000),
+                        labels = c('0','1-10','11-100','>101')))
+subset_seg_obs_forecast = seg_obs_forecast %>%
+  mutate(model_idx = as.character(model_idx)) %>%
+  dplyr::filter(model_idx %in% cur_model_idxs)
+
+
+cols = viridis::viridis(n = 6, direction = -1)
+
+col_labs = c('0' = 'grey', '1-10' = cols[2],'11-100' = cols[3],
+             '101-1000' = cols[4],'1001-10000' = cols[5],'>10001' = cols[6])
+
+main_states = sf::st_as_sf(maps::map(database = 'state',
+                                     region = c('new york', 'new jersey', 'penn', 'delaware',
+                                                'maryland', 'west virginia','maine','virginia',
+                                                'ohio', 'vermont','new hampshire', 'massachusettes'),
+                                     fill = T, plot = F))
+us_map = sf::st_as_sf(maps::map(database = 'state', fill = T, plot = F, col = 'white', border = 'grey'))
+
+
+seg_plot = ggplot() +
+  geom_sf(data = main_states, fill = 'white', color = 'white') +
+  # geom_sf(data = seg_obs, aes(col = obs_bins, fill = obs_bins), size = 1.1) +
+  geom_sf(data = seg_obs, col = 'grey', fill = 'grey', size = 1) +
+  geom_sf(data = subset_seg_obs, aes(col = obs_bins, fill = obs_bins), size = 3) +
+  # geom_sf(data = boundary$geometry, col = 'black', alpha = 0) +
+  scale_color_manual(name = '# of Obs', values = col_labs) +
+  scale_fill_manual(name = '# of Obs', values = col_labs) +
+  theme_minimal()+
+  ylim(c(39.6,40.2))+
+  xlim(c(76,75.5)) #+
+#guides(color=guide_legend(title="Days of observations"),fill=guide_legend(title="Days of observations"))
+
+seg_plot
+
+col_labs = c('0' = 'grey', '1-10' = cols[2],'11-100' = cols[3],
+             '>101' = cols[4],'1001-10000' = cols[5],'>10001' = cols[6])
+
+seg_forecast_plot = ggplot() +
+  geom_sf(data = main_states, fill = 'white', color = 'white') +
+  # geom_sf(data = seg_obs, aes(col = obs_bins, fill = obs_bins), size = 1.1) +
+  geom_sf(data = seg_obs, col = 'grey', fill = 'grey', size = 1) +
+  geom_sf(data = subset_seg_obs_forecast, aes(col = obs_bins, fill = obs_bins), size = 3) +
+  # geom_sf(data = boundary$geometry, col = 'black', alpha = 0) +
+  scale_color_manual(name = '# of Obs', values = col_labs) +
+  scale_fill_manual(name = '# of Obs', values = col_labs) +
+  theme_minimal()+
+  ylim(c(39.6,40.2))+
+  xlim(c(76,75.5)) #+
+#guides(color=guide_legend(title="Days of observations"),fill=guide_legend(title="Days of observations"))
+
+seg_forecast_plot
+
+# output = da_out$Y[1:42,,] %>%
+#   reshape2::melt(varnames = c('model_idx', 'issue_time', 'ensemble')) %>%
+#   mutate(issue_time = all_dates[issue_time],
+#          model_idx = cur_model_idxs[model_idx],
+#          valid_time = issue_time,
+#          ensemble = ensemble) %>%
+#   rename(seg_tave_water = value) %>%
+#   as_tibble()
+output = feather::read_feather('4_model_for_PGDL/out/sntemp_input_output_subset.feather') %>%
+  select(model_idx, date, seg_tave_water)
+
+example_day = output %>%
+  dplyr::filter(date == as.Date('2019-07-01')) %>%
+  group_by(model_idx) %>%
+  summarise(seg_tave_water = mean(seg_tave_water)) %>%
+  ungroup()
+example_day = left_join(subset_seg_obs_forecast, example_day, by = c('model_idx'))
+
+example_day_plot = ggplot() +
+  geom_sf(data = main_states, fill = 'white', color = 'white') +
+  # geom_sf(data = seg_obs, aes(col = obs_bins, fill = obs_bins), size = 1.1) +
+  geom_sf(data = seg_obs, col = 'grey', fill = 'grey', size = 1) +
+  geom_sf(data = example_day, aes(col = seg_tave_water, fill = seg_tave_water), size = 3) +
+  # geom_sf(data = boundary$geometry, col = 'black', alpha = 0) +
+  scale_color_gradient(name = 'Water Temp (C)') +
+  scale_fill_gradient(name = 'Water Temp (C)') +
+  theme_minimal()+
+  ylim(c(39.6,40.2))+
+  xlim(c(76,75.5)) #+
+#guides(color=guide_legend(title="Days of observations"),fill=guide_legend(title="Days of observations"))
+
+example_day_plot

@@ -71,7 +71,7 @@ forecast = function(ind_file,
   stop = '2019-09-01'
   forecast_horizon = 8
   param_error = T # should parameter error be included in forecast run?
-  driver_error = T
+  driver_error = F
   driver_names = c('tmin','tmax','prcp')
   init_cond_error = T
   ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s_%sfdays_param[%s]_driver[%s]_init[%s].nc.ind',
@@ -158,21 +158,23 @@ forecast = function(ind_file,
 
   n_params_est = sum(unlist(lapply(init_params_list, length)))
 
-  cal_params_list = readRDS(init_cal_param_file)
-  cal_param_names = names(cal_params_list)
+  if(param_error){
+    cal_params_list = readRDS(init_cal_param_file)
+    cal_param_names = names(cal_params_list)
 
-  calibrated_params_list = get_calibrated_params_forecast(param_file = cal_param_file,
-                                                          param_names = cal_param_names,
-                                                          model_run_loc = '4_model_calibrate/tmp',
-                                                          n_en = n_en,
-                                                          seg_model_idxs = cur_model_idxs,
-                                                          cal_params_list = cal_params_list,
-                                                          param_default_file = param_default_file)
+    calibrated_params_list = get_calibrated_params_forecast(param_file = cal_param_file,
+                                                            param_names = cal_param_names,
+                                                            model_run_loc = '4_model_calibrate/tmp',
+                                                            n_en = n_en,
+                                                            seg_model_idxs = cur_model_idxs,
+                                                            cal_params_list = cal_params_list,
+                                                            param_default_file = param_default_file)
 
-  # put calibrated parameters in to netcdf param file
-  nc_cal_params_put(var_list = calibrated_params_list,
-                    n_en = n_en,
-                    nc_name_out = '2_3_model_parameters/out/forecast_params.nc')
+    # put calibrated parameters in to netcdf param file
+    nc_cal_params_put(var_list = calibrated_params_list,
+                      n_en = n_en,
+                      nc_name_out = '2_3_model_parameters/out/forecast_params.nc')
+  }
 
   if(n_params_est > 0){
     param_names = names(init_params_list)
@@ -294,13 +296,15 @@ forecast = function(ind_file,
     cur_stop = as.character(as.Date(dates[1]) + as.difftime(forecast_horizon - 1, units = 'days'))
     cur_forecast_dates = get_model_dates(model_start = dates[1], model_stop = cur_stop, time_step = 'days')
 
-    # get calibrated parameters for given ensemble; update parameter file for running model
-    cur_params_list = nc_cal_params_get(nc_file = '2_3_model_parameters/out/forecast_params.nc',
-                                        param_names = cal_param_names,
-                                        ens = n)
-    update_sntemp_params(param_names = cal_param_names,
-                         updated_params = cur_params_list,
-                         model_run_loc = model_run_loc)
+    if(param_error){
+      # get calibrated parameters for given ensemble; update parameter file for running model
+      cur_params_list = nc_cal_params_get(nc_file = '2_3_model_parameters/out/forecast_params.nc',
+                                          param_names = cal_param_names,
+                                          ens = n)
+      update_sntemp_params(param_names = cal_param_names,
+                           updated_params = cur_params_list,
+                           model_run_loc = model_run_loc)
+    }
 
     # update drivers with that days forecasted drivers
     if(driver_error){
@@ -313,20 +317,33 @@ forecast = function(ind_file,
                             updated_drivers = cur_drivers,
                             model_run_loc = model_run_loc,
                             en = n)
-    }
 
-    # run model for forecast horizon; don't save IC (need to update those in next step)
-    run_sntemp(start = dates[1],
-               stop = cur_stop,
-               model_run_loc = model_run_loc,
-               spinup = F,
-               restart = T,
-               save_ic = F, # don't save IC
-               precip_file = sprintf('./input/prcp_%s.cbh', n),
-               tmax_file = sprintf('./input/tmax_%s.cbh', n),
-               tmin_file = sprintf('./input/tmin_%s.cbh', n),
-               var_init_file = sprintf('prms_ic_spinup_%s.txt', n),
-               var_save_file = sprintf('prms_ic_spinup_%s.txt', n))
+      # run model for forecast horizon; don't save IC (need to update those in next step)
+      run_sntemp(start = dates[1],
+                 stop = cur_stop,
+                 model_run_loc = model_run_loc,
+                 spinup = F,
+                 restart = T,
+                 save_ic = F, # don't save IC
+                 precip_file = sprintf('./input/prcp_%s.cbh', n),
+                 tmax_file = sprintf('./input/tmax_%s.cbh', n),
+                 tmin_file = sprintf('./input/tmin_%s.cbh', n),
+                 var_init_file = sprintf('prms_ic_spinup_%s.txt', n),
+                 var_save_file = sprintf('prms_ic_spinup_%s.txt', n))
+    }else{
+      # run model for forecast horizon; don't save IC (need to update those in next step)
+      run_sntemp(start = dates[1],
+                 stop = cur_stop,
+                 model_run_loc = model_run_loc,
+                 spinup = F,
+                 restart = T,
+                 save_ic = F, # don't save IC
+                 precip_file = sprintf('./input/prcp_%s.cbh', 1),
+                 tmax_file = sprintf('./input/tmax_%s.cbh', 1),
+                 tmin_file = sprintf('./input/tmin_%s.cbh', 1),
+                 var_init_file = sprintf('prms_ic_spinup_%s.txt', n),
+                 var_save_file = sprintf('prms_ic_spinup_%s.txt', n))
+    }
 
     # get predicted temperatures over forecast horizon
     model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
@@ -389,13 +406,15 @@ forecast = function(ind_file,
 
         cur_stop = as.character(as.Date(dates[t]) + as.difftime(forecast_horizon - 1, units = 'days'))
         cur_forecast_dates = get_model_dates(model_start = dates[t], model_stop = cur_stop, time_step = 'days')
-        # get calibrated parameters for given ensemble; update parameter file for running model
-        cur_params_list = nc_cal_params_get(nc_file = '2_3_model_parameters/out/forecast_params.nc',
-                                            param_names = cal_param_names,
-                                            ens = n)
-        update_sntemp_params(param_names = cal_param_names,
-                             updated_params = cur_params_list,
-                             model_run_loc = model_run_loc)
+        if(param_error){
+          # get calibrated parameters for given ensemble; update parameter file for running model
+          cur_params_list = nc_cal_params_get(nc_file = '2_3_model_parameters/out/forecast_params.nc',
+                                              param_names = cal_param_names,
+                                              ens = n)
+          update_sntemp_params(param_names = cal_param_names,
+                               updated_params = cur_params_list,
+                               model_run_loc = model_run_loc)
+        }
 
         if(driver_error){
           cur_drivers = nc_drivers_get(nc_file = '2_2_model_drivers/out/forecasted_drivers.nc',
@@ -407,20 +426,33 @@ forecast = function(ind_file,
                                 updated_drivers = cur_drivers,
                                 model_run_loc = model_run_loc,
                                 en = n)
-        }
 
-        # run model for forecast horizon; don't save IC (need to update those in next step)
-        run_sntemp(start = dates[t],
-                   stop = cur_stop,
-                   model_run_loc = model_run_loc,
-                   spinup = F,
-                   restart = T,
-                   save_ic = F, # don't save IC
-                   precip_file = sprintf('./input/prcp_%s.cbh', n),
-                   tmax_file = sprintf('./input/tmax_%s.cbh', n),
-                   tmin_file = sprintf('./input/tmin_%s.cbh', n),
-                   var_init_file = sprintf('prms_ic_%s.txt', n),
-                   var_save_file = sprintf('prms_ic_%s.txt', n))
+          # run model for forecast horizon; don't save IC (need to update those in next step)
+          run_sntemp(start = dates[t],
+                     stop = cur_stop,
+                     model_run_loc = model_run_loc,
+                     spinup = F,
+                     restart = T,
+                     save_ic = F, # don't save IC
+                     precip_file = sprintf('./input/prcp_%s.cbh', n),
+                     tmax_file = sprintf('./input/tmax_%s.cbh', n),
+                     tmin_file = sprintf('./input/tmin_%s.cbh', n),
+                     var_init_file = sprintf('prms_ic_%s.txt', n),
+                     var_save_file = sprintf('prms_ic_%s.txt', n))
+        }else{
+          # run model for forecast horizon; don't save IC (need to update those in next step)
+          run_sntemp(start = dates[t],
+                     stop = cur_stop,
+                     model_run_loc = model_run_loc,
+                     spinup = F,
+                     restart = T,
+                     save_ic = F, # don't save IC
+                     precip_file = sprintf('./input/prcp_%s.cbh', 1),
+                     tmax_file = sprintf('./input/tmax_%s.cbh', 1),
+                     tmin_file = sprintf('./input/tmin_%s.cbh', 1),
+                     var_init_file = sprintf('prms_ic_%s.txt', n),
+                     var_save_file = sprintf('prms_ic_%s.txt', n))
+        }
 
         # get predicted temperatures over forecast horizon
         model_output = get_sntemp_temperature(model_output_file = file.path(model_run_loc, 'output/seg_tave_water.csv'),
@@ -434,19 +466,33 @@ forecast = function(ind_file,
                         issue_date = dates[t],
                         nc_name_out = as_data_file(ind_file))
 
-        # rerun model to get initial states for current date
-        run_sntemp(start = dates[t],
-                   stop = dates[t],
-                   model_run_loc = model_run_loc,
-                   spinup = F,
-                   restart = T,
-                   save_ic = T,
-                   precip_file = sprintf('./input/prcp_%s.cbh', n),
-                   tmax_file = sprintf('./input/tmax_%s.cbh', n),
-                   tmin_file = sprintf('./input/tmin_%s.cbh', n),
-                   var_init_file = sprintf('prms_ic_%s.txt', n),
-                   var_save_file = sprintf('prms_ic_%s.txt', n))
-
+        if(driver_error){
+          # rerun model to get initial states for current date
+          run_sntemp(start = dates[t],
+                     stop = dates[t],
+                     model_run_loc = model_run_loc,
+                     spinup = F,
+                     restart = T,
+                     save_ic = T,
+                     precip_file = sprintf('./input/prcp_%s.cbh', n),
+                     tmax_file = sprintf('./input/tmax_%s.cbh', n),
+                     tmin_file = sprintf('./input/tmin_%s.cbh', n),
+                     var_init_file = sprintf('prms_ic_%s.txt', n),
+                     var_save_file = sprintf('prms_ic_%s.txt', n))
+        }else{
+          # rerun model to get initial states for current date
+          run_sntemp(start = dates[t],
+                     stop = dates[t],
+                     model_run_loc = model_run_loc,
+                     spinup = F,
+                     restart = T,
+                     save_ic = T,
+                     precip_file = sprintf('./input/prcp_%s.cbh', 1),
+                     tmax_file = sprintf('./input/tmax_%s.cbh', 1),
+                     tmin_file = sprintf('./input/tmin_%s.cbh', 1),
+                     var_init_file = sprintf('prms_ic_%s.txt', n),
+                     var_save_file = sprintf('prms_ic_%s.txt', n))
+        }
 
         ic_out = get_sntemp_initial_states(state_names = state_names,
                                            seg_model_idxs = cur_model_idxs,
@@ -565,7 +611,9 @@ forecast = function(ind_file,
 
   out = list(Y = Y, dates = dates, obs = obs, R = R, model_locations = model_locations)
 
-  saveRDS(object = out, file = as_data_file(ind_file))
+  rds_out = gsub('.nc.', '.rds.', ind_file, fixed = T)
+
+  saveRDS(object = out, file = rds_out)
   gd_put(remote_ind = ind_file, local_source = as_data_file(ind_file), config_file = gd_config)
 }
 
