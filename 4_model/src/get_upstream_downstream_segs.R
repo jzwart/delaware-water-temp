@@ -1,10 +1,8 @@
 
-
-create_graph = function(model_run_loc = '4_model/tmp',
-                        param_file = 'input/myparam.param',
-                        model_fabric_file = 'GIS/Segments_subset.shp',
-                        n_segments = 456){
-
+create_network_map = function(model_run_loc = '4_model/tmp',
+                              param_file = 'input/myparam.param',
+                              model_fabric_file = 'GIS/Segments_subset.shp',
+                              n_segments = 456){
   # use this to organize connect to seg_id_nat
   model_fabric = sf::read_sf(file.path(model_run_loc, model_fabric_file))
 
@@ -27,6 +25,16 @@ create_graph = function(model_run_loc = '4_model/tmp',
     rename(from_seg_id_nat = seg_id_nat) %>%
     mutate(to_seg_id_nat = ifelse(to_seg_id_nat == 0 , NA, to_seg_id_nat)) %>%
     select(from_seg_id_nat, to_seg_id_nat)
+
+  return(network_map)
+}
+
+create_graph = function(model_run_loc = '4_model/tmp',
+                        param_file = 'input/myparam.param',
+                        model_fabric_file = 'GIS/Segments_subset.shp',
+                        n_segments = 456){
+
+  network_map = create_network_map(model_run_loc, param_file, model_fabric_file, n_segments)
 
   network_graph = igraph::graph_from_data_frame(network_map, directed = TRUE)
 

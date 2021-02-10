@@ -2,44 +2,70 @@
 library(dplyr)
 library(ggplot2)
 
-d = readRDS('4_model/out/model_out_gwsum_sssum_subbasin_4182_inf_factor.rds')
-dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182_inf_factor.rds')
-d = readRDS('4_model_forecast/out/DRB_DA_SNTemp_20201023_2019-03-01_to_2019-09-01_8fdays_param[TRUE]_driver[TRUE]_init[TRUE].rds')
+d = readRDS('4_model/out/simple_heat_budget_2014-05-01_to_2015-05-01_0.75beta_0.5alpha.rds')
+# dd = readRDS('4_model/out/model_out_no_assim_subbasin_4182_inf_factor.rds')
+# d = readRDS('4_model_forecast/out/DRB_DA_SNTemp_20201023_2019-03-01_to_2019-09-01_8fdays_param[TRUE]_driver[TRUE]_init[TRUE].rds')
 
-obs = d$obs
-Y = d$Y
-R = d$R
+obs = d$obs#[,,1:10]
+Y = d$Y#[,1:10,]
+R = d$R#[,,1:10]
+Q = d$Q
+P = d$P
 n_en = 20
 n_step = length(d$dates)
-dates = d$dates
+dates = d$dates#[1:10]
 cur_model_idxs = d$model_locations$model_idx
-Y_no_assim = dd$Y
+# Y_no_assim = dd$Y
 
-#lordsville site is seg_id_nat == 1573; model_idx = 224
+#lordville site is seg_id_nat == 1573; model_idx = 224
 cur_model_idxs = '416'
+for(j in cur_model_idxs){
+  # obs[,1,1]
+  matrix_loc = which(d$model_locations$model_idx == j)
+  mean_pred = rowMeans(Y[matrix_loc,,])
+
+  windows(width = 14, height = 10)
+  par(mar = c(3,6,4,3), mfrow = c(2,1))
+  plot(Y[matrix_loc,,1] ~ dates, type = 'l',
+       ylab = 'Stream Temp (C)', xlab = '', lty=0,
+       ylim = c(0,30), #ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,]), na.rm = T), #, Y_no_assim[matrix_loc,,])
+       cex.axis = 2, cex.lab =2, main = sprintf('model idx %s', j))
+  points(obs[matrix_loc,1,] ~ dates, col = 'red', pch = 16, cex = 1.2)
+  arrows(dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
+         angle = 90, length = .05, col = 'red', code = 3)
+  for(i in 1:n_en){
+    # lines(Y_no_assim[matrix_loc,,i] ~ d$dates, col = 'grey')
+    lines(Y[matrix_loc,,i] ~ dates, col = alpha('grey', .5))
+  }
+  lines(mean_pred ~ dates, lwd = 2, col = alpha('black', .5))
+
+  plot(Q[matrix_loc,matrix_loc,] ~ dates, type = 'l',
+       ylab = 'Process Error', xlab = '', lty=3,lwd = 3,
+       cex.axis = 2, cex.lab =2)
+}
+
+
 for(j in cur_model_idxs){
   obs[,1,1]
   matrix_loc = which(d$model_locations$model_idx == j)
 
   windows(width = 14, height = 8)
   par(mar = c(3,6,4,3))
-  plot(Y[matrix_loc,,1] ~ d$dates, type = 'l',
-       ylab = 'Stream Temp (C)', xlab = '', lty=0,
-       ylim =range(c(Y[matrix_loc,,], obs[matrix_loc,1,]), na.rm = T), #, Y_no_assim[matrix_loc,,])
+  plot(Q[matrix_loc,matrix_loc,] ~ d$dates, type = 'l',
+       ylab = 'Stream Temp (C)', xlab = '', lty=3,lwd = 3,
        cex.axis = 2, cex.lab =2)
-  for(i in 1:n_en){
-    # lines(Y_no_assim[matrix_loc,,i] ~ d$dates, col = 'grey')
-    lines(Y[matrix_loc,,i] ~ d$dates)
-  }
-  points(obs[matrix_loc,1,] ~ d$dates, col = 'red', pch = 16, cex = 1.2)
-  arrows(d$dates, obs[matrix_loc,1,]+R[matrix_loc,matrix_loc,], d$dates, obs[matrix_loc,1,]-R[matrix_loc,matrix_loc,],
-  angle = 90, length = .05, col = 'red', code = 3)
 }
 
+for(j in cur_model_idxs){
+  obs[,1,1]
+  matrix_loc = which(d$model_locations$model_idx == j)
 
-
-
-
+  windows(width = 14, height = 8)
+  par(mar = c(3,6,4,3))
+  plot(P[matrix_loc,matrix_loc,] ~ d$dates, type = 'l',
+       ylab = 'Stream Temp (C)', xlab = '', lty=3,lwd = 3,
+       cex.axis = 2, cex.lab =2)
+}
 
 #
 site = 6
@@ -149,6 +175,7 @@ mean_temp = mean_Y[1:length(cur_model_idxs), time_period]
 mean_temp_no_assim = mean_Y_no_assim[1:length(cur_model_idxs), time_period]
 temp_rmse = sqrt(rowMeans((mean_temp - obs[,1,time_period])^2, na.rm = T))
 temp_rmse_no_assim = sqrt(rowMeans((mean_temp_no_assim - obs[,1,time_period])^2, na.rm = T))
+rmse_all = sqrt(mean((mean_temp - obs[,1,time_period])^2, na.rm = T))
 
 hist(temp_rmse)
 hist(temp_rmse_no_assim)

@@ -116,6 +116,90 @@ targets:
       obs_file = '3_observations/in/obs_temp_full.rds')
 
 
+### generating PRMS-SNTemp data for PGDL ensemble learning ###
+
+  # varying gw_tau only
+  4_model_for_PGDL/out/uncal_sntemp_input_output_subset_45[gw_tau]_6[ss_tau].feather.ind:
+    command: data_for_ensemble_pgdl(
+      ind_file = target_name,
+      model_run_loc = I('4_model_for_PGDL/tmp'),
+      model_output_file = I('output/stream_temp.out.nsegment'),
+      model_fabric_file = I('GIS/Segments_subset.shp'),
+      sntemp_vars = sntemp_output_vars,
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds',
+      subset = I('T'),
+      gw_tau = I(45),
+      ss_tau = I(6),
+      start = uncal_start,
+      stop = uncal_stop,
+      spinup = I('F'),
+      restart = I('F'))
+
+  4_model_for_PGDL/out/uncal_sntemp_input_output_subset_10[gw_tau]_6[ss_tau].feather.ind:
+    command: data_for_ensemble_pgdl(
+      ind_file = target_name,
+      model_run_loc = I('4_model_for_PGDL/tmp'),
+      model_output_file = I('output/stream_temp.out.nsegment'),
+      model_fabric_file = I('GIS/Segments_subset.shp'),
+      sntemp_vars = sntemp_output_vars,
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds',
+      subset = I('T'),
+      gw_tau = I(10),
+      ss_tau = I(6),
+      start = uncal_start,
+      stop = uncal_stop,
+      spinup = I('F'),
+      restart = I('F'))
+
+  4_model_for_PGDL/out/uncal_sntemp_input_output_subset_100[gw_tau]_6[ss_tau].feather.ind:
+    command: data_for_ensemble_pgdl(
+      ind_file = target_name,
+      model_run_loc = I('4_model_for_PGDL/tmp'),
+      model_output_file = I('output/stream_temp.out.nsegment'),
+      model_fabric_file = I('GIS/Segments_subset.shp'),
+      sntemp_vars = sntemp_output_vars,
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds',
+      subset = I('T'),
+      gw_tau = I(100),
+      ss_tau = I(6),
+      start = uncal_start,
+      stop = uncal_stop,
+      spinup = I('F'),
+      restart = I('F'))
+
+  # varying ss_tau only
+  4_model_for_PGDL/out/uncal_sntemp_input_output_subset_45[gw_tau]_1[ss_tau].feather.ind:
+    command: data_for_ensemble_pgdl(
+      ind_file = target_name,
+      model_run_loc = I('4_model_for_PGDL/tmp'),
+      model_output_file = I('output/stream_temp.out.nsegment'),
+      model_fabric_file = I('GIS/Segments_subset.shp'),
+      sntemp_vars = sntemp_output_vars,
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds',
+      subset = I('T'),
+      gw_tau = I(45),
+      ss_tau = I(1),
+      start = uncal_start,
+      stop = uncal_stop,
+      spinup = I('F'),
+      restart = I('F'))
+
+  4_model_for_PGDL/out/uncal_sntemp_input_output_subset_45[gw_tau]_20[ss_tau].feather.ind:
+    command: data_for_ensemble_pgdl(
+      ind_file = target_name,
+      model_run_loc = I('4_model_for_PGDL/tmp'),
+      model_output_file = I('output/stream_temp.out.nsegment'),
+      model_fabric_file = I('GIS/Segments_subset.shp'),
+      sntemp_vars = sntemp_output_vars,
+      sub_net_file = '4_model_for_PGDL/in/network_subset.rds',
+      subset = I('T'),
+      gw_tau = I(45),
+      ss_tau = I(20),
+      start = uncal_start,
+      stop = uncal_stop,
+      spinup = I('F'),
+      restart = I('F'))
+
 # -- creating synthetic training datasets --
 #     file naming == site_realOrSynthetic_train_percentSegmentsObserved_temporalResolution(days)_obsType.feather
 

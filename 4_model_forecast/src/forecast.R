@@ -74,8 +74,9 @@ forecast = function(ind_file,
   driver_error = F
   driver_names = c('tmin','tmax','prcp')
   init_cond_error = T
-  ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s_%sfdays_param[%s]_driver[%s]_init[%s].nc.ind',
-                     forecast_project_id, start, stop, forecast_horizon, param_error, driver_error, init_cond_error)
+  process_error = T
+  ind_file = sprintf('4_model_forecast/out/%s_%s_to_%s_%sfdays_param[%s]_driver[%s]_init[%s]_process[%s].nc.ind',
+                     forecast_project_id, start, stop, forecast_horizon, param_error, driver_error, init_cond_error, process_error)
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_drb.rds'
   model_run_loc = I('4_model_forecast/tmp')
@@ -100,6 +101,8 @@ forecast = function(ind_file,
   covar_inf_factor_sd = 0.5
   assimilate_obs = TRUE
   covar_inf_factor = TRUE
+  alpha = .9 # weighting on time-smoothed model error
+  beta = 1 # weighting on observed states (should be matrix if we want differening seg index weights )
   #######################################################################
 
   # copy over original run files to temporary file location
@@ -291,10 +294,22 @@ forecast = function(ind_file,
                          vars = states,
                          nc_name_out = as_data_file(ind_file))
 
+
+
   # run first forecast and store in nc out file
   for(n in 1:n_en){
     cur_stop = as.character(as.Date(dates[1]) + as.difftime(forecast_horizon - 1, units = 'days'))
     cur_forecast_dates = get_model_dates(model_start = dates[1], model_stop = cur_stop, time_step = 'days')
+    # cur_deviate = get_ens_deviate(Y = Y,
+    #                               n_en = n_en,
+    #                               cur_step = 1) # get current ensemble deviations
+    # cur_P = get_covar(deviations = cur_deviate,
+    #                       n_en = n_en)
+    # cur_gamma = get_error_dist(H = H,
+    #                            P = cur_P,
+    #                            n_en = n_en,
+    #                            cur_step = 1,
+    #                            beta = beta)
 
     if(param_error){
       # get calibrated parameters for given ensemble; update parameter file for running model
@@ -350,6 +365,20 @@ forecast = function(ind_file,
                                           model_fabric_file = file.path(model_run_loc, 'GIS/Segments_subset.shp')) %>%
       dplyr::filter(date %in% cur_forecast_dates, model_idx %in% cur_model_idxs) %>%
       arrange(date, as.numeric(model_idx))
+
+    if(process_error){
+      model_output = add_process_error(preds = model_output,
+                                       dates = cur_forecast_dates,
+                                       model_idx = cur_model_idxs,
+                                       state_error = 2, # update this to be long term RMSE for each model idx
+                                       alpha = alpha,
+                                       beta = beta,
+                                       R= R,
+                                       obs = obs,
+                                       H = H,
+                                       n_en = n_en,
+                                       cur_step = 1)
+    }
 
     nc_forecast_put(var_df = model_output,
                     var_name = 'seg_tave_water',
@@ -460,6 +489,20 @@ forecast = function(ind_file,
           dplyr::filter(date %in% cur_forecast_dates, model_idx %in% cur_model_idxs) %>%
           arrange(date, as.numeric(model_idx))
 
+        if(process_error){
+          model_output = add_process_error(preds = model_output,
+                                           dates = cur_forecast_dates,
+                                           model_idx = cur_model_idxs,
+                                           state_error = 2, # update this to be long term RMSE for each model idx
+                                           alpha = alpha,
+                                           beta = beta,
+                                           R= R,
+                                           obs = obs,
+                                           H = H,
+                                           n_en = n_en,
+                                           cur_step = t)
+        }
+
         nc_forecast_put(var_df = model_output,
                         var_name = 'seg_tave_water',
                         en = n,
@@ -499,6 +542,20 @@ forecast = function(ind_file,
                                            model_run_loc = model_run_loc,
                                            ic_file = sprintf('prms_ic_%s.txt', n))
         predicted_states = gather_states(ic_out) # predicted states from model
+        if(process_error){
+          predicted_states = add_process_error(preds = predicted_states,
+                                               dates = dates[t],
+                                               model_idx = cur_model_idxs,
+                                               state_error = 2, # update this to be long term RMSE for each model idx
+                                               alpha = alpha,
+                                               beta = beta,
+                                               R= R,
+                                               obs = obs,
+                                               H = H,
+                                               n_en = n_en,
+                                               cur_step = t)
+        }
+
 
         if(n_params_est > 0){
           updated_params_vec = c()

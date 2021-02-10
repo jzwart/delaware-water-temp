@@ -9,7 +9,7 @@ source('4_model_forecast/src/nc_forecast_utils.R')
 start = as.Date('2019-05-01')
 end = as.Date('2019-09-01')
 
-forecast_out_file = '4_model_forecast/out/DRB_DA_SNTemp_20201023_2019-03-01_to_2019-09-01_8fdays_param[TRUE]_driver[TRUE]_init[TRUE].nc'
+forecast_out_file = '4_model_forecast/out/DRB_DA_SNTemp_20201023_2019-03-01_to_2019-09-01_8fdays_param[TRUE]_driver[FALSE]_init[TRUE]_process[TRUE].nc'
 obs_file = '3_observations/out/obs_temp_flow.rds'
 model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
 

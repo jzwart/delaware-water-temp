@@ -428,6 +428,7 @@ seg_forecast_plot = ggplot() +
   # geom_sf(data = seg_obs, aes(col = obs_bins, fill = obs_bins), size = 1.1) +
   geom_sf(data = seg_obs, col = 'grey', fill = 'grey', size = 1) +
   geom_sf(data = subset_seg_obs_forecast, aes(col = obs_bins, fill = obs_bins), size = 3) +
+  geom_sf_label(data = subset_seg_obs_forecast, aes(label = model_idx)) +
   # geom_sf(data = boundary$geometry, col = 'black', alpha = 0) +
   scale_color_manual(name = '# of Obs', values = col_labs) +
   scale_fill_manual(name = '# of Obs', values = col_labs) +
@@ -437,6 +438,11 @@ seg_forecast_plot = ggplot() +
 #guides(color=guide_legend(title="Days of observations"),fill=guide_legend(title="Days of observations"))
 
 seg_forecast_plot
+
+ggplot() +
+  geom_sf(data = subset_seg_obs_forecast, col = 'grey', fill = 'grey', size = 1) +
+  geom_sf_label(data = subset_seg_obs_forecast, aes(label = model_idx))+
+  theme_minimal()
 
 # output = da_out$Y[1:42,,] %>%
 #   reshape2::melt(varnames = c('model_idx', 'issue_time', 'ensemble')) %>%

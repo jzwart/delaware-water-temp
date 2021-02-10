@@ -82,7 +82,7 @@ run_sntemp = function(start,
     init_vars_loc = grep('init_vars_from_file', ctrl) + 3
     save_vars_loc = grep('save_vars_to_file', ctrl) + 3
     strmtemp_humidity_flag_loc = grep('strmtemp_humidity_flag', ctrl) + 3
-    ctrl[init_vars_loc] = '1'
+    ctrl[init_vars_loc] = '0'
     if(save_ic){
       ctrl[save_vars_loc] = '1'
     }else{ctrl[save_vars_loc] = '0'}

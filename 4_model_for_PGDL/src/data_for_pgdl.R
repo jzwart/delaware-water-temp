@@ -89,6 +89,95 @@ data_subset_for_pgdl = function(ind_file,
   gd_put(remote_ind = ind_file, local_source = out_file, config_file = gd_config)
 }
 
+
+
+data_for_ensemble_pgdl = function(ind_file,
+                                  model_run_loc,
+                                  model_output_file,
+                                  model_fabric_file,
+                                  sntemp_vars,
+                                  sub_net_file = '4_model_for_PGDL/in/network_subset.rds',
+                                  subset = T, # true / false for subset network output
+                                  gw_tau = 45, #
+                                  ss_tau = 6,
+                                  start,
+                                  stop,
+                                  spinup,
+                                  restart,
+                                  gd_config = 'lib/cfg/gd_config.yml'){
+
+  # update params
+  cur_params_list = list(gw_tau = rep(gw_tau, 456), ss_tau = rep(ss_tau, 456))
+  param_names = c('gw_tau', 'ss_tau')
+
+  update_sntemp_params(param_names = param_names,
+                       updated_params = cur_params_list,
+                       model_run_loc = model_run_loc)
+
+  # run with new params
+  run_sntemp(start = start,
+             stop = stop,
+             spinup = spinup,
+             restart = restart,
+             model_run_loc = model_run_loc,
+             save_ic = F)
+
+  # subset network for Xiaowei
+  sub_net = readRDS(sub_net_file)
+  sub_net_sites = unique(sub_net$edges$seg_id_nat)
+
+  stream_temp_intermediates = get_sntemp_intermediates(model_output_file = file.path(model_run_loc,
+                                                                                     model_output_file),
+                                                       model_fabric_file = file.path(model_run_loc,
+                                                                                     model_fabric_file),
+                                                       sntemp_vars = sntemp_vars[[1]])
+
+  if(subset){
+    stream_temp_intermediates = dplyr::filter(stream_temp_intermediates, seg_id_nat %in% sub_net_sites)
+  }
+
+  inches_to_m = 0.0254
+  cfs_to_m3sec = 1/3.28084^3
+  langleys_day_to_w_m2 = 11.63/24 # see https://www.nrcs.usda.gov/wps/portal/nrcs/detailfull/null/?cid=stelprdb1043619 for conversion
+  stream_temp_intermediates = stream_temp_intermediates %>%
+    mutate(parameter_value = case_when(parameter == 'seg_rain' ~ parameter_value * inches_to_m,
+                                       parameter == 'seg_outflow' ~ parameter_value * cfs_to_m3sec,
+                                       parameter == 'seginc_gwflow' ~ parameter_value * cfs_to_m3sec,
+                                       parameter == 'seginc_sroff' ~ parameter_value * cfs_to_m3sec,
+                                       parameter == 'seginc_ssflow' ~ parameter_value * cfs_to_m3sec,
+                                       parameter == 'seg_upstream_inflow' ~ parameter_value * cfs_to_m3sec,
+                                       parameter == 'seg_potet' ~ parameter_value * inches_to_m,
+                                       parameter == 'seginc_swrad' ~ parameter_value * langleys_day_to_w_m2,
+                                       TRUE ~ parameter_value))
+
+
+  stream_temp_intermediates_wide = stream_temp_intermediates %>%
+    spread(key = 'parameter', value = 'parameter_value')
+
+  # get static variables
+  hru_mapping = read.table(file.path(model_run_loc, 'input/myparam.param'), skip = 4, stringsAsFactors = F)
+
+  seg_length = hru_mapping[(grep('seg_length',hru_mapping[,1])+5):(grep('seg_length',hru_mapping[,1])+460),] # seg_length, units are in m
+  seg_length = tibble(model_idx = as.character(seq(1,456)), seg_length = as.numeric(seg_length)) # in meters
+
+  seg_slope = hru_mapping[(grep('seg_slope',hru_mapping[,1])+5):(grep('seg_slope',hru_mapping[,1])+460),] # seg_slope, units dimensionless
+  seg_slope = tibble(model_idx = as.character(seq(1,456)), seg_slope = as.numeric(seg_slope)) # dimensionless
+
+  seg_elev = hru_mapping[(grep('seg_elev',hru_mapping[,1])+5):(grep('seg_elev',hru_mapping[,1])+460),] # seg_elev, units are in m
+  seg_elev = tibble(model_idx = as.character(seq(1,456)), seg_elev = as.numeric(seg_elev)) # in meters
+
+
+  stream_temp_intermediates_wide = left_join(stream_temp_intermediates_wide, seg_length, by = 'model_idx')
+  stream_temp_intermediates_wide = left_join(stream_temp_intermediates_wide, seg_slope, by = 'model_idx')
+  stream_temp_intermediates_wide = left_join(stream_temp_intermediates_wide, seg_elev, by = 'model_idx')
+
+
+  out_file = as_data_file(ind_file)
+  feather::write_feather(x = stream_temp_intermediates_wide, path = out_file)
+  gd_put(remote_ind = ind_file, local_source = out_file, config_file = gd_config)
+}
+
+
 # seg_4_int = dplyr::filter(stream_temp_intermediates, parameter == 'seg_rain', model_idx == '4')
 # seg_4_temp = dplyr::filter(stream_temp,  model_idx == '4')
 # seg_4_disch = dplyr::filter(discharge, model_idx == '4')

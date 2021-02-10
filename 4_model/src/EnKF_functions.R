@@ -59,6 +59,54 @@ get_obs_error_matrix = function(n_states, n_params_obs, n_step, state_sd, param_
   return(R)
 }
 
+#' model error matrix, should be a square matrix where
+#'   col & row = the number of states and params for which you are estimating
+#'
+#' @param n_states number of states we're updating in data assimilation routine
+#' @param n_param number of parameters for which we are estimates
+#' @param n_step number of model timesteps
+#' @param state_sd vector of state observation standard deviation; assuming sd is constant through time
+#' @param param_sd vector of parmaeter observation standard deviation; assuming sd is constant through time
+get_model_error_matrix = function(n_states, n_params, n_step, state_sd, param_sd){
+
+  Q = array(0, dim = c(n_states + n_params, n_states + n_params, n_step))
+
+  state_var = state_sd^2 #variance of temperature observations
+
+  param_var = c()
+  if(length(names(param_sd)) > 0){
+    for(i in seq_along(names(param_sd))){
+      param_var = c(param_var, param_sd[[names(param_sd)[i]]]^2)
+    }
+  }
+
+  if(n_params_obs > 0){
+    all_var = c(state_var, param_var)
+  }else{
+    all_var = state_var
+  }
+
+  for(i in 1:n_step){
+    # variance is the same for each segment and time step; updated in DA routine
+    Q[,,i] = diag(all_var, n_states + n_params, n_states + n_params)
+  }
+
+  return(Q)
+}
+
+#' model covariance matrix, should be a square matrix where
+#'   col & row = the number of states and params for which you are estimating
+#'
+#' @param n_states number of states we're updating in data assimilation routine
+#' @param n_param number of parameters for which we are estimates
+#' @param n_step number of model timesteps
+get_covar_matrix = function(n_states, n_params, n_step){
+
+  P = array(NA, dim = c(n_states + n_params, n_states + n_params, n_step))
+
+  return(P)
+}
+
 #' Measurement operator matrix saying 1 if there is observation data available, 0 otherwise
 #'
 #' @param n_states number of states we're updating in data assimilation routine
@@ -101,7 +149,7 @@ get_obs_matrix = function(obs_df, model_dates, model_locations, n_step, n_states
   obs_df_filtered = obs_df %>%
     dplyr::filter(seg_id_nat %in% model_locations,
                   date %in% model_dates) %>%
-    select(seg_id_nat, date, temp_C) %>%
+    dplyr::select(seg_id_nat, date, temp_C) %>%
     group_by(seg_id_nat) %>%
     mutate(site_row = which(model_locations %in% seg_id_nat),  # getting which row in Y vector corresponds to site location
            date_step = which(model_dates %in% date)) %>%
@@ -138,20 +186,25 @@ kalman_filter = function(Y,
                          R,
                          obs,
                          H,
+                         P,
                          n_en,
                          cur_step,
                          covar_inf_factor,
                          n_states_est,
                          n_params_est,
-                         n_covar_inf_factor){
+                         n_covar_inf_factor,
+                         localization,
+                         distance_matrix){
 
   cur_obs = obs[ , , cur_step]
 
   cur_obs = ifelse(is.na(cur_obs), 0, cur_obs) # setting NA's to zero so there is no 'error' when compared to estimated states
 
   ###### estimate the spread of your ensembles #####
-  Y_mean = matrix(apply(Y[ , cur_step, ], MARGIN = 1, FUN = mean), nrow = length(Y[ , 1, 1])) # calculating the mean of each temp and parameter estimate
-  delta_Y = Y[ , cur_step, ] - matrix(rep(Y_mean, n_en), nrow = length(Y[ , 1, 1])) # difference in ensemble state/parameter and mean of all ensemble states/parameters
+  delta_Y = get_ens_deviate(Y = Y, n_en = n_en, cur_step = cur_step)
+
+  ###### covariance #######
+  P_t = get_covar(deviations = delta_Y, n_en = n_en)
 
   if(covar_inf_factor){ # check to see if I have this right
     covar_inf_mean = mean(Y_mean[(n_states_est+n_params_est+1):(n_states_est+n_params_est+n_covar_inf_factor), ]) # just taking mean for now because I don't think it's easy to make this inflation for any one segment
@@ -161,8 +214,11 @@ kalman_filter = function(Y,
       qr.solve(((1 / (n_en - 1)) * covar_inf_mean * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
   }else{
     # estimate Kalman gain w/o covar_inf_factor #
-    K = ((1 / (n_en - 1)) * delta_Y %*% t(delta_Y) %*% t(H[, , cur_step])) %*%
-      qr.solve(((1 / (n_en - 1)) * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
+    if(localization){
+      K = P_t %*% t(H[, , cur_step]) %*% qr.solve(((1 / (n_en - 1)) * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) * distance_matrix + R[, , cur_step]))
+    }else{
+      K = P_t %*% t(H[, , cur_step]) %*% qr.solve(((1 / (n_en - 1)) * H[, , cur_step] %*% delta_Y %*% t(delta_Y) %*% t(H[, , cur_step]) + R[, , cur_step]))
+    }
   }
 
   # update Y vector #
@@ -170,6 +226,136 @@ kalman_filter = function(Y,
     Y[, cur_step, q] = Y[, cur_step, q] + K %*% (cur_obs - H[, , cur_step] %*% Y[, cur_step, q]) # adjusting each ensemble using kalman gain and observations
   }
   return(Y)
+}
+
+
+##' @param Y vector for holding states and parameters you're estimating
+##' @param R observation error matrix
+##' @param obs observations at current timestep
+##' @param H observation identity matrix
+##' @param n_en number of ensembles
+##' @param cur_step current model timestep
+kalman_filter_rastetter = function(Y,
+                                   y_it,
+                                   H,
+                                   S_t,
+                                   P,
+                                   R,
+                                   cur_step,
+                                   localization,
+                                   distance_matrix){
+
+  if(localization){
+    P_t = P[,,cur_step] * distance_matrix
+  }else{
+    P_t = P[,,cur_step]
+  }
+
+  K = qr.solve(P_t %*% t(H[, , cur_step]) %*% S_t + R[,,cur_step])
+
+  # update Y vector #
+  Y_out = Y
+  for(q in 1:n_en){
+    Y_out[, cur_step, q] = Y[, cur_step, q] + K %*% y_it[,q] # adjusting each ensemble using kalman gain and observations
+  }
+  return(Y_out)
+}
+
+update_model_error = function(Y,
+                              R,
+                              H,
+                              Q,
+                              P,
+                              Pstar_t,
+                              S_t,
+                              n_en,
+                              cur_step,
+                              n_states_est,
+                              n_params_est,
+                              beta,
+                              alpha){
+
+  gamma = get_error_dist(Y = Y, H = H, R = R, P = P, n_en = n_en, cur_step = cur_step, beta = beta)
+
+  Q_hat = gamma %*% (S_t - H[,,cur_step] %*% Pstar_t %*% t(H[,,cur_step]) - R[,,cur_step]) %*% t(gamma)
+
+  Q[,,(cur_step+1)] = alpha * Q[,,cur_step] + (1-alpha)*Q_hat
+
+  return(Q)
+}
+
+get_innovations = function(obs,
+                           H,
+                           Y,
+                           R,
+                           cur_step,
+                           n_en,
+                           n_states_est,
+                           n_params_est){
+
+  cur_obs = obs[ , , cur_step]
+
+  cur_obs = ifelse(is.na(cur_obs), 0, cur_obs) # setting NA's to zero so there is no 'error' when compared to estimated states
+
+  y_it = matrix(nrow = n_states_est, ncol = n_en)
+  for(q in 1:n_en){
+    y_it[,q] = cur_obs - H[, , cur_step] %*% Y[, cur_step, q] +
+      rnorm(n_states_est, 0, R[q,q,cur_step])
+  }
+
+  return(y_it)
+}
+
+add_process_error = function(Y,
+                             Q,
+                             n_en,
+                             cur_step){
+
+  # add process error
+  for(q in 1:n_en){
+    Y[1:dim(Q)[2], cur_step, q] = Y[1:dim(Q)[2], cur_step, q] +
+      rnorm(dim(Q)[2], rep(0,dim(Q)[2]), sqrt(abs(diag(Q[,,cur_step]))))
+  }
+
+  return(Y)
+}
+
+# get ensemble deviations
+get_ens_deviate = function(Y,
+                           n_en,
+                           cur_step){
+
+  Y_mean = matrix(apply(Y[ , cur_step, ], MARGIN = 1, FUN = mean), nrow = length(Y[ , 1, 1])) # calculating the mean of each temp and parameter estimate
+  delta_Y = Y[ , cur_step, ] - matrix(rep(Y_mean, n_en), nrow = length(Y[ , 1, 1])) # difference in ensemble state/parameter and mean of all ensemble states/parameters
+  return(delta_Y)
+}
+
+#get covariance
+get_covar = function(deviations,
+                     n_en){
+  covar = (1 / (n_en - 1)) * deviations %*% t(deviations)
+  return(covar)
+}
+
+# returns gamma from Restatter
+get_error_dist = function(Y,
+                          H,
+                          R,
+                          P,
+                          n_en,
+                          cur_step,
+                          beta){
+  # see Rastetter et al Ecological Applications, 20(5), 2010, pp. 1285–1301
+  ###### covariance #######
+  P_t = P[,,cur_step]
+
+  H_t = H[,,cur_step]
+
+  # had to add R[,,cur_step] to make matrix solve not singular
+  gamma = t(((1-beta) * qr.solve(H_t %*% P_t %*% t(H_t) + R[,,cur_step])) %*% H_t %*% P_t %*%
+    (diag(1, nrow = dim(H_t)[2], ncol = dim(H_t)[2]) - t(H_t) %*% H_t) + beta*H_t)
+
+  return(gamma)
 }
 
 
@@ -327,6 +513,46 @@ model_spinup = function(n_en,
                var_save_file = sprintf('prms_ic_spinup_%s.txt', n))
   }
 }
+
+# add_process_error = function(preds,
+#                              dates,
+#                              model_idx,
+#                              state_error,
+#                              alpha,
+#                              beta,
+#                              R,
+#                              obs,
+#                              H,
+#                              n_en,
+#                              cur_step){
+#
+#
+#   if(length(dates) == 1){
+#     q = NA
+#     w = rnorm(length(model_idx), 0, 1)
+#     q = state_error * w
+#
+#     preds[1:length(model_idx)] = preds[1:length(model_idx)] + q
+#     preds[1:length(model_idx)] = ifelse(preds[1:length(model_idx)] < 0, 0, preds[1:length(model_idx)])
+#
+#     return(preds)
+#   }else{
+#     q = NA
+#     for(i in seq_along(model_idx)){
+#       w = rnorm(length(dates), 0, 1)
+#       q[1] = state_error * w[1]
+#       for(z in 2:length(dates)){
+#         q[z] = alpha * q[z-1] + sqrt(1-alpha^2) * state_error * w[z]
+#       }
+#       preds$water_temp[preds$model_idx == model_idx[i]] = preds$water_temp[preds$model_idx == model_idx[i]] + q
+#       preds$water_temp = ifelse(preds$water_temp < 0, 0,preds$water_temp)
+#     }
+#
+#     return(preds)
+#   }
+#
+# }
+
 
 
 #' wrapper function for running EnKF for given model
