@@ -5,6 +5,7 @@ stop: '2020-07-31'
 
 sntemp_output: ['seg_rain', 'seg_tave_air', 'seg_tave_water', 'seg_outflow', 'seg_tave_gw',
 'seg_tave_sroff', 'seg_tave_ss', 'seg_tave_upstream', 'seg_upstream_inflow', 'seginc_gwflow',
-'seginc_potet', 'seginc_sroff', 'seginc_ssflow', 'seginc_swrad', 'seg_humid', 'seg_shade', 'seg_ccov', 'seg_width']
+'seginc_potet', 'seginc_sroff', 'seginc_ssflow', 'seginc_swrad', 'seg_humid', 'seg_shade',
+'seg_ccov', 'seg_width', 'seg_inflow']
 
 

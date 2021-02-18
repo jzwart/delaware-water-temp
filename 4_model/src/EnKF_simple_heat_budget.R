@@ -68,7 +68,7 @@
   library(tidyverse)
   library(igraph)
   start = '2014-05-01'
-  stop = '2015-05-01'
+  stop = '2016-05-01'
   model_fabric_file = '20191002_Delaware_streamtemp/GIS/Segments_subset.shp'
   obs_file = '3_observations/in/obs_temp_full.rds'
   model_run_loc = I('4_model/tmp')
@@ -334,12 +334,12 @@
       }
 
       # without process error
-      stream_temp_out = calc_streamtemp_heat_budget(tw_tminus1 = updated_temp,
-                                                    cur_prms_data = cur_prms_data,
-                                                    network_map = network_map,
-                                                    model_idx = cur_model_idxs,
-                                                    cur_step = t,
-                                                    dates = dates)
+      stream_temp_out = calc_streamtemp_heat_budget_3(tw_tminus1 = updated_temp,
+                                                      cur_prms_data = cur_prms_data,
+                                                      network_map = network_map,
+                                                      model_idx = cur_model_idxs,
+                                                      cur_step = t,
+                                                      dates = dates)
 
       debug_heat_flux_out = bind_rows(debug_heat_flux_out, mutate(stream_temp_out, date = dates[t]))
     }
